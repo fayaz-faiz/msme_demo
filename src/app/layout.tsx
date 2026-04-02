@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   description: "Next.js 14 clean architecture starter for auth, shop, product, and cart",
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: Readonly<{
