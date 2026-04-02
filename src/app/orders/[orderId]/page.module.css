@@ -1,0 +1,138 @@
+.page {
+  display: grid;
+  gap: 1rem;
+}
+
+.hero,
+.card {
+  border: 1px solid #dfe4d8;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(28, 33, 24, 0.06);
+}
+
+.hero {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  background: linear-gradient(135deg, #eef8f6 0%, #ffffff 70%);
+  padding: 1.25rem;
+}
+
+.kicker {
+  color: #ff5c1b;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero h1,
+.card h2 {
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+  line-height: 1.1;
+}
+
+.hero p,
+.card p {
+  color: #5a6657;
+}
+
+.badgeRow {
+  display: grid;
+  gap: 0.5rem;
+  text-align: right;
+}
+
+.badgeRow span {
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #dfe4d8;
+  font-weight: 800;
+  padding: 0.45rem 0.75rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 1rem;
+}
+
+.card {
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem;
+}
+
+.detailList {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.detailList div {
+  display: grid;
+  gap: 0.15rem;
+  border: 1px solid #e8ece4;
+  border-radius: 16px;
+  background: #f8faf5;
+  padding: 0.9rem;
+}
+
+.detailList span {
+  color: #6a7368;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.detailList strong {
+  color: #1d251d;
+}
+
+.summaryList {
+  display: grid;
+  gap: 0.65rem;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ff5c1b, #ff7f38);
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.9rem 1rem;
+  text-align: center;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.primaryButton:hover {
+  background: linear-gradient(135deg, #e94f10, #ff6930);
+}
+
+@media (max-width: 960px) {
+  .grid,
+  .hero {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .badgeRow {
+    text-align: left;
+  }
+}

@@ -1,0 +1,414 @@
+"use client";
+
+/* eslint-disable @next/next/no-img-element */
+
+import Link from "next/link";
+import type { CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { searchStoreByItems, postStoreSubcatApi } from "@/api";
+import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
+import { useLocation } from "@/features/location/context/location-context";
+import { ProductTypeBadge } from "@/features/product/components/ProductMeta";
+import { Product } from "@/features/product/domain/product";
+import { formatCurrency } from "@/shared/lib/format-currency";
+import styles from "./ShopItemsBrowser.module.css";
+
+type ShopItemsBrowserProps = {
+  slug: string;
+  providerId: string;
+  providerLocationId: string;
+  category: string;
+  shopName: string;
+  shopImage: string;
+  distance: string;
+  serviceable: boolean;
+};
+
+type SubCategory = {
+  subCategoryName: string;
+  code?: string;
+};
+
+type StoreInfo = {
+  provider_name?: string;
+  bpp_provider_symbol?: string;
+  provider_street?: string;
+  provider_city?: string;
+  distance?: string;
+  verified?: boolean;
+  category?: string;
+  provider_id?: string;
+  provider_location_id?: string;
+};
+
+type ApiItem = {
+  _id?: string;
+  item_id?: string;
+  item_name?: string;
+  item_short_desc?: string;
+  item_symbol?: string;
+  item_selling_price?: number;
+  item_available_count?: string;
+  item_veg_or_nonveg?: {
+    veg?: string | null;
+    non_veg?: string | null;
+  };
+  customizable?: boolean;
+};
+
+const PAGE_SIZE = 10;
+const DEFAULT_IMAGE =
+  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80";
+
+const toSlug = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
+const mapApiItemToProduct = (item: ApiItem, shopSlug: string): Product => {
+  const id = item._id || item.item_id || `${shopSlug}-${Math.random().toString(36).slice(2)}`;
+  const name = item.item_name || "Untitled item";
+  const description = item.item_short_desc || name;
+  const isVeg = item.item_veg_or_nonveg?.veg === "yes";
+  const isNonVeg = item.item_veg_or_nonveg?.non_veg === "yes";
+
+  return {
+    id,
+    slug: `${toSlug(name)}-${toSlug(id).slice(0, 8)}`,
+    shopSlug,
+    name,
+    description,
+    foodType: isVeg ? "veg" : isNonVeg ? "non-veg" : undefined,
+    hasVariants: !!item.customizable,
+    price: Number(item.item_selling_price || 0),
+    stock: Number(item.item_available_count || 0),
+    image: item.item_symbol || DEFAULT_IMAGE,
+  };
+};
+
+const sortProducts = (products: Product[], sortBy: string) => {
+  if (sortBy === "PRICE_LOW_TO_HIGH") {
+    return [...products].sort((a, b) => a.price - b.price);
+  }
+  if (sortBy === "PRICE_HIGH_TO_LOW") {
+    return [...products].sort((a, b) => b.price - a.price);
+  }
+  return products;
+};
+
+export function ShopItemsBrowser({
+  slug,
+  providerId,
+  providerLocationId,
+  category,
+  shopName,
+  shopImage,
+  distance,
+  serviceable,
+}: ShopItemsBrowserProps) {
+  const { location } = useLocation();
+
+  const [query, setQuery] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [productLoading, setProductLoading] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [subCategoryData, setSubCategoryData] = useState<SubCategory[]>([]);
+  const [selectedSubCategory, setSelectedSubCategory] = useState("All Items");
+  const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null);
+  const [typeOfFood, setTypeOfFood] = useState<"ALL" | "Veg" | "Non-Veg">("ALL");
+  const [sortBy, setSortBy] = useState<"RELEVANCE" | "PRICE_LOW_TO_HIGH" | "PRICE_HIGH_TO_LOW">("RELEVANCE");
+  const [page, setPage] = useState(1);
+  const [noProducts, setNoProducts] = useState(false);
+  const [noData, setNoData] = useState(false);
+  const [totalItems, setTotalItems] = useState(0);
+  const [providerStatus, setProviderStatus] = useState(true);
+
+  const observerRef = useRef<HTMLDivElement | null>(null);
+
+  const finalProviderId = storeInfo?.provider_id || providerId;
+  const finalProviderLocationId = storeInfo?.provider_location_id || providerLocationId;
+  const finalCategory = storeInfo?.category;
+
+  const resolvedShopName = storeInfo?.provider_name || shopName;
+  const resolvedShopImage = storeInfo?.bpp_provider_symbol || shopImage || DEFAULT_IMAGE;
+  const resolvedDistance = storeInfo?.distance || distance || "-";
+  const resolvedDescription = [storeInfo?.provider_street, storeInfo?.provider_city].filter(Boolean).join(", ") || "";
+
+  const fetchStoreSubCategories = async (providerIdParam: string, providerLocationIdParam: string) => {
+    const data = {
+      gpsLatitude: Number(location?.lat) || 12.9716,
+      gpsLongitude: Number(location?.lng) || 77.5946,
+      provider_id: providerIdParam,
+      location_id: providerLocationIdParam,
+    };
+
+    setLoading(true);
+    try {
+      const resp: any = await postStoreSubcatApi(data);
+      if (resp?.data?.status) {
+        const info = resp?.data?.data?.result || null;
+        const subCats = (resp?.data?.data?.availableSubCategories || []) as SubCategory[];
+
+        setStoreInfo(info);
+        setSubCategoryData(subCats);
+        setSelectedSubCategory(subCats?.[0]?.subCategoryName || "All Items");
+      }
+    } catch (err) {
+      console.error("getStoreSubCatList error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchItems = async (pageNo: number, replace: boolean) => {
+    if (!finalProviderId || !finalProviderLocationId || !finalCategory) {
+      return;
+    }
+
+    setLoading(true);
+    setProductLoading(true);
+
+    const data = {
+      providerId: finalProviderId,
+      providerLocationId: finalProviderLocationId,
+      searchText,
+      subCategoryName: selectedSubCategory === "All Items" ? "" : selectedSubCategory,
+      page: pageNo,
+      pageSize: PAGE_SIZE,
+      category: finalCategory,
+      veg: typeOfFood === "Veg" ? "yes" : "",
+      nonVeg: typeOfFood === "Non-Veg" ? "yes" : "",
+    };
+
+    try {
+      const response: any = await searchStoreByItems(data);
+      if (response?.data?.status) {
+        const total = Number(response?.data?.data?.totalItems || 0);
+        const incoming = (response?.data?.data?.data || []) as ApiItem[];
+        const mapped = incoming.map((item) => mapApiItemToProduct(item, slug));
+
+        setProviderStatus(!!response?.data?.data?.providerStatus);
+        setTotalItems(total);
+        setNoProducts(false);
+        setNoData(false);
+        setPage(pageNo + 1);
+
+        setProducts((prev) => {
+          const merged = replace ? mapped : [...prev, ...mapped];
+          const sorted = sortProducts(merged, sortBy);
+          setNoProducts(sorted.length >= total);
+          return sorted;
+        });
+      } else {
+        setNoProducts(true);
+        if (pageNo === 1) {
+          setProducts([]);
+          setNoData(true);
+        }
+      }
+    } catch (err) {
+      console.error("fetchStoresData items error:", err);
+      setNoProducts(true);
+      if (pageNo === 1) {
+        setProducts([]);
+        setNoData(true);
+      }
+    } finally {
+      setLoading(false);
+      setProductLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchText(query.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  useEffect(() => {
+    if (providerId && providerLocationId) {
+      void fetchStoreSubCategories(providerId, providerLocationId);
+    }
+  }, [providerId, providerLocationId, location?.lat, location?.lng]);
+
+  useEffect(() => {
+    if (!finalProviderId || !finalProviderLocationId || !finalCategory || !selectedSubCategory) {
+      return;
+    }
+
+    setPage(1);
+    setNoProducts(false);
+    setNoData(false);
+    void fetchItems(1, true);
+  }, [
+    finalProviderId,
+    finalProviderLocationId,
+    selectedSubCategory,
+    searchText,
+    typeOfFood,
+    sortBy,
+    category,
+    finalCategory,
+  ]);
+
+  useEffect(() => {
+    const node = observerRef.current;
+    if (!node) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting && !productLoading && !noProducts && products.length > 0) {
+          void fetchItems(page, false);
+        }
+      },
+      {
+        root: null,
+        rootMargin: "200px",
+        threshold: 0.01,
+      },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [productLoading, noProducts, page, products.length, selectedSubCategory, searchText, typeOfFood, sortBy]);
+
+  const showLoader = productLoading && products.length === 0;
+
+  return (
+    <section className={styles.wrapper}>
+      <div className={styles.hero} style={{ "--accent": "#ff7f38" } as CSSProperties}>
+        <img src={resolvedShopImage} alt={resolvedShopName} className={styles.heroImage} loading="eager" decoding="async" />
+        <div className={styles.heroOverlay} />
+        <div className={styles.heroBody}>
+          <Link href="/shops" className={styles.backLink}>
+            Back to shops
+          </Link>
+          <p className={styles.kicker}>{category || "Store"}</p>
+          <h1>{resolvedShopName}</h1>
+          <p>{resolvedDescription || "Browse products from this store."}</p>
+          <div className={styles.heroStats}>
+            <span>{resolvedDistance}</span>
+            <span className={serviceable ? styles.deliverable : styles.notDelivering}>
+              {serviceable ? "Deliverable" : "Currently not delivering"}
+            </span>
+            <span>{providerStatus ? "Store Open" : "Store Unavailable"}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.toolbar}>
+        <div className={styles.searchBox}>
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={`Search items in ${resolvedShopName}`}
+            aria-label="Search store items"
+          />
+          <button type="button" onClick={() => setQuery("")}>
+            Clear
+          </button>
+        </div>
+
+        <div className={styles.filterRow}>
+          <div className={styles.chips}>
+            {subCategoryData.map((subCat) => (
+              <button
+                key={subCat.subCategoryName}
+                type="button"
+                className={selectedSubCategory === subCat.subCategoryName ? styles.activeChip : styles.chip}
+                onClick={() => setSelectedSubCategory(subCat.subCategoryName)}
+              >
+                {subCat.subCategoryName}
+              </button>
+            ))}
+          </div>
+
+          <div className={styles.selectors}>
+            <select value={typeOfFood} onChange={(event) => setTypeOfFood(event.target.value as "ALL" | "Veg" | "Non-Veg") }>
+              <option value="ALL">All Food</option>
+              <option value="Veg">Veg</option>
+              <option value="Non-Veg">Non-Veg</option>
+            </select>
+            <select
+              value={sortBy}
+              onChange={(event) =>
+                setSortBy(event.target.value as "RELEVANCE" | "PRICE_LOW_TO_HIGH" | "PRICE_HIGH_TO_LOW")
+              }
+            >
+              <option value="RELEVANCE">Relevance</option>
+              <option value="PRICE_LOW_TO_HIGH">Price low to high</option>
+              <option value="PRICE_HIGH_TO_LOW">Price high to low</option>
+            </select>
+          </div>
+        </div>
+
+        <p className={styles.resultHint}>Showing {products.length} of {totalItems} items</p>
+      </div>
+
+      {showLoader ? (
+        <div className={styles.loaderWrap}>
+          <div className={styles.loader} />
+          <p>Fetching items from server...</p>
+        </div>
+      ) : null}
+
+      {!showLoader ? (
+        <div className={styles.grid}>
+          {products.map((product) => (
+            <article key={product.id} className={styles.card}>
+              <div className={styles.imageWrap}>
+                <img src={product.image} alt={product.name} className={styles.image} loading="lazy" decoding="async" />
+              </div>
+              <div className={styles.body}>
+                <div className={styles.cardTop}>
+                  <h2 className={styles.productName}>{product.name}</h2>
+                  <span className={styles.price}>{formatCurrency(product.price)}</span>
+                </div>
+                <ProductTypeBadge foodType={product.foodType} />
+                <p className={styles.productDescription}>{product.description}</p>
+                {product.hasVariants ? <p className={styles.variantHint}>Variants available</p> : null}
+                <div className={styles.meta}>
+                  <span>Stock {product.stock}</span>
+                  <Link href={`/products/${product.slug}`}>Details</Link>
+                </div>
+                <AddToCartButton product={product} useServerCart />
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : null}
+
+      {noData ? (
+        <div className={styles.pagination}>
+          <span>No products found.</span>
+        </div>
+      ) : null}
+
+      {productLoading && products.length > 0 ? (
+        <div className={styles.pagination}>
+          <div className={styles.loaderSmall} />
+          <span>Loading more products...</span>
+        </div>
+      ) : null}
+
+      <div ref={observerRef} className={styles.scrollSentinel} />
+
+      {noProducts && products.length > 0 ? (
+        <div className={styles.pagination}>
+          <span>All products loaded.</span>
+        </div>
+      ) : null}
+
+      {!loading && !providerStatus ? (
+        <div className={styles.pagination}>
+          <span>This provider is currently unavailable.</span>
+        </div>
+      ) : null}
+    </section>
+  );
+}

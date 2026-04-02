@@ -1,0 +1,55 @@
+.timeline {
+  display: grid;
+  gap: 0.85rem;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 1.1rem 1fr;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.marker {
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-top: 0.24rem;
+  border-radius: 999px;
+  background: #cdd4c7;
+  box-shadow: 0 0 0 0.28rem rgba(205, 212, 199, 0.18);
+}
+
+.stepBody {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.stepBody strong {
+  font-size: 0.96rem;
+}
+
+.stepBody span {
+  color: #667065;
+  font-size: 0.84rem;
+}
+
+.complete .marker {
+  background: #16a34a;
+  box-shadow: 0 0 0 0.28rem rgba(22, 163, 74, 0.12);
+}
+
+.current .marker {
+  background: #ff7f38;
+  box-shadow: 0 0 0 0.28rem rgba(255, 127, 56, 0.14);
+}
+
+.complete .stepBody strong,
+.current .stepBody strong {
+  color: #1d251d;
+}
+
+.current .stepBody span {
+  color: #d94e0f;
+  font-weight: 700;
+}

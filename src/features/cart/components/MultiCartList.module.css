@@ -1,0 +1,82 @@
+.listWrap {
+  display: grid;
+  gap: 1rem;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #dfe4d8;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 1rem;
+}
+
+.left {
+  display: flex;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.providerImage {
+  width: 92px;
+  height: 92px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.details {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.details h3 {
+  font-size: 1.05rem;
+}
+
+.details p {
+  color: #60705f;
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.actions button {
+  border: 1px solid #d7ded1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #223021;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.6rem 0.8rem;
+}
+
+.deleteButton {
+  border-color: #f0c3c3 !important;
+  color: #af2a2a !important;
+}
+
+.stateWrap {
+  border: 1px solid #dfe4d8;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 1.2rem;
+}
+
+@media (max-width: 760px) {
+  .card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+

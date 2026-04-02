@@ -1,0 +1,77 @@
+.addButton,
+.stepButton {
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.addButton {
+  background: #155e63;
+  color: #ffffff;
+  padding: 0.72rem 1rem;
+}
+
+.addButton:hover {
+  background: #114a4e;
+}
+
+.addButton:disabled,
+.stepButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid #d9ded3;
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 0.34rem 0.4rem;
+}
+
+.stepButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1;
+  background: #ff5c1b;
+  color: #ffffff;
+  padding: 0;
+}
+
+.stepButton:hover {
+  background: #e94f10;
+}
+
+.quantity {
+  min-width: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.countLoader {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #e5ece1;
+  border-top-color: #ff5c1b;
+  animation: countSpin 700ms linear infinite;
+}
+
+@keyframes countSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
