@@ -171,7 +171,7 @@ export function Providers({ children }: ProvidersProps) {
         return "TABLET";
       }
       if (ua.includes("mobile") || ua.includes("android") || ua.includes("iphone")) {
-        return "MOBILE";
+        return "PHONE";
       }
       return "DESKTOP";
     };
