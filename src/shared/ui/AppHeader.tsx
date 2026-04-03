@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getCartLengthWeb, getRloesIds, postGuestLogin } from "@/api";
+import { AppNoticeType } from "@/shared/lib/notify";
 import { useAppDispatch, useAppSelector } from "@/features/cart/store/hooks";
 import { clearCart } from "@/features/cart/store/cartSlice";
 import { logout } from "@/features/auth/store/authSlice";
@@ -29,16 +30,18 @@ export function AppHeader() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
-  const localCartCount = useAppSelector((state) =>
-    state.cart.items.reduce((sum, item) => sum + item.quantity, 0),
-  );
   const apiCartCount = useAppSelector((state) => state.apiResponse.cartLength);
   const loginName = useAppSelector((state) => state.authToken.loginName);
   const user = useAppSelector((state) => state.auth.user);
   const isAuthenticated = !!user || loginName === "USER";
   const { location, isResolving } = useLocation();
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
-  const cartCount = apiCartCount > 0 ? apiCartCount : localCartCount;
+  const [notice, setNotice] = useState<{ open: boolean; message: string; type: AppNoticeType }>({
+    open: false,
+    message: "",
+    type: "error",
+  });
+  const cartCount = Math.max(0, Number(apiCartCount || 0));
   const currentQuery = searchParams?.toString();
   const nextPath = currentQuery ? `${pathname}?${currentQuery}` : pathname;
 
@@ -47,7 +50,7 @@ export function AppHeader() {
     : isResolving
       ? "Detecting location..."
       : "Choose location";
-  const displayName = user?.name ?? null;
+  const displayName = user?.name?.trim() || user?.mobileNumber || (loginName === "USER" ? "User" : null);
   const avatarLabel = displayName ? displayName.charAt(0).toUpperCase() : "U";
 
   async function getGuestLoginApi(guestRoleId: string) {
@@ -138,6 +141,34 @@ export function AppHeader() {
     void fetchCartLength();
   }, [isAuthenticated, dispatch]);
 
+  useEffect(() => {
+    let timer: number | null = null;
+
+    const onNotice = (event: Event) => {
+      const customEvent = event as CustomEvent<{ message?: string; type?: AppNoticeType }>;
+      const message = String(customEvent?.detail?.message || "").trim();
+      if (!message) {
+        return;
+      }
+      const type = customEvent?.detail?.type || "error";
+      setNotice({ open: true, message, type });
+      if (timer) {
+        window.clearTimeout(timer);
+      }
+      timer = window.setTimeout(() => {
+        setNotice((current) => ({ ...current, open: false }));
+      }, 3000);
+    };
+
+    window.addEventListener("app-notice", onNotice as EventListener);
+    return () => {
+      window.removeEventListener("app-notice", onNotice as EventListener);
+      if (timer) {
+        window.clearTimeout(timer);
+      }
+    };
+  }, []);
+
   return (
     <>
       <header className="topbar">
@@ -176,18 +207,16 @@ export function AppHeader() {
                 <circle cx="18" cy="20" r="1.25" fill="currentColor" />
               </svg>
               <span>Cart</span>
-              <span className="cart-count">{cartCount}</span>
+              {cartCount > 0 ? <span className="cart-count">{cartCount}</span> : null}
             </Link>
 
             {isAuthenticated ? (
-              <>
-                <Link href="/profile" className="nav-profile">
-                  Profile
-                </Link>
                 <div className="user-chip">
-                  <span className="user-avatar" aria-hidden="true">
-                    {avatarLabel}
-                  </span>
+                  <Link href="/profile" className="user-avatar-link" aria-label="Go to profile">
+                    <span className="user-avatar" aria-hidden="true">
+                      {avatarLabel}
+                    </span>
+                  </Link>
                   <span className="user-name">{displayName}</span>
                   <button
                     type="button"
@@ -197,7 +226,6 @@ export function AppHeader() {
                     Logout
                   </button>
                 </div>
-              </>
             ) : (
               <Link href="/auth/login" className="nav-login">
                 Login
@@ -207,6 +235,23 @@ export function AppHeader() {
         </div>
       </header>
       <LocationPickerModal open={locationPickerOpen} onClose={() => setLocationPickerOpen(false)} />
+      {notice.open ? (
+        <div
+          className={`global-notice ${
+            notice.type === "success"
+              ? "global-notice-success"
+              : notice.type === "warning"
+                ? "global-notice-warning"
+                : notice.type === "info"
+                  ? "global-notice-info"
+                  : "global-notice-error"
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          {notice.message}
+        </div>
+      ) : null}
     </>
   );
 }

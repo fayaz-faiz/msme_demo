@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getRloesIds, postGenerateOtp, postLogin } from "@/api";
+import { getRloesIds, getUserProfileDataWeb, postGenerateOtp, postLogin } from "@/api";
 import { loginSuccess } from "@/features/auth/store/authSlice";
 import { useAppDispatch, useAppSelector } from "@/features/cart/store/hooks";
 import {
@@ -31,6 +31,23 @@ type SnackbarType = "success" | "error" | "warning";
 
 function normalizeMobileNumber(value: string) {
   return value.replace(/[\s-]/g, "");
+}
+
+function mapProfileToAuthUser(profileResponse: unknown) {
+  const typed = profileResponse as {
+    data?: { full_name?: string; mobile_number?: string };
+    full_name?: string;
+    mobile_number?: string;
+  };
+
+  const profile = typed?.data || typed;
+  const fullName = String(profile?.full_name || "").trim();
+  const mobileNumber = String(profile?.mobile_number || "").trim();
+
+  return {
+    name: fullName || null,
+    mobileNumber: mobileNumber || null,
+  };
 }
 
 function validate(values: FormValues, step: LoginStep): FormErrors {
@@ -178,10 +195,27 @@ export function LoginForm() {
         window.localStorage.setItem("nearshop_login_role", "USER");
       }
 
+      const fallbackName = `User ${normalizeMobileNumber(mobileNumber).slice(-4)}`;
+      let resolvedName = fallbackName;
+      let resolvedMobile = mobileNumber;
+
+      try {
+        const profileResponse = await getUserProfileDataWeb();
+        const profileUser = mapProfileToAuthUser(profileResponse);
+        if (profileUser.name) {
+          resolvedName = profileUser.name;
+        }
+        if (profileUser.mobileNumber) {
+          resolvedMobile = profileUser.mobileNumber;
+        }
+      } catch (profileError) {
+        console.error("Profile fetch after login failed:", profileError);
+      }
+
       dispatch(
         loginSuccess({
-          name: `User ${normalizeMobileNumber(mobileNumber).slice(-4)}`,
-          mobileNumber,
+          name: resolvedName,
+          mobileNumber: resolvedMobile,
         }),
       );
 

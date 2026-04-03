@@ -9,6 +9,7 @@ import { addItem, decreaseQuantity, increaseQuantity, removeItem, setItemQuantit
 import { useAppDispatch, useAppSelector } from "@/features/cart/store/hooks";
 import { useLocation } from "@/features/location/context/location-context";
 import { setCartLength } from "@/redux/slices";
+import { notifyOrAlert } from "@/shared/lib/notify";
 import { useState } from "react";
 import styles from "./AddToCartButton.module.css";
 
@@ -75,10 +76,10 @@ export function AddToCartButton({ product, useServerCart = false }: AddToCartBut
       }
 
       const message = result?.data?.data?.message || "Unable to update cart.";
-      window.alert(message);
+      notifyOrAlert(message, "warning");
       return { ok: false, itemCount: Number.isFinite(itemCount) ? itemCount : 0 };
     } catch (error: any) {
-      window.alert(error?.response?.data?.message || "Unable to update cart.");
+      notifyOrAlert(error?.response?.data?.message || "Unable to update cart.", "error");
       return { ok: false, itemCount: 0 };
     }
   };
@@ -125,6 +126,13 @@ export function AddToCartButton({ product, useServerCart = false }: AddToCartBut
           }
           const nextCount = Math.max(0, quantity - 1);
           if (useServerCart) {
+            if (nextCount === 0) {
+              // Switch back to "Add To Cart" immediately when user decrements from 1.
+              dispatch(removeItem({ productId: product.id }));
+              void updateServerCart(0);
+              return;
+            }
+
             setIsUpdating(true);
             const response = await updateServerCart(nextCount);
             setIsUpdating(false);

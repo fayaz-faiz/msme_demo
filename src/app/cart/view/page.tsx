@@ -36,7 +36,7 @@ export default function CartViewPage() {
     <section className="page">
       <h1>Your Cart</h1>
       <p className="page-intro">
-        Review selected products, update quantities, and head to checkout when you are ready.
+        Review selected products, update quantities, and view delivery options when you are ready.
       </p>
       <CartDetailApi cartId={cartId} />
     </section>

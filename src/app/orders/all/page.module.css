@@ -28,14 +28,12 @@
   text-transform: uppercase;
 }
 
-.hero h1,
-.card h2 {
+.hero h1 {
   font-size: clamp(1.4rem, 2.5vw, 2rem);
   line-height: 1.1;
 }
 
-.hero p,
-.card p {
+.hero p {
   color: #5a6657;
 }
 
@@ -53,56 +51,10 @@
   padding: 0.45rem 0.75rem;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: 0.9fr 1.1fr;
-  gap: 1rem;
-  align-items: start;
-}
-
 .card {
   display: grid;
   gap: 1rem;
   padding: 1.2rem;
-  min-width: 0;
-}
-
-.headingRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.8rem;
-}
-
-.grid > .card:first-child {
-  position: sticky;
-  top: 1rem;
-  align-self: start;
-}
-
-.detailList {
-  display: grid;
-  gap: 0.9rem;
-}
-
-.detailList div {
-  display: grid;
-  gap: 0.15rem;
-  border: 1px solid #e8ece4;
-  border-radius: 16px;
-  background: #f8faf5;
-  padding: 0.9rem;
-}
-
-.detailList span {
-  color: #6a7368;
-  font-size: 0.82rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.detailList strong {
-  color: #1d251d;
 }
 
 .orderList {
@@ -184,10 +136,8 @@
   justify-items: end;
 }
 
-.trackButton,
-.viewAllButton,
-.secondaryButton,
-.primaryButton {
+.primaryButton,
+.secondaryButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -202,17 +152,9 @@
   width: fit-content;
 }
 
-.trackButton,
-.viewAllButton,
 .primaryButton {
   background: linear-gradient(135deg, #ff5c1b, #ff7f38);
   color: #ffffff;
-}
-
-.trackButton:hover,
-.viewAllButton:hover,
-.primaryButton:hover {
-  background: linear-gradient(135deg, #e94f10, #ff6930);
 }
 
 .secondaryButton {
@@ -221,8 +163,13 @@
   color: #243121;
 }
 
-.secondaryButton:hover {
-  background: #f4f7f1;
+.backProfileLink {
+  gap: 0.45rem;
+}
+
+.backIcon {
+  font-size: 0.95rem;
+  line-height: 1;
 }
 
 .emptyState {
@@ -232,8 +179,23 @@
   padding: 1rem;
 }
 
+.errorWrap {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.loadMoreWrap {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.5rem;
+}
+
+.endText {
+  color: #667065;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 960px) {
-  .grid,
   .hero {
     grid-template-columns: 1fr;
     flex-direction: column;
@@ -255,9 +217,5 @@
 
   .amountWrap {
     justify-items: start;
-  }
-
-  .grid > .card:first-child {
-    position: static;
   }
 }

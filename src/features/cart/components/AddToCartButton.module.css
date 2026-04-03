@@ -8,9 +8,15 @@
 }
 
 .addButton {
+  min-height: 2.75rem;
+  min-width: 8.75rem;
   background: #155e63;
   color: #ffffff;
   padding: 0.72rem 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .addButton:hover {
@@ -26,11 +32,14 @@
 .stepper {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: space-between;
+  gap: 0.25rem;
   border: 1px solid #d9ded3;
   border-radius: 999px;
   background: #ffffff;
-  padding: 0.34rem 0.4rem;
+  padding: 0.34rem 0.38rem;
+  min-height: 2.75rem;
+  min-width: 8.75rem;
 }
 
 .stepButton {
@@ -52,12 +61,13 @@
 }
 
 .quantity {
-  min-width: 1.75rem;
+  min-width: 2rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   font-weight: 800;
+  font-size: 1rem;
   line-height: 1.1;
 }
 

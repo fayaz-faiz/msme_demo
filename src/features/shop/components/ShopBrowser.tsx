@@ -290,7 +290,7 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
 
   return (
     <section className={styles.wrapper}>
-      <div className={styles.headerCard}>
+      {/* <div className={styles.headerCard}>
         <div>
           <h1>Browse Shops</h1>
           <p>Search stores, inspect ratings, and jump into the item catalog with one click.</p>
@@ -299,8 +299,8 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
           <span>{filteredShops.length} stores</span>
           <span>{storeLoading ? "Loading from server..." : `Total: ${totalCount}`}</span>
         </div>
-      </div>
-
+      </div> */}
+      <h2>Shop by categories</h2>
       <div className={styles.toolbar}>
         <div className={styles.filters} aria-label="Store categories">
           {enabledCategories.map((category) => (
@@ -315,7 +315,7 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
             </button>
           ))}
         </div>
-
+        <h2>Nearby Shops</h2>
         <div className={styles.searchBox}>
           <input
             type="search"
@@ -328,9 +328,9 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
             Clear
           </button>
         </div>
-        <p className={styles.resultHint}>
+        {/* <p className={styles.resultHint}>
           {categoryLoading ? "Loading categories..." : `Selected category: ${activeCategory || "-"}`}
-        </p>
+        </p> */}
       </div>
 
       {showFullLoader ? (

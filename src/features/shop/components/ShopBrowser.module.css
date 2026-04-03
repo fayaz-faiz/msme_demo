@@ -103,12 +103,17 @@
 }
 
 .searchBox {
+  position: sticky;
+  top: calc(env(safe-area-inset-top) + 5rem);
+  z-index: 6;
   display: grid;
   gap: 0.65rem;
   grid-template-columns: 1fr auto;
   border: 1px solid #d9ded3;
   border-radius: 16px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 18px rgba(28, 33, 24, 0.08);
   padding: 0.45rem;
 }
 
@@ -372,6 +377,11 @@
 }
 
 @media (max-width: 640px) {
+  .searchBox {
+    top: calc(env(safe-area-inset-top) + 6.9rem);
+    border-radius: 14px;
+  }
+
   .filters {
     gap: 0.45rem;
   }

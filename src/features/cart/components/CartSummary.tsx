@@ -110,7 +110,7 @@ export function CartSummary() {
             router.push("/checkout");
           }}
         >
-          {user ? "Proceed to Checkout" : "Login To Checkout"}
+          {user ? "View delivery options" : "Login To continue"}
         </button>
       </aside>
     </section>
