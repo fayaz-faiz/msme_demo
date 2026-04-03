@@ -84,7 +84,7 @@ function pickOrderTotal(order: OrderLike | null) {
 }
 
 function pickOrderDate(order: OrderLike | null) {
-  const raw = order?.order_placed_timestamp || order?.created_at || order?.createdAt;
+  const raw:any = order?.order_placed_timestamp || order?.created_at || order?.createdAt;
   if (!raw) {
     return "-";
   }
@@ -95,7 +95,7 @@ function pickOrderDate(order: OrderLike | null) {
   return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(date);
 }
 
-function pickAddress(order: OrderLike | null) {
+function pickAddress(order: any) {
   const address = order?.billings?.address || order?.shipping_address || order?.delivery_address || order?.address;
   if (!address) {
     return "-";
@@ -111,7 +111,7 @@ function pickOrderStatus(order: OrderLike | null) {
   return String(order?.state || order?.status || "Placed");
 }
 
-function pickPaymentStatus(order: OrderLike | null) {
+function pickPaymentStatus(order: any) {
   return String(order?.payment_details?.status || order?.payment_status || "Pending");
 }
 
@@ -119,7 +119,7 @@ export default function ProfilePage() {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const loginName = useAppSelector((state) => state.authToken.loginName);
-  const orders = useAppSelector((state) => state.orders.items);
+  // const orders = useAppSelector((state) => state.orders.items);
   const userName = user?.name?.trim() || "User";
   const userMobile = user?.mobileNumber || "-";
   const [latestOrder, setLatestOrder] = useState<OrderLike | null>(null);
