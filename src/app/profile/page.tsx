@@ -19,6 +19,14 @@ function formatPaymentLabel(status: string) {
 }
 
 type OrderLike = Record<string, unknown>;
+type UnknownRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): UnknownRecord | undefined {
+  if (typeof value === "object" && value !== null) {
+    return value as UnknownRecord;
+  }
+  return undefined;
+}
 
 function toReadableMessage(value: unknown): string {
   if (!value) {
@@ -84,9 +92,12 @@ function pickOrderTotal(order: OrderLike | null) {
 }
 
 function pickOrderDate(order: OrderLike | null) {
-  const raw:any = order?.order_placed_timestamp || order?.created_at || order?.createdAt;
+  const raw = order?.order_placed_timestamp || order?.created_at || order?.createdAt;
   if (!raw) {
     return "-";
+  }
+  if (!(typeof raw === "string" || typeof raw === "number" || raw instanceof Date)) {
+    return String(raw);
   }
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) {
@@ -95,15 +106,20 @@ function pickOrderDate(order: OrderLike | null) {
   return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(date);
 }
 
-function pickAddress(order: any) {
-  const address = order?.billings?.address || order?.shipping_address || order?.delivery_address || order?.address;
+function pickAddress(order: OrderLike | null) {
+  const billing = asRecord(order?.billings);
+  const address = billing?.address || order?.shipping_address || order?.delivery_address || order?.address;
   if (!address) {
     return "-";
   }
   if (typeof address === "string") {
     return address;
   }
-  const parts = [address?.building, address?.locality, address?.city, address?.state, address?.area_code || address?.pincode].filter(Boolean);
+  const addressData = asRecord(address);
+  if (!addressData) {
+    return "-";
+  }
+  const parts = [addressData.building, addressData.locality, addressData.city, addressData.state, addressData.area_code || addressData.pincode].filter(Boolean);
   return parts.join(", ");
 }
 
@@ -111,15 +127,15 @@ function pickOrderStatus(order: OrderLike | null) {
   return String(order?.state || order?.status || "Placed");
 }
 
-function pickPaymentStatus(order: any) {
-  return String(order?.payment_details?.status || order?.payment_status || "Pending");
+function pickPaymentStatus(order: OrderLike | null) {
+  const paymentDetails = asRecord(order?.payment_details);
+  return String(paymentDetails?.status || order?.payment_status || "Pending");
 }
 
 export default function ProfilePage() {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const loginName = useAppSelector((state) => state.authToken.loginName);
-  // const orders = useAppSelector((state) => state.orders.items);
   const userName = user?.name?.trim() || "User";
   const userMobile = user?.mobileNumber || "-";
   const [latestOrder, setLatestOrder] = useState<OrderLike | null>(null);

@@ -8,6 +8,14 @@ import { notifyOrAlert } from "@/shared/lib/notify";
 import styles from "./page.module.css";
 
 type OrderLike = Record<string, unknown>;
+type UnknownRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): UnknownRecord | undefined {
+  if (typeof value === "object" && value !== null) {
+    return value as UnknownRecord;
+  }
+  return undefined;
+}
 
 function toReadableMessage(value: unknown): string {
   if (!value) {
@@ -56,7 +64,8 @@ function pickOrderStatus(order: OrderLike) {
 }
 
 function pickPaymentStatus(order: OrderLike) {
-  return String(order?.payment_details?.status || order?.payment_status || "Pending");
+  const paymentDetails = asRecord(order?.payment_details);
+  return String(paymentDetails?.status || order?.payment_status || "Pending");
 }
 
 function pickOrderTotal(order: OrderLike) {
@@ -70,6 +79,9 @@ function pickOrderDate(order: OrderLike) {
   if (!raw) {
     return "-";
   }
+  if (!(typeof raw === "string" || typeof raw === "number" || raw instanceof Date)) {
+    return String(raw);
+  }
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) {
     return String(raw);
@@ -78,14 +90,19 @@ function pickOrderDate(order: OrderLike) {
 }
 
 function pickAddress(order: OrderLike) {
-  const address = order?.billings?.address || order?.shipping_address || order?.delivery_address || order?.address;
+  const billing = asRecord(order?.billings);
+  const address = billing?.address || order?.shipping_address || order?.delivery_address || order?.address;
   if (!address) {
     return "-";
   }
   if (typeof address === "string") {
     return address;
   }
-  const parts = [address?.building, address?.locality, address?.city, address?.state, address?.area_code || address?.pincode].filter(Boolean);
+  const addressData = asRecord(address);
+  if (!addressData) {
+    return "-";
+  }
+  const parts = [addressData.building, addressData.locality, addressData.city, addressData.state, addressData.area_code || addressData.pincode].filter(Boolean);
   return parts.join(", ");
 }
 
