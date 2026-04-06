@@ -321,11 +321,6 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
 
     setIsInitializing(true);
     try {
-      const verified = await verifyCart();
-      if (!verified) {
-        return;
-      }
-
       const payload = {
         cart_id: cartId,
         billing_address_id: activeAddress._id,

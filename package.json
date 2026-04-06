@@ -6,7 +6,7 @@
     "dev": "next dev",
     "dev:2300": "next dev -p 2300",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port ${PORT-3000}",
     "start:2300": "next start -p 2300",
     "lint": "next lint"
   },
