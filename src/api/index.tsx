@@ -28,7 +28,9 @@ import {
   CONTACT_US_API,
   REPEAT_ORDER,
   UPLOAD_PROFILE,
-  LATEST_ORDER
+  LATEST_ORDER,
+  GET_ABOUT_US,
+  GET_PRIVACY_POLICY
 } from './apiConstants'
 
 const getTermsAndConditions = async () => {
@@ -426,10 +428,20 @@ const postIssueSubCategoryData = async (data: any) => {
     throw error;
   }
 };
-//INFO:Log out the user
-const postLogout = async (data: any) => {
+/// Get About Us
+const getAboutUs = async () => {
   try {
-    const result = await postAPIHelper(POST_LOGOUT, data);
+    const result = await getAPIHelper(GET_ABOUT_US);
+    return result;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Get Privacy Policy
+const getPrivacyPolicy = async () => {
+  try {
+    const result = await getAPIHelper(GET_PRIVACY_POLICY);
     return result;
   } catch (error) {
     throw error;
@@ -561,6 +573,16 @@ const getLatestOrder = async () => {
   }
 };
 
+
+const postLogout = async (data: any) => {
+  try {
+    const result = await postAPIHelper(POST_LOGOUT, data);
+    return result;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export {
   getTermsAndConditions, getRloesIds, postGenerateOtp, getUserProfileData, postAddUpdateCart, postSearchById,
   postSearchByIdWeb, postAccessToken, postLogin, getCategoryData, postSearchStoreByLocation, postSearchStoreByLocationWeb,
@@ -569,9 +591,10 @@ export {
   postSearchByNameAndCategory, postDeleteCart, postSearchByImage, postAccessTokenWeb, postAddAddress,
   deleteAddressDataWeb, searchStoreByItems, postCheckIssueByOrderId, postIssueByOrderId, postIgmUploadImage,
   postIssueStatuts, postIssueCloseById, postIssueById, postCreateIssueData, postMyIssuesData, postSubCategoryData,
-  postOrderbyIdData, getIssueCategoryData, postIssueSubCategoryData, postLogout, postOrderDertailsById, updateAddress,
+  postOrderbyIdData, getIssueCategoryData, postIssueSubCategoryData, postOrderDertailsById, updateAddress,
   getCancelReasons, orderCancelOrder, getReturnReasons, orderReturnOrder, payemntGw, postTrackOrder, postStoreSubcatApi,
   getCancellationAndreturn, postOrderStatusById, getCantactDetails, postRepeatOrdersApiData, postUploadProfile, getLatestOrder,
+  getAboutUs, getPrivacyPolicy, postLogout
 }
 
 

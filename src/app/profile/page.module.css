@@ -225,11 +225,70 @@
   background: #f4f7f1;
 }
 
+.profileActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.logoutButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #f1beb4;
+  border-radius: 14px;
+  background: #fff5f2;
+  color: #a53a24;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.85rem 0.98rem;
+}
+
+.logoutButton:hover {
+  background: #ffe9e2;
+}
+
 .emptyState {
   border: 1px dashed #dfe4d8;
   border-radius: 18px;
   color: #667065;
   padding: 1rem;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: rgba(19, 24, 18, 0.45);
+  padding: 1rem;
+}
+
+.modalCard {
+  width: min(100%, 440px);
+  display: grid;
+  gap: 0.9rem;
+  border: 1px solid #dfe4d8;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 20px 45px rgba(12, 18, 10, 0.2);
+  padding: 1rem;
+}
+
+.modalCard h3 {
+  font-size: 1.1rem;
+}
+
+.modalCard p {
+  color: #596457;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
 }
 
 @media (max-width: 960px) {
@@ -259,5 +318,10 @@
 
   .grid > .card:first-child {
     position: static;
+  }
+
+  .modalActions {
+    flex-direction: column-reverse;
+    align-items: stretch;
   }
 }

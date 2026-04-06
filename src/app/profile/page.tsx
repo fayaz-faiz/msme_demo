@@ -2,10 +2,26 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { getLatestOrder, getUserProfileDataWeb } from "@/api";
+import { useRouter } from "next/navigation";
+import { getLatestOrder, getRloesIds, getUserProfileDataWeb, postGuestLogin } from "@/api";
 import { useAppDispatch, useAppSelector } from "@/features/cart/store/hooks";
-import { loginSuccess } from "@/features/auth/store/authSlice";
+import { clearCart } from "@/features/cart/store/cartSlice";
+import { loginSuccess, logout } from "@/features/auth/store/authSlice";
 import { ORDER_STATUS_STEPS } from "@/features/orders/domain/order";
+import { hydrateOrders } from "@/features/orders/store/ordersSlice";
+import {
+  loginNameSlice,
+  logoutSlice,
+  logoutUserSlice,
+  logoutUsersSlice,
+  logoutUserssSlice,
+  setAccessToken,
+  setCartLength,
+  setIsLoggedIn,
+  setRefreshToken,
+  setUserType,
+  userAuthDataSlice,
+} from "@/redux/slices";
 import { formatCurrency } from "@/shared/lib/format-currency";
 import { notifyOrAlert } from "@/shared/lib/notify";
 import styles from "./page.module.css";
@@ -133,6 +149,7 @@ function pickPaymentStatus(order: OrderLike | null) {
 }
 
 export default function ProfilePage() {
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const loginName = useAppSelector((state) => state.authToken.loginName);
@@ -140,6 +157,71 @@ export default function ProfilePage() {
   const userMobile = user?.mobileNumber || "-";
   const [latestOrder, setLatestOrder] = useState<OrderLike | null>(null);
   const [loadingLatest, setLoadingLatest] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const getGuestLoginApi = async (guestRoleId: string) => {
+    const payload = { role: guestRoleId };
+    const response = await postGuestLogin(payload) as {
+      data?: { statusCode?: number; status?: boolean; data?: { accessToken?: string; refreshToken?: string } };
+    };
+    const isSuccess = response?.data?.statusCode === 200 || response?.data?.status === true;
+    const tokenData = response?.data?.data;
+    if (isSuccess && tokenData) {
+      dispatch(setAccessToken(tokenData.accessToken ?? ""));
+      dispatch(setRefreshToken(tokenData.refreshToken ?? ""));
+      dispatch(loginNameSlice("GUEST"));
+      dispatch(setUserType("GUEST"));
+      dispatch(setIsLoggedIn(false));
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("nearshop_access_token", tokenData.accessToken ?? "");
+        window.localStorage.setItem("nearshop_refresh_token", tokenData.refreshToken ?? "");
+        window.localStorage.setItem("nearshop_login_role", "GUEST");
+      }
+    }
+  };
+
+  const bootstrapGuestSession = async () => {
+    try {
+      const response = await getRloesIds() as { data?: Array<{ role?: string; _id?: string }> };
+      const roles = Array.isArray(response?.data) ? response.data : [];
+      dispatch(userAuthDataSlice(roles));
+      const guest = roles.find((item) => item.role === "GUEST");
+      if (guest?._id) {
+        await getGuestLoginApi(guest._id);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (isLoggingOut) {
+      return;
+    }
+    setIsLoggingOut(true);
+    try {
+      dispatch(clearCart());
+      dispatch(hydrateOrders([]));
+      dispatch(logout());
+      dispatch(logoutSlice());
+      dispatch(logoutUserSlice());
+      dispatch(logoutUsersSlice());
+      dispatch(logoutUserssSlice());
+      dispatch(setCartLength(0));
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("msme-location");
+        window.localStorage.removeItem("nearshop_access_token");
+        window.localStorage.removeItem("nearshop_refresh_token");
+        window.localStorage.removeItem("nearshop_login_role");
+      }
+      await bootstrapGuestSession();
+      setShowLogoutConfirm(false);
+      router.push("/");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   useEffect(() => {
     const fetchLatest = async () => {
@@ -255,9 +337,14 @@ export default function ProfilePage() {
               <strong>{userMobile}</strong>
             </div>
           </div>
-          <Link href="/shops" className={styles.secondaryButton}>
-            Continue Shopping
-          </Link>
+          <div className={styles.profileActions}>
+            <Link href="/shops" className={styles.secondaryButton}>
+              Continue Shopping
+            </Link>
+            <button type="button" className={styles.logoutButton} onClick={() => setShowLogoutConfirm(true)}>
+              Logout
+            </button>
+          </div>
         </section>
 
         <section className={styles.card}>
@@ -304,6 +391,23 @@ export default function ProfilePage() {
           )}
         </section>
       </div>
+
+      {showLogoutConfirm ? (
+        <div className={styles.modalBackdrop} role="presentation" onClick={() => setShowLogoutConfirm(false)}>
+          <div className={styles.modalCard} role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+            <h3>Logout from account?</h3>
+            <p>This will clear your cart, profile session, orders cache, and saved location data.</p>
+            <div className={styles.modalActions}>
+              <button type="button" className={styles.secondaryButton} onClick={() => setShowLogoutConfirm(false)} disabled={isLoggingOut}>
+                Cancel
+              </button>
+              <button type="button" className={styles.logoutButton} onClick={handleLogout} disabled={isLoggingOut}>
+                {isLoggingOut ? "Logging out..." : "Yes, Logout"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

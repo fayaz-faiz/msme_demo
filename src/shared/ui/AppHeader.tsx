@@ -3,25 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { getCartLengthWeb, getRloesIds, postGuestLogin } from "@/api";
+import { getCartLengthWeb } from "@/api";
 import { AppNoticeType } from "@/shared/lib/notify";
 import { useAppDispatch, useAppSelector } from "@/features/cart/store/hooks";
-import { clearCart } from "@/features/cart/store/cartSlice";
-import { logout } from "@/features/auth/store/authSlice";
-import { hydrateOrders } from "@/features/orders/store/ordersSlice";
 import { useLocation } from "@/features/location/context/location-context";
 import {
-  logoutSlice,
-  logoutUserSlice,
-  logoutUsersSlice,
-  logoutUserssSlice,
-  loginNameSlice,
-  setAccessToken,
   setCartLength,
-  setIsLoggedIn,
-  setRefreshToken,
-  setUserType,
-  userAuthDataSlice,
 } from "@/redux/slices";
 import { LocationPickerModal } from "@/features/location/components/LocationPickerModal";
 
@@ -53,64 +40,6 @@ export function AppHeader() {
   const displayName = user?.name?.trim() || user?.mobileNumber || (loginName === "USER" ? "User" : null);
   const avatarLabel = displayName ? displayName.charAt(0).toUpperCase() : "U";
 
-  async function getGuestLoginApi(guestRoleId: string) {
-    const payload = { role: guestRoleId };
-    const response: any = await postGuestLogin(payload);
-    const isSuccess = response?.data?.statusCode === 200 || response?.data?.status === true;
-    const tokenData = response?.data?.data;
-    if (isSuccess && tokenData) {
-      dispatch(setAccessToken(tokenData.accessToken ?? ""));
-      dispatch(setRefreshToken(tokenData.refreshToken ?? ""));
-      dispatch(loginNameSlice("GUEST"));
-      dispatch(setUserType("GUEST"));
-      dispatch(setIsLoggedIn(false));
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem("nearshop_access_token", tokenData.accessToken ?? "");
-        window.localStorage.setItem("nearshop_refresh_token", tokenData.refreshToken ?? "");
-        window.localStorage.setItem("nearshop_login_role", "GUEST");
-      }
-    }
-  }
-
-  async function userAuth() {
-    try {
-      const response: any = await getRloesIds();
-      const roles = response?.data ?? [];
-      dispatch(userAuthDataSlice(roles));
-      const guest = roles.find((item: { role?: string; _id?: string }) => item.role === "GUEST");
-      if (guest?._id) {
-        await getGuestLoginApi(guest._id);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  async function handleLogout() {
-    const confirmed = window.confirm(
-      "Log out? This will clear your cart, order history, profile session, and saved location data.",
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    dispatch(clearCart());
-    dispatch(hydrateOrders([]));
-    dispatch(logout());
-    dispatch(logoutSlice());
-    dispatch(logoutUserSlice());
-    dispatch(logoutUsersSlice());
-    dispatch(logoutUserssSlice());
-    dispatch(setCartLength(0));
-    window.localStorage.removeItem("msme-location");
-    window.localStorage.removeItem("nearshop_access_token");
-    window.localStorage.removeItem("nearshop_refresh_token");
-    window.localStorage.removeItem("nearshop_login_role");
-    await userAuth();
-    router.push("/");
-  }
-
   function handleCartClick(event: React.MouseEvent<HTMLAnchorElement>) {
     if (isAuthenticated) {
       return;
@@ -130,7 +59,7 @@ export function AppHeader() {
         return;
       }
       try {
-        const result: any = await getCartLengthWeb();
+        const result = await getCartLengthWeb() as { data?: { data?: unknown } };
         const length = Number(result?.data?.data ?? 0);
         dispatch(setCartLength(length));
       } catch (error) {
@@ -218,13 +147,9 @@ export function AppHeader() {
                     </span>
                   </Link>
                   <span className="user-name">{displayName}</span>
-                  <button
-                    type="button"
-                    className="logout-button"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </button>
+                  <Link href="/profile" className="logout-button">
+                    Profile
+                  </Link>
                 </div>
             ) : (
               <Link href="/auth/login" className="nav-login">
