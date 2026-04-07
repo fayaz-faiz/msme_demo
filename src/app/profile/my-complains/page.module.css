@@ -1,0 +1,50 @@
+.page {
+  display: grid;
+  gap: 1rem;
+}
+
+.card {
+  display: grid;
+  gap: 0.9rem;
+  border: 1px solid #dfe4d8;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(28, 33, 24, 0.06);
+  padding: 1.2rem;
+}
+
+.kicker {
+  color: #ff5c1b;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.card h1 {
+  color: #1d251d;
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  line-height: 1.15;
+}
+
+.card p {
+  color: #566352;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dfe4d8;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #243121;
+  font-weight: 700;
+  padding: 0.65rem 0.85rem;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.backButton:hover {
+  background: #f4f7f1;
+}

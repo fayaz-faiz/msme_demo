@@ -583,6 +583,15 @@ const postLogout = async (data: any) => {
   }
 };
 
+const deleteAddress = async (data: any) => {
+  try {
+    const result = await postAPIHelper(DELETE_ADDRESS_API, data);
+    return result;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export {
   getTermsAndConditions, getRloesIds, postGenerateOtp, getUserProfileData, postAddUpdateCart, postSearchById,
   postSearchByIdWeb, postAccessToken, postLogin, getCategoryData, postSearchStoreByLocation, postSearchStoreByLocationWeb,
@@ -594,7 +603,7 @@ export {
   postOrderbyIdData, getIssueCategoryData, postIssueSubCategoryData, postOrderDertailsById, updateAddress,
   getCancelReasons, orderCancelOrder, getReturnReasons, orderReturnOrder, payemntGw, postTrackOrder, postStoreSubcatApi,
   getCancellationAndreturn, postOrderStatusById, getCantactDetails, postRepeatOrdersApiData, postUploadProfile, getLatestOrder,
-  getAboutUs, getPrivacyPolicy, postLogout
+  getAboutUs, getPrivacyPolicy, postLogout, deleteAddress,
 }
 
 

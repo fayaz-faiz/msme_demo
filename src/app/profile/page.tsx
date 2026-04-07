@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getLatestOrder, getRloesIds, getUserProfileDataWeb, postGuestLogin } from "@/api";
+import { editProfileWeb, getLatestOrder, getRloesIds, getUserProfileDataWeb, postGuestLogin, postLogout } from "@/api";
 import { useAppDispatch, useAppSelector } from "@/features/cart/store/hooks";
 import { clearCart } from "@/features/cart/store/cartSlice";
 import { loginSuccess, logout } from "@/features/auth/store/authSlice";
@@ -153,10 +153,14 @@ export default function ProfilePage() {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const loginName = useAppSelector((state) => state.authToken.loginName);
+  const refreshToken = useAppSelector((state) => state.authToken.refreshToken);
   const userName = user?.name?.trim() || "User";
   const userMobile = user?.mobileNumber || "-";
   const [latestOrder, setLatestOrder] = useState<OrderLike | null>(null);
   const [loadingLatest, setLoadingLatest] = useState(false);
+  const [nameInput, setNameInput] = useState(userName);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [isSavingName, setIsSavingName] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -195,33 +199,92 @@ export default function ProfilePage() {
     }
   };
 
+  const clearLogoutHandler = async () => {
+    dispatch(clearCart());
+    dispatch(hydrateOrders([]));
+    dispatch(logout());
+    dispatch(logoutSlice());
+    dispatch(logoutUserSlice());
+    dispatch(logoutUsersSlice());
+    dispatch(logoutUserssSlice());
+    dispatch(setCartLength(0));
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("msme-location");
+      window.localStorage.removeItem("nearshop_access_token");
+      window.localStorage.removeItem("nearshop_refresh_token");
+      window.localStorage.removeItem("nearshop_login_role");
+    }
+    await bootstrapGuestSession();
+    setShowLogoutConfirm(false);
+    router.push("/");
+  };
+
   const handleLogout = async () => {
     if (isLoggingOut) {
       return;
     }
     setIsLoggingOut(true);
     try {
-      dispatch(clearCart());
-      dispatch(hydrateOrders([]));
-      dispatch(logout());
-      dispatch(logoutSlice());
-      dispatch(logoutUserSlice());
-      dispatch(logoutUsersSlice());
-      dispatch(logoutUserssSlice());
-      dispatch(setCartLength(0));
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem("msme-location");
-        window.localStorage.removeItem("nearshop_access_token");
-        window.localStorage.removeItem("nearshop_refresh_token");
-        window.localStorage.removeItem("nearshop_login_role");
+      const response = await postLogout({ refreshToken }) as {
+        data?: { status?: boolean; message?: unknown };
+      };
+      if (response?.data?.status === true) {
+        await clearLogoutHandler();
+        notifyOrAlert("Logged out successfully.", "success");
+      } else {
+        notifyOrAlert(toReadableMessage(response?.data?.message) || "Unable to logout right now.", "error");
       }
-      await bootstrapGuestSession();
-      setShowLogoutConfirm(false);
-      router.push("/");
+    } catch (err: unknown) {
+      notifyOrAlert(getErrorMessage(err, "We ran into a little issue while logging out."), "error");
     } finally {
       setIsLoggingOut(false);
     }
   };
+
+  const saveProfileName = async () => {
+    if (isSavingName) {
+      return;
+    }
+    const trimmedName = nameInput.trim();
+    if (trimmedName.length === 0) {
+      notifyOrAlert("Please provide name.", "warning");
+      return;
+    }
+    if (trimmedName.length <= 3) {
+      notifyOrAlert("Name should be at least 4 characters.", "warning");
+      return;
+    }
+
+    setIsSavingName(true);
+    try {
+      const result = await editProfileWeb({ fullName: trimmedName }) as {
+        data?: { status?: boolean; data?: unknown; message?: unknown };
+      };
+      if (result?.data?.status === true) {
+        dispatch(
+          loginSuccess({
+            name: trimmedName,
+            mobileNumber: user?.mobileNumber || "",
+          }),
+        );
+        setIsEditingName(false);
+        notifyOrAlert(toReadableMessage(result?.data?.data) || "Profile updated successfully", "success");
+        return;
+      }
+      notifyOrAlert(
+        toReadableMessage(result?.data?.message) || toReadableMessage(result?.data?.data) || "Unable to update profile name.",
+        "error",
+      );
+    } catch (err: unknown) {
+      notifyOrAlert(getErrorMessage(err, "Unable to update profile name."), "error");
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
+  useEffect(() => {
+    setNameInput(userName);
+  }, [userName]);
 
   useEffect(() => {
     const fetchLatest = async () => {
@@ -330,7 +393,40 @@ export default function ProfilePage() {
           <div className={styles.detailList}>
             <div>
               <span>Name</span>
-              <strong>{userName}</strong>
+              {isEditingName ? (
+                <div className={styles.inlineEditWrap}>
+                  <input
+                    type="text"
+                    className={styles.nameInput}
+                    value={nameInput}
+                    onChange={(event) => setNameInput(event.target.value)}
+                    placeholder="Enter full name"
+                  />
+                  <div className={styles.inlineActions}>
+                    <button type="button" className={styles.primaryButton} onClick={saveProfileName} disabled={isSavingName}>
+                      {isSavingName ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() => {
+                        setNameInput(userName);
+                        setIsEditingName(false);
+                      }}
+                      disabled={isSavingName}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.inlineStatic}>
+                  <strong>{userName}</strong>
+                  <button type="button" className={styles.editButton} onClick={() => setIsEditingName(true)}>
+                    Edit
+                  </button>
+                </div>
+              )}
             </div>
             <div>
               <span>Mobile number</span>
@@ -391,6 +487,18 @@ export default function ProfilePage() {
           )}
         </section>
       </div>
+
+      <section className={styles.card}>
+        <h2>Help and Policies</h2>
+        <div className={styles.policyLinks}>
+          <Link href="/profile/my-complains" className={styles.policyLink}>My Complains</Link>
+          <Link href="/profile/my-addresses" className={styles.policyLink}>My Addresses</Link>
+          <Link href="/profile/content/about-us" className={styles.policyLink}>About Us</Link>
+          <Link href="/profile/content/privacy-policy" className={styles.policyLink}>Privacy Policy</Link>
+          <Link href="/profile/content/terms-and-conditions" className={styles.policyLink}>Terms and Conditions</Link>
+          <Link href="/profile/content/cancellations-and-returns" className={styles.policyLink}>Cancellations and Returns</Link>
+        </div>
+      </section>
 
       {showLogoutConfirm ? (
         <div className={styles.modalBackdrop} role="presentation" onClick={() => setShowLogoutConfirm(false)}>
