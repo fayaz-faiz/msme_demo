@@ -155,11 +155,16 @@
 
 .grid {
   display: grid;
+  align-items: stretch;
+  grid-auto-rows: 1fr;
   gap: 1rem;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   border: 1px solid #dfe4d8;
   border-radius: 20px;
@@ -206,8 +211,10 @@
 }
 
 .body {
+  flex: 1;
   display: grid;
   gap: 0.7rem;
+  grid-template-rows: auto auto auto 1fr auto;
   padding: 1rem;
 }
 
@@ -221,6 +228,10 @@
 .cardTop h2 {
   font-size: 1.05rem;
   line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .rating {
@@ -235,6 +246,10 @@
 .body p {
   color: #5f685d;
   font-size: 0.92rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .meta {
@@ -255,6 +270,7 @@
 }
 
 .openButton {
+  margin-top: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;

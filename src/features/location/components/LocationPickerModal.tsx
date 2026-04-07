@@ -130,12 +130,15 @@ export function LocationPickerModal({ open, onClose, onAddressSelected }: Locati
     const getAllAddress = async () => {
       try {
         dispatch(setLoading(true));
-        const response: any = await getAddressWeb();
-        const payload = response?.data?.data;
+        const response = await getAddressWeb() as { data?: unknown };
+        const dataBucket = response?.data;
+        const payload = Array.isArray(dataBucket) ? dataBucket : (dataBucket as { data?: unknown })?.data;
+        const payloadRecord =
+          typeof payload === "object" && payload !== null ? (payload as { data?: unknown }) : undefined;
         const incoming = (Array.isArray(payload)
           ? payload
-          : Array.isArray(payload?.data)
-            ? payload.data
+          : Array.isArray(payloadRecord?.data)
+            ? payloadRecord.data
             : Array.isArray(response?.data)
               ? response.data
               : []) as AddressItem[];
@@ -251,21 +254,20 @@ export function LocationPickerModal({ open, onClose, onAddressSelected }: Locati
             {allAddress?.length ? (
               <div className={styles.savedList}>
                 {allAddress.map((address) => (
-                  <label key={address._id} className={styles.savedItem}>
-                    <input
-                      type="radio"
-                      name="saved-address"
-                      checked={selectedAddressId === address._id}
-                      onChange={() => setSelectedAddressId(address._id)}
-                    />
+                  <button
+                    key={address._id}
+                    type="button"
+                    className={`${styles.savedItem} ${selectedAddressId === address._id ? styles.savedItemSelected : ""}`}
+                    onClick={() => {
+                      setSelectedAddressId(address._id);
+                      applyAddressSelection(address);
+                    }}
+                  >
                     <div>
                       <strong>{address.building || address.locality || address.city || "Address"}</strong>
                       <p>{`${address.locality || ""}, ${address.city || ""}, ${address.state || ""} - ${address.area_code || ""}`}</p>
                     </div>
-                    <button type="button" onClick={() => applyAddressSelection(address)}>
-                      Select
-                    </button>
-                  </label>
+                  </button>
                 ))}
               </div>
             ) : (

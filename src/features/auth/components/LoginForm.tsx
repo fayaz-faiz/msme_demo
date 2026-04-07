@@ -29,8 +29,41 @@ type FormErrors = {
 
 type SnackbarType = "success" | "error" | "warning";
 
+type ApiErrorLike = {
+  status?: number;
+  message?: string;
+  response?: {
+    status?: number;
+    data?: {
+      status?: boolean;
+      message?: unknown;
+      data?: unknown;
+    };
+  };
+};
+
+type RolesResponse = {
+  data?: Array<{ role?: string; _id?: string }>;
+};
+
+type OtpGenerateResponse = {
+  data?: {
+    status?: boolean;
+    message?: string;
+    data?: { orderId?: string; message?: string };
+  };
+};
+
+type LoginResponse = {
+  data?: {
+    status?: boolean;
+    message?: string;
+    data?: { accessToken?: string; refreshToken?: string; message?: string } | string;
+  };
+};
+
 function normalizeMobileNumber(value: string) {
-  return value.replace(/[\s-]/g, "");
+  return value.replace(/\D/g, "").slice(0, 10);
 }
 
 function mapProfileToAuthUser(profileResponse: unknown) {
@@ -52,7 +85,7 @@ function mapProfileToAuthUser(profileResponse: unknown) {
 
 function validate(values: FormValues, step: LoginStep): FormErrors {
   const errors: FormErrors = {};
-  const mobilePattern = /^\+?[0-9]{10,15}$/;
+  const mobilePattern = /^[0-9]{10}$/;
 
   if (!values.mobileNumber.trim()) {
     errors.mobileNumber = "Mobile number is required.";
@@ -96,7 +129,8 @@ export function LoginForm() {
   const nextPath = searchParams.get("next") || "/";
 
   const errors = useMemo(() => validate(values, step), [step, values]);
-  const mobileNumber = values.mobileNumber.trim();
+  const mobileNumber = normalizeMobileNumber(values.mobileNumber);
+  const isMobileReady = mobileNumber.length === 10;
 
   function showSnackbar(message: string, type: SnackbarType = "error") {
     setSnackbar({
@@ -113,7 +147,7 @@ export function LoginForm() {
     try {
       let resolvedUserRoleId = userRoleId;
       if (!userRoleId) {
-        const rolesResponse: any = await getRloesIds();
+        const rolesResponse = await getRloesIds() as RolesResponse;
         const roles = rolesResponse?.data ?? [];
         const userRole = roles.find((item: { role?: string; _id?: string }) => item.role === "USER");
         if (!userRole?._id) {
@@ -130,7 +164,7 @@ export function LoginForm() {
         role: resolvedUserRoleId,
       };
 
-      const response: any = await postGenerateOtp(payload);
+      const response = await postGenerateOtp(payload) as OtpGenerateResponse;
       const isSuccess = response?.data?.status === true;
       const nextOrderId = response?.data?.data?.orderId;
 
@@ -149,11 +183,12 @@ export function LoginForm() {
         otp: false,
       }));
       return true;
-    } catch (error: any) {
-      const status = error?.status || error?.response?.status;
+    } catch (error: unknown) {
+      const typedError = error as ApiErrorLike;
+      const status = typedError?.status || typedError?.response?.status;
       const serverMessage =
-        error?.response?.data?.message || error?.response?.data?.data || error?.message || "Failed to send OTP.";
-      showSnackbar(status ? `(${status}) ${serverMessage}` : serverMessage, "error");
+        typedError?.response?.data?.message || typedError?.response?.data?.data || typedError?.message || "Failed to send OTP.";
+      showSnackbar(status ? `(${status}) ${String(serverMessage)}` : String(serverMessage), "error");
       return false;
     }
   }
@@ -170,18 +205,25 @@ export function LoginForm() {
         otp: values.otp.trim(),
         deviceInfo,
       };
-      const response: any = await postLogin(payload);
+      const response = await postLogin(payload) as LoginResponse;
       const isSuccess = response?.data?.status === true;
 
       if (!isSuccess) {
+        const payloadData = response?.data?.data;
         const serverMessage =
-          response?.data?.message || response?.data?.data?.message || response?.data?.data || "Invalid OTP.";
+          response?.data?.message ||
+          (typeof payloadData === "object" && payloadData ? payloadData.message : "") ||
+          (typeof payloadData === "string" ? payloadData : "") ||
+          "Invalid OTP.";
         showSnackbar(serverMessage, "warning");
         return false;
       }
 
-      const accessToken = response?.data?.data?.accessToken ?? "";
-      const refreshToken = response?.data?.data?.refreshToken ?? "";
+      const tokens = (typeof response?.data?.data === "object" && response?.data?.data)
+        ? response.data.data
+        : {};
+      const accessToken = tokens.accessToken ?? "";
+      const refreshToken = tokens.refreshToken ?? "";
 
       dispatch(setAccessToken(accessToken));
       dispatch(clearRefreshToken());
@@ -222,21 +264,24 @@ export function LoginForm() {
       showSnackbar(response?.data?.message || "Logged in successfully.", "success");
       router.push(nextPath);
       return true;
-    } catch (error: any) {
-      const status = error?.status || error?.response?.status;
+    } catch (error: unknown) {
+      const typedError = error as ApiErrorLike;
+      const status = typedError?.status || typedError?.response?.status;
       if (status === 400) {
         setValues((current) => ({ ...current, otp: "" }));
         setTouched((current) => ({ ...current, otp: true }));
-        showSnackbar("Wrong OTP entered.", "error");
+        const serverMessage =
+          typedError?.response?.data?.data || typedError?.response?.data?.message || "otp is invalid !";
+        showSnackbar(String(serverMessage), "error");
         return false;
       }
       if (status === 401) {
-        showSnackbar(error?.response?.data?.data || "Unauthorized request.", "error");
+        showSnackbar(String(typedError?.response?.data?.data || "Unauthorized request."), "error");
         return false;
       }
       const serverMessage =
-        error?.response?.data?.message || error?.response?.data?.data || error?.message || "OTP verification failed.";
-      showSnackbar(serverMessage, "error");
+        typedError?.response?.data?.message || typedError?.response?.data?.data || typedError?.message || "OTP verification failed.";
+      showSnackbar(String(serverMessage), "error");
       return false;
     }
   }
@@ -279,12 +324,12 @@ export function LoginForm() {
         <input
           id="mobileNumber"
           name="mobileNumber"
-          type="tel"
-          inputMode="tel"
+          type="text"
+          inputMode="numeric"
           autoComplete="tel"
           value={values.mobileNumber}
           onChange={(event) => {
-            setValues((prev) => ({ ...prev, mobileNumber: event.target.value }));
+            setValues((prev) => ({ ...prev, mobileNumber: normalizeMobileNumber(event.target.value) }));
           }}
           onBlur={() => {
             setTouched((prev) => ({ ...prev, mobileNumber: true }));
@@ -298,7 +343,7 @@ export function LoginForm() {
             {errors.mobileNumber}
           </p>
         ) : null}
-        <p className={styles.helperText}>We&apos;ll use this number for OTP login.</p>
+        <p className={styles.helperText}>Enter a 10-digit mobile number for OTP login.</p>
       </div>
 
       {step === "otp" ? (
@@ -342,7 +387,7 @@ export function LoginForm() {
         </div>
       ) : null}
 
-      <button type="submit" className={styles.primaryButton} disabled={pending}>
+      <button type="submit" className={styles.primaryButton} disabled={pending || (step === "mobile" && !isMobileReady)}>
         {pending ? (step === "mobile" ? "Sending OTP..." : "Verifying OTP...") : step === "mobile" ? "Send OTP" : "Verify OTP & Sign In"}
       </button>
 
@@ -364,28 +409,19 @@ export function LoginForm() {
             Resend OTP
           </button>
         ) : null}
-
-        <button
-          type="button"
-          className={styles.googleButton}
-          onClick={() => {
-            showSnackbar("Google login is not enabled yet.", "warning");
-          }}
-        >
-          <span className={styles.googleIcon}>G</span>
-          Continue With Google
-        </button>
       </div>
 
       {snackbar.open ? (
         <p
-          className={`${styles.message} ${
+          className={`${styles.snackbar} ${
             snackbar.type === "error"
               ? styles.errorMessage
               : snackbar.type === "warning"
                 ? styles.warningMessage
                 : styles.successMessage
           }`}
+          role="status"
+          aria-live="polite"
         >
           {snackbar.message}
         </p>

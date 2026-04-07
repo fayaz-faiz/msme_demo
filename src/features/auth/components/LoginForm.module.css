@@ -135,6 +135,16 @@
   padding: 0.65rem 0.75rem;
 }
 
+.snackbar {
+  position: fixed;
+  left: 50%;
+  bottom: 1.1rem;
+  transform: translateX(-50%);
+  z-index: 70;
+  min-width: min(92vw, 360px);
+  box-shadow: 0 12px 34px rgba(2, 6, 23, 0.3);
+}
+
 .successMessage {
   background: #ecf9f3;
   color: #1a6c45;

@@ -13,11 +13,11 @@ async function simulateLatency() {
 }
 
 function normalizeMobileNumber(mobileNumber: string) {
-  return mobileNumber.replace(/[\s-]/g, "");
+  return mobileNumber.replace(/\D/g, "");
 }
 
 function isValidMobileNumber(mobileNumber: string) {
-  return /^\+?[0-9]{10,15}$/.test(normalizeMobileNumber(mobileNumber));
+  return /^[0-9]{10}$/.test(normalizeMobileNumber(mobileNumber));
 }
 
 function maskMobileNumber(mobileNumber: string) {

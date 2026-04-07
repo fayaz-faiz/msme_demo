@@ -141,13 +141,17 @@
 }
 
 .savedItem {
+  width: 100%;
+  border: 1px solid #e3e8db;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #20281f;
+  cursor: pointer;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 0.7rem;
-  border: 1px solid #e3e8db;
-  background: #ffffff;
-  border-radius: 14px;
+  text-align: left;
   padding: 0.7rem 0.8rem;
 }
 
@@ -157,15 +161,14 @@
   margin-top: 0.2rem;
 }
 
-.savedItem button {
-  border: none;
-  border-radius: 10px;
-  background: #fff3ea;
-  color: #c94e16;
-  font: inherit;
-  font-weight: 700;
-  padding: 0.52rem 0.7rem;
-  cursor: pointer;
+.savedItem:hover {
+  border-color: #d2d9cc;
+  background: #f8faf5;
+}
+
+.savedItemSelected {
+  border-color: #ffb08d;
+  background: #fff6ef;
 }
 
 .label {

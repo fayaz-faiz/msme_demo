@@ -1,0 +1,258 @@
+.page {
+  display: grid;
+  gap: 1rem;
+}
+
+.hero,
+.card {
+  border: 1px solid #dfe4d8;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(28, 33, 24, 0.06);
+}
+
+.hero {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  background: linear-gradient(135deg, #fff6ea, #ffffff);
+  padding: 1.2rem;
+}
+
+.kicker {
+  color: #ff5c1b;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  color: #1d251d;
+  font-size: clamp(1.45rem, 2.4vw, 2rem);
+}
+
+.hero p {
+  color: #647161;
+}
+
+.heroActions {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: end;
+}
+
+.statusChip {
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.3rem 0.62rem;
+}
+
+.statusProcessed {
+  border-color: #94d5ae;
+  background: #ebf9f1;
+  color: #157843;
+}
+
+.statusOpen {
+  border-color: #f6c38f;
+  background: #fff4e8;
+  color: #aa4a12;
+}
+
+.statusClosed {
+  border-color: #f0b5b0;
+  background: #fff1f0;
+  color: #ab2d2d;
+}
+
+.statusDefault {
+  border-color: #dfe4d8;
+  background: #f4f7f1;
+  color: #3c4b38;
+}
+
+.backButton,
+.primaryButton,
+.secondaryButton,
+.closeIssueButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  padding: 0.62rem 0.85rem;
+}
+
+.backButton,
+.secondaryButton {
+  border: 1px solid #dfe4d8;
+  background: #ffffff;
+  color: #243121;
+}
+
+.primaryButton,
+.closeIssueButton {
+  border: none;
+  background: linear-gradient(135deg, #ff5c1b, #ff7f38);
+  color: #ffffff;
+}
+
+.card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.card h2 {
+  color: #1d2a1a;
+  font-size: 1.2rem;
+}
+
+.subTitle {
+  margin-top: 0.5rem;
+  color: #1d2a1a;
+  font-size: 1.04rem;
+}
+
+.card p {
+  color: #556352;
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem 1rem;
+}
+
+.itemList {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.itemCard {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.7rem;
+  border: 1px solid #e6ecdf;
+  border-radius: 14px;
+  background: #f9fbf7;
+  padding: 0.7rem;
+}
+
+.itemCard img {
+  width: 70px;
+  height: 70px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid #dfe4d8;
+}
+
+.itemCard h3 {
+  color: #1f2a1d;
+  font-size: 1rem;
+}
+
+.sectionTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.stepper {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.stepItem {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.65rem;
+  align-items: start;
+}
+
+.stepDot {
+  width: 1.7rem;
+  height: 1.7rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid #dfe4d8;
+  background: #ffffff;
+  color: #586654;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.stepDone {
+  border-color: #8ecfa8;
+  background: #eaf8f0;
+  color: #147a3f;
+}
+
+.stepItem h3 {
+  color: #223020;
+  font-size: 0.98rem;
+}
+
+.stepItem p {
+  color: #5f6c5c;
+  font-size: 0.88rem;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: rgba(19, 24, 18, 0.45);
+  padding: 1rem;
+}
+
+.modalCard {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 0.8rem;
+  border: 1px solid #dfe4d8;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 18px 42px rgba(11, 16, 9, 0.2);
+  padding: 1rem;
+}
+
+.modalCard h3 {
+  color: #1f2d1c;
+}
+
+.modalCard p {
+  color: #5a6657;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+@media (max-width: 920px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .heroActions {
+    justify-items: start;
+  }
+
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+}

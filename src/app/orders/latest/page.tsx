@@ -412,7 +412,7 @@ export default function LatestOrderPage() {
       <div className={styles.hero}>
         <div>
           <p className={styles.kicker}>Payment Successful</p>
-          <h1>Order {orderId || "Placed"} confirmed</h1>
+          <h1>Order {orderId || "Placed"} </h1>
           <p>Thanks {customerName}. Your latest order has been created and payment is marked {formatLabel(paymentStatus)}.</p>
           <div className={styles.metaChips}>
             <span>{formatLabel(orderStatus)}</span>
