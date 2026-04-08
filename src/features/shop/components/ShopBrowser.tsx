@@ -324,9 +324,6 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
             placeholder="Search for a shop, category, or cuisine"
             aria-label="Search shops"
           />
-          <button type="button" onClick={() => setQuery("")}>
-            Clear
-          </button>
         </div>
         {/* <p className={styles.resultHint}>
           {categoryLoading ? "Loading categories..." : `Selected category: ${activeCategory || "-"}`}

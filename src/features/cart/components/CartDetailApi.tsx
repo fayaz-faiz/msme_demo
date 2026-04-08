@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getAddressWeb, getCartLengthWeb, initializeCartWeb, payemntGw, postAddUpdateCart, postCartByIdWeb, verifyCartWeb } from "@/api";
+import { clearCart } from "@/features/cart/store/cartSlice";
 import { useLocation } from "@/features/location/context/location-context";
 import { useAppDispatch, useAppSelector } from "@/features/cart/store/hooks";
 import { LocationPickerModal } from "@/features/location/components/LocationPickerModal";
@@ -140,6 +141,9 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
       },
       handler: () => {
         notifyOrAlert("Payment successful. Placing your order...", "success");
+        dispatch(clearCart());
+        dispatch(setCartLength(0));
+        setCartItems([]);
         setShowDeliveryOptions(false);
         setShowOrderPlacing(true);
         setTimeout(() => {
@@ -393,7 +397,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
         <h2>No cart selected</h2>
         <p>Please choose a cart from the multi-cart list.</p>
         <Link href="/cart" className={styles.backButton}>
-          Back to carts
+          ← Back to carts
         </Link>
       </section>
     );
@@ -413,7 +417,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
         <h2>Unable to load cart</h2>
         <p>{error}</p>
         <Link href="/cart" className={styles.backButton}>
-          Back to carts
+          ← Back to carts
         </Link>
       </section>
     );
@@ -446,8 +450,8 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
                   <h3>{item.item_name}</h3>
                   <p>{item.item_quantity}</p>
                   <div className={styles.itemMeta}>
-                    <span>{item.item_returnable_status ? "Returnable" : "Non-Returnable"}</span>
-                    <span>{item.item_cancellable_status ? "Cancellable" : "Non-Cancellable"}</span>
+                    <span className={styles.returnableBadge}>{item.item_returnable_status ? "Returnable" : "Non-Returnable"}</span>
+                    <span className={styles.returnableBadge}>{item.item_cancellable_status ? "Cancellable" : "Non-Cancellable"}</span>
                   </div>
                   <div className={styles.itemFooter}>
                     <div className={styles.stepper}>
@@ -511,7 +515,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
             {isInitializing ? "Loading delivery options..." : "View delivery options"}
           </button>
           <Link href="/cart" className={styles.backButton}>
-            Back to carts
+            ← Back to carts
           </Link>
         </div>
       </aside>
@@ -578,3 +582,4 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     </section>
   );
 }
+

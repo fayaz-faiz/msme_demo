@@ -267,12 +267,6 @@
   background: #f4f7f1;
 }
 
-.profileActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-}
-
 .policyLinks {
   display: grid;
   gap: 0.6rem;
@@ -385,4 +379,5 @@
     flex-direction: column-reverse;
     align-items: stretch;
   }
+
 }

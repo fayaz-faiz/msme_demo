@@ -383,6 +383,9 @@ export default function ProfilePage() {
           <p>Review your profile details and past orders in one place.</p>
         </div>
         <div className={styles.badgeRow}>
+          <button type="button" className={styles.logoutButton} onClick={() => setShowLogoutConfirm(true)}>
+            Logout
+          </button>
           <span>{userMobile}</span>
         </div>
       </div>
@@ -432,14 +435,6 @@ export default function ProfilePage() {
               <span>Mobile number</span>
               <strong>{userMobile}</strong>
             </div>
-          </div>
-          <div className={styles.profileActions}>
-            <Link href="/shops" className={styles.secondaryButton}>
-              Continue Shopping
-            </Link>
-            <button type="button" className={styles.logoutButton} onClick={() => setShowLogoutConfirm(true)}>
-              Logout
-            </button>
           </div>
         </section>
 

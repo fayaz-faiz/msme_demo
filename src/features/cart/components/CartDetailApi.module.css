@@ -83,6 +83,14 @@
   font-weight: 700;
 }
 
+.returnableBadge {
+  border: 1px solid #f9c89f;
+  border-radius: 999px;
+  background: #fff8f1;
+  color: #8b4a1a;
+  padding: 0.2rem 0.55rem;
+}
+
 .itemFooter {
   display: flex;
   align-items: center;

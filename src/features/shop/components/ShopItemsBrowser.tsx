@@ -44,6 +44,8 @@ type StoreInfo = {
 type ApiItem = {
   _id?: string;
   item_id?: string;
+  parent_item_id?: string;
+  sub_category?: string;
   item_name?: string;
   item_short_desc?: string;
   item_symbol?: string;
@@ -56,6 +58,32 @@ type ApiItem = {
   customizable?: boolean;
 };
 
+type ShopProduct = Product & {
+  parentItemId?: string;
+  subCategoryName?: string;
+};
+
+type StoreSubCategoryApiResponse = {
+  data?: {
+    status?: boolean;
+    data?: {
+      result?: StoreInfo | null;
+      availableSubCategories?: SubCategory[];
+    };
+  };
+};
+
+type SearchStoreItemsApiResponse = {
+  data?: {
+    status?: boolean;
+    data?: {
+      totalItems?: number;
+      providerStatus?: boolean;
+      data?: ApiItem[];
+    };
+  };
+};
+
 const PAGE_SIZE = 10;
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80";
@@ -66,7 +94,7 @@ const toSlug = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
-const mapApiItemToProduct = (item: ApiItem, shopSlug: string): Product => {
+const mapApiItemToProduct = (item: ApiItem, shopSlug: string): ShopProduct => {
   const id = item._id || item.item_id || `${shopSlug}-${Math.random().toString(36).slice(2)}`;
   const name = item.item_name || "Untitled item";
   const description = item.item_short_desc || name;
@@ -84,6 +112,8 @@ const mapApiItemToProduct = (item: ApiItem, shopSlug: string): Product => {
     price: Number(item.item_selling_price || 0),
     stock: Number(item.item_available_count || 0),
     image: item.item_symbol || DEFAULT_IMAGE,
+    parentItemId: item.parent_item_id || "",
+    subCategoryName: item.sub_category || "",
   };
 };
 
@@ -113,7 +143,7 @@ export function ShopItemsBrowser({
   const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(false);
   const [productLoading, setProductLoading] = useState(false);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ShopProduct[]>([]);
   const [subCategoryData, setSubCategoryData] = useState<SubCategory[]>([]);
   const [selectedSubCategory, setSelectedSubCategory] = useState("All Items");
   const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null);
@@ -135,6 +165,13 @@ export function ShopItemsBrowser({
   const resolvedShopImage = storeInfo?.bpp_provider_symbol || shopImage || DEFAULT_IMAGE;
   const resolvedDistance = storeInfo?.distance || distance || "-";
   const resolvedDescription = [storeInfo?.provider_street, storeInfo?.provider_city].filter(Boolean).join(", ") || "";
+  const showFoodTypeFilter = useMemo(() => {
+    const value = String(finalCategory || category || "").toLowerCase().trim();
+    if (!value) {
+      return false;
+    }
+    return value === "grocery" || value.includes("f&b") || value.includes("fnb") || value.includes("food & beverage");
+  }, [finalCategory, category]);
 
   const fetchStoreSubCategories = async (providerIdParam: string, providerLocationIdParam: string) => {
     const data = {
@@ -146,7 +183,7 @@ export function ShopItemsBrowser({
 
     setLoading(true);
     try {
-      const resp: any = await postStoreSubcatApi(data);
+      const resp = (await postStoreSubcatApi(data)) as StoreSubCategoryApiResponse;
       if (resp?.data?.status) {
         const info = resp?.data?.data?.result || null;
         const subCats = (resp?.data?.data?.availableSubCategories || []) as SubCategory[];
@@ -178,12 +215,12 @@ export function ShopItemsBrowser({
       page: pageNo,
       pageSize: PAGE_SIZE,
       category: finalCategory,
-      veg: typeOfFood === "Veg" ? "yes" : "",
-      nonVeg: typeOfFood === "Non-Veg" ? "yes" : "",
+      veg: showFoodTypeFilter && typeOfFood === "Veg" ? "yes" : "",
+      nonVeg: showFoodTypeFilter && typeOfFood === "Non-Veg" ? "yes" : "",
     };
 
     try {
-      const response: any = await searchStoreByItems(data);
+      const response = (await searchStoreByItems(data)) as SearchStoreItemsApiResponse;
       if (response?.data?.status) {
         const total = Number(response?.data?.data?.totalItems || 0);
         const incoming = (response?.data?.data?.data || []) as ApiItem[];
@@ -231,6 +268,12 @@ export function ShopItemsBrowser({
       void fetchStoreSubCategories(providerId, providerLocationId);
     }
   }, [providerId, providerLocationId, location?.lat, location?.lng]);
+
+  useEffect(() => {
+    if (!showFoodTypeFilter && typeOfFood !== "ALL") {
+      setTypeOfFood("ALL");
+    }
+  }, [showFoodTypeFilter, typeOfFood]);
 
   useEffect(() => {
     if (!finalProviderId || !finalProviderLocationId || !finalCategory || !selectedSubCategory) {
@@ -309,9 +352,6 @@ export function ShopItemsBrowser({
             placeholder={`Search items in ${resolvedShopName}`}
             aria-label="Search store items"
           />
-          <button type="button" onClick={() => setQuery("")}>
-            Clear
-          </button>
         </div>
 
         <div className={styles.filterRow}>
@@ -329,11 +369,13 @@ export function ShopItemsBrowser({
           </div>
 
           <div className={styles.selectors}>
-            <select value={typeOfFood} onChange={(event) => setTypeOfFood(event.target.value as "ALL" | "Veg" | "Non-Veg") }>
-              <option value="ALL">All Food</option>
-              <option value="Veg">Veg</option>
-              <option value="Non-Veg">Non-Veg</option>
-            </select>
+            {showFoodTypeFilter ? (
+              <select value={typeOfFood} onChange={(event) => setTypeOfFood(event.target.value as "ALL" | "Veg" | "Non-Veg") }>
+                <option value="ALL">All Food</option>
+                <option value="Veg">Veg</option>
+                <option value="Non-Veg">Non-Veg</option>
+              </select>
+            ) : null}
             <select
               value={sortBy}
               onChange={(event) =>
@@ -373,8 +415,25 @@ export function ShopItemsBrowser({
                 <p className={styles.productDescription}>{product.description}</p>
                 {product.hasVariants ? <p className={styles.variantHint}>Variants available</p> : null}
                 <div className={styles.meta}>
-                  <span>Stock {product.stock}</span>
-                  <Link href={`/products/${product.slug}`}>Details</Link>
+                  <Link
+                    href={{
+                      pathname: `/products/${product.slug}`,
+                      query: {
+                        id: product.id,
+                        providerId: finalProviderId,
+                        providerLocationId: finalProviderLocationId,
+                        parentItemId: product.parentItemId || "",
+                        category: finalCategory || category || "",
+                        subCategoryName: product.subCategoryName || selectedSubCategory || "",
+                        shopName: resolvedShopName,
+                        shopImage: resolvedShopImage,
+                        distance: resolvedDistance,
+                        serviceable: String(serviceable),
+                      },
+                    }}
+                  >
+                    Details
+                  </Link>
                 </div>
                 <AddToCartButton product={product} useServerCart />
               </div>
@@ -412,3 +471,4 @@ export function ShopItemsBrowser({
     </section>
   );
 }
+

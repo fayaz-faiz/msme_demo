@@ -2,8 +2,9 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { getAddressWeb } from "@/api";
+import { useCallback, useDeferredValue, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { deleteAddressDataWeb, getAddressWeb } from "@/api";
 import { searchLocations } from "@/features/location/data/location-service";
 import { LocationSuggestion } from "@/features/location/domain/location";
 import { useLocation } from "@/features/location/context/location-context";
@@ -42,28 +43,20 @@ const parseGps = (gps?: string) => {
 };
 
 export function LocationPickerModal({ open, onClose, onAddressSelected }: LocationPickerModalProps) {
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const loginName = useAppSelector((state) => state.authToken.loginName);
   const isUserLoggedIn = loginName === "USER";
   const allAddress = useAppSelector((state) => state.allAddress.allAddress as AddressItem[]);
   const selectedAddressState = useAppSelector((state) => state.location.selectAddress as AddressItem | null);
-  const { location, error, isResolving, setLocation, resolveCurrentLocation } = useLocation();
+  const { location, setLocation, resolveCurrentLocation } = useLocation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<LocationSuggestion[]>([]);
   const [loadingResults, setLoadingResults] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [deletingAddressId, setDeletingAddressId] = useState("");
   const deferredQuery = useDeferredValue(query);
-
-  const selectedMapUrl = useMemo(() => {
-    const source = results[0] ?? location;
-
-    if (!source) {
-      return null;
-    }
-
-    return `https://www.openstreetmap.org/?mlat=${source.lat}&mlon=${source.lng}#map=15/${source.lat}/${source.lng}`;
-  }, [location, results]);
 
   useEffect(() => {
     if (!open) {
@@ -122,43 +115,41 @@ export function LocationPickerModal({ open, onClose, onAddressSelected }: Locati
     }
   }, [open, selectedAddressState?._id]);
 
+  const getAllAddress = useCallback(async () => {
+    try {
+      dispatch(setLoading(true));
+      const response = await getAddressWeb() as { data?: unknown };
+      const dataBucket = response?.data;
+      const payload = Array.isArray(dataBucket) ? dataBucket : (dataBucket as { data?: unknown })?.data;
+      const payloadRecord =
+        typeof payload === "object" && payload !== null ? (payload as { data?: unknown }) : undefined;
+      const incoming = (Array.isArray(payload)
+        ? payload
+        : Array.isArray(payloadRecord?.data)
+          ? payloadRecord.data
+          : Array.isArray(response?.data)
+            ? response.data
+            : []) as AddressItem[];
+
+      dispatch(setAddresses(incoming));
+      if (!incoming?.length) {
+        dispatch(setError("No addresses found"));
+      }
+    } catch (fetchError) {
+      console.error(fetchError);
+      notifyOrAlert("Failed to fetch addresses", "error");
+      dispatch(setError("Failed to fetch addresses"));
+    } finally {
+      dispatch(setLoading(false));
+    }
+  }, [dispatch]);
+
   useEffect(() => {
     if (!open || !isUserLoggedIn) {
       return;
     }
-
-    const getAllAddress = async () => {
-      try {
-        dispatch(setLoading(true));
-        const response = await getAddressWeb() as { data?: unknown };
-        const dataBucket = response?.data;
-        const payload = Array.isArray(dataBucket) ? dataBucket : (dataBucket as { data?: unknown })?.data;
-        const payloadRecord =
-          typeof payload === "object" && payload !== null ? (payload as { data?: unknown }) : undefined;
-        const incoming = (Array.isArray(payload)
-          ? payload
-          : Array.isArray(payloadRecord?.data)
-            ? payloadRecord.data
-            : Array.isArray(response?.data)
-              ? response.data
-              : []) as AddressItem[];
-
-        dispatch(setAddresses(incoming));
-        if (!incoming?.length) {
-          notifyOrAlert("No addresses found", "info");
-          dispatch(setError("No addresses found"));
-        }
-      } catch (fetchError) {
-        console.error(fetchError);
-        notifyOrAlert("Failed to fetch addresses", "error");
-        dispatch(setError("Failed to fetch addresses"));
-      } finally {
-        dispatch(setLoading(false));
-      }
-    };
-
     void getAllAddress();
-  }, [open, isUserLoggedIn, dispatch]);
+  }, [open, isUserLoggedIn, getAllAddress]);
 
   const applyAddressSelection = (address: AddressItem) => {
     const parsed = parseGps(address.gps);
@@ -186,6 +177,43 @@ export function LocationPickerModal({ open, onClose, onAddressSelected }: Locati
     }
 
     onClose();
+  };
+
+  const navigateToAddAddress = () => {
+    onClose();
+    router.push("/profile/my-addresses/add");
+  };
+
+  const navigateToEditAddress = (addressId: string) => {
+    onClose();
+    router.push(`/profile/my-addresses/edit/${addressId}`);
+  };
+
+  const handleDeleteAddress = async (addressId: string) => {
+    const confirmed = window.confirm("Are you sure you want to remove this address?");
+    if (!confirmed || deletingAddressId) {
+      return;
+    }
+    setDeletingAddressId(addressId);
+    try {
+      const response = await deleteAddressDataWeb({ id: addressId }) as {
+        data?: { status?: boolean; data?: { message?: string } };
+      };
+      if (response?.data?.status === true) {
+        notifyOrAlert(response?.data?.data?.message || "Address deleted Successfully", "success");
+        if (selectedAddressId === addressId) {
+          setSelectedAddressId("");
+        }
+        await getAllAddress();
+      } else {
+        notifyOrAlert("Unable to delete address.", "error");
+      }
+    } catch (error) {
+      console.error(error);
+      notifyOrAlert("Unable to delete address.", "error");
+    } finally {
+      setDeletingAddressId("");
+    }
   };
 
   if (!open) {
@@ -223,7 +251,7 @@ export function LocationPickerModal({ open, onClose, onAddressSelected }: Locati
           </button>
         </div>
 
-        <div className={styles.actionsRow}>
+        {/* <div className={styles.actionsRow}>
           <span className={styles.statusText}>
             {isResolving ? "Detecting current location..." : error ?? "Search or pick a map location"}
           </span>
@@ -239,7 +267,7 @@ export function LocationPickerModal({ open, onClose, onAddressSelected }: Locati
           >
             Locate on Map
           </button>
-        </div>
+        </div> */}
 
         <div className={styles.currentCard}>
           <span className={styles.label}>Selected</span>
@@ -250,28 +278,65 @@ export function LocationPickerModal({ open, onClose, onAddressSelected }: Locati
           <div className={styles.savedAddresses}>
             <div className={styles.savedHeader}>
               <span className={styles.label}>Saved Addresses</span>
+              <button type="button" className={styles.addAddressButton} onClick={navigateToAddAddress}>
+                Add Address
+              </button>
             </div>
             {allAddress?.length ? (
               <div className={styles.savedList}>
                 {allAddress.map((address) => (
-                  <button
+                  <div
                     key={address._id}
-                    type="button"
                     className={`${styles.savedItem} ${selectedAddressId === address._id ? styles.savedItemSelected : ""}`}
                     onClick={() => {
                       setSelectedAddressId(address._id);
                       applyAddressSelection(address);
                     }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedAddressId(address._id);
+                        applyAddressSelection(address);
+                      }
+                    }}
                   >
-                    <div>
+                    <div className={styles.savedMain}>
                       <strong>{address.building || address.locality || address.city || "Address"}</strong>
                       <p>{`${address.locality || ""}, ${address.city || ""}, ${address.state || ""} - ${address.area_code || ""}`}</p>
                     </div>
-                  </button>
+                    <div className={styles.savedActions}>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          navigateToEditAddress(address._id);
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleDeleteAddress(address._id);
+                        }}
+                        disabled={deletingAddressId === address._id}
+                      >
+                        {deletingAddressId === address._id ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (
-              <p className={styles.emptyText}>No saved addresses found.</p>
+              <div className={styles.emptyAddressWrap}>
+                <p className={styles.emptyText}>No saved addresses found.</p>
+                <button type="button" className={styles.primaryButton} onClick={navigateToAddAddress}>
+                  Add Address
+                </button>
+              </div>
             )}
           </div>
         ) : null}

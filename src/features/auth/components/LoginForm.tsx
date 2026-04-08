@@ -334,7 +334,7 @@ export function LoginForm() {
           onBlur={() => {
             setTouched((prev) => ({ ...prev, mobileNumber: true }));
           }}
-          placeholder="9876543210"
+          // placeholder="9876543210"
           aria-invalid={Boolean(touched.mobileNumber && errors.mobileNumber)}
           aria-describedby={errors.mobileNumber ? "mobileNumber-error" : undefined}
         />
@@ -377,7 +377,7 @@ export function LoginForm() {
             }}
             aria-invalid={Boolean(touched.otp && errors.otp)}
             aria-describedby={errors.otp ? "otp-error" : undefined}
-            placeholder="1234"
+            // placeholder="1234"
           />
           {touched.otp && errors.otp ? (
             <p id="otp-error" className={styles.error}>
