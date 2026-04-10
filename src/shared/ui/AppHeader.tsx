@@ -23,6 +23,7 @@ export function AppHeader() {
   const isAuthenticated = !!user || loginName === "USER";
   const { location, isResolving } = useLocation();
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
+  const [navSearch, setNavSearch] = useState("");
   const [notice, setNotice] = useState<{ open: boolean; message: string; type: AppNoticeType }>({
     open: false,
     message: "",
@@ -98,6 +99,42 @@ export function AppHeader() {
     };
   }, []);
 
+  const handleNavSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const searchText = navSearch.trim();
+    const target = searchText ? `/?q=${encodeURIComponent(searchText)}#shops` : "/#shops";
+    router.push(target);
+
+    if (pathname === "/") {
+      window.dispatchEvent(
+        new CustomEvent("shops-search", {
+          detail: { query: searchText },
+        }),
+      );
+      window.requestAnimationFrame(() => {
+        const shopsSection = document.getElementById("shops");
+        if (shopsSection) {
+          shopsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    }
+  };
+
+  const handleNavSearchChange = (value: string) => {
+    setNavSearch(value);
+    if (value.trim() !== "") {
+      return;
+    }
+
+    const target = "/#shops";
+    router.push(target);
+    window.dispatchEvent(
+      new CustomEvent("shops-search", {
+        detail: { query: "" },
+      }),
+    );
+  };
+
   return (
     <>
       <header className="topbar">
@@ -117,6 +154,16 @@ export function AppHeader() {
           </div>
 
           <div className="header-actions">
+            <form className="nav-search" onSubmit={handleNavSearchSubmit} role="search" aria-label="Search shops">
+              <input
+                type="search"
+                value={navSearch}
+                onChange={(event) => handleNavSearchChange(event.target.value)}
+                placeholder="Search shops by name"
+                aria-label="Search shops by name"
+              />
+              <button type="submit">Search</button>
+            </form>
             <Link
               href="/cart"
               onClick={handleCartClick}

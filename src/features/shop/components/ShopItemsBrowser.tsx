@@ -172,6 +172,25 @@ export function ShopItemsBrowser({
     }
     return value === "grocery" || value.includes("f&b") || value.includes("fnb") || value.includes("food & beverage");
   }, [finalCategory, category]);
+  const isFoodAndBeverageCategory = useMemo(() => {
+    const rawValue = String(finalCategory || category || "").toLowerCase().trim();
+    if (!rawValue) {
+      return false;
+    }
+
+    const normalizedValue = rawValue.replace(/[^a-z0-9]/g, "");
+    return (
+      rawValue.includes("f&b") ||
+      rawValue.includes("food & beverage") ||
+      rawValue.includes("food and beverage") ||
+      normalizedValue.includes("fnb") ||
+      normalizedValue.includes("foodbeverage") ||
+      normalizedValue.includes("foodbeverages") ||
+      normalizedValue.includes("foodandbeverage") ||
+      normalizedValue.includes("foodandbeverages") ||
+      normalizedValue.includes("ret11")
+    );
+  }, [finalCategory, category]);
 
   const fetchStoreSubCategories = async (providerIdParam: string, providerLocationIdParam: string) => {
     const data = {
@@ -413,28 +432,30 @@ export function ShopItemsBrowser({
                 </div>
                 <ProductTypeBadge foodType={product.foodType} />
                 <p className={styles.productDescription}>{product.description}</p>
-                {product.hasVariants ? <p className={styles.variantHint}>Variants available</p> : null}
-                <div className={styles.meta}>
-                  <Link
-                    href={{
-                      pathname: `/products/${product.slug}`,
-                      query: {
-                        id: product.id,
-                        providerId: finalProviderId,
-                        providerLocationId: finalProviderLocationId,
-                        parentItemId: product.parentItemId || "",
-                        category: finalCategory || category || "",
-                        subCategoryName: product.subCategoryName || selectedSubCategory || "",
-                        shopName: resolvedShopName,
-                        shopImage: resolvedShopImage,
-                        distance: resolvedDistance,
-                        serviceable: String(serviceable),
-                      },
-                    }}
-                  >
-                    Details
-                  </Link>
-                </div>
+                {product.hasVariants ? <p className={styles.variantHint}>Customisable</p> : null}
+                {!isFoodAndBeverageCategory ? (
+                  <div className={styles.meta}>
+                    <Link
+                      href={{
+                        pathname: `/products/${product.slug}`,
+                        query: {
+                          id: product.id,
+                          providerId: finalProviderId,
+                          providerLocationId: finalProviderLocationId,
+                          parentItemId: product.parentItemId || "",
+                          category: finalCategory || category || "",
+                          subCategoryName: product.subCategoryName || selectedSubCategory || "",
+                          shopName: resolvedShopName,
+                          shopImage: resolvedShopImage,
+                          distance: resolvedDistance,
+                          serviceable: String(serviceable),
+                        },
+                      }}
+                    >
+                      Details
+                    </Link>
+                  </div>
+                ) : null}
                 <AddToCartButton product={product} useServerCart />
               </div>
             </article>

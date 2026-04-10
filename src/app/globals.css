@@ -21,6 +21,10 @@ body {
   min-height: 100%;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: radial-gradient(circle at top, #ffffff 0%, #f5f6f4 38%, #edf1ea 100%);
   color: var(--foreground);
@@ -115,6 +119,50 @@ a {
   display: flex;
   align-items: center;
   gap: 0.7rem;
+}
+
+.nav-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.28rem;
+}
+
+.nav-search input {
+  width: 420px;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.35rem 0.58rem;
+}
+
+.nav-search input::placeholder {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.nav-search input:focus {
+  outline: none;
+}
+
+.nav-search button {
+  border: none;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0f172a;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.36rem 0.64rem;
+}
+
+.nav-search button:hover {
+  background: #eef2f7;
 }
 
 .user-chip {
@@ -395,6 +443,15 @@ input[type="text"] {
     margin-left: auto;
     flex-wrap: wrap;
     justify-content: flex-end;
+  }
+
+  .nav-search {
+    order: 3;
+    width: 100%;
+  }
+
+  .nav-search input {
+    width: 100%;
   }
 
   .panel-row {

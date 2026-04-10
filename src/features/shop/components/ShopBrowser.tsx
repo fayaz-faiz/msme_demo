@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDefaultReducer } from "smh-react-typescript-hooks";
@@ -89,16 +90,14 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
   const categoryData = (data || []) as CategoryItem[];
 
   const { location } = useLocation();
+  const searchParams = useSearchParams();
   const accessToken = useAppSelector((reduxState) => reduxState.apiResponse.accessToken);
 
   const [query, setQuery] = useState("");
   const [storeSearch, setStoreSearch] = useState("");
   const [stores, setStores] = useState<Shop[]>(shops);
   const [storeLoading, setStoreLoading] = useState(false);
-  const [categoryLoading, setCategoryLoading] = useState(false);
-  const [storeFound, setStoreFound] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [activeCategory, setActiveCategory] = useState("");
   const [verified] = useState(false);
@@ -173,9 +172,7 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
         const incoming = (result?.data?.data?.data || []) as ApiStore[];
         const mapped = incoming.map(mapApiStoreToShop);
 
-        setStoreFound(true);
         setPage(targetPage);
-        setTotalCount(total);
 
         setStores((prev) => {
           const base = replace ? [] : prev;
@@ -189,7 +186,6 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
         if (replace) {
           setStores([]);
         }
-        setStoreFound(false);
         setHasMore(false);
       }
     } catch (error) {
@@ -197,7 +193,6 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
       if (replace) {
         setStores([]);
       }
-      setStoreFound(false);
       setHasMore(false);
     } finally {
       setStoreLoading(false);
@@ -209,7 +204,6 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
       return;
     }
 
-    setCategoryLoading(true);
     try {
       const resp = await getCategoryData();
       const isSuccess = resp?.statusCode === 200 || resp?.status === true;
@@ -218,8 +212,6 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
       }
     } catch (error) {
       console.error("getCategoryApi error:", error);
-    } finally {
-      setCategoryLoading(false);
     }
   };
 
@@ -227,6 +219,27 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
     const timer = setTimeout(() => setStoreSearch(query), 350);
     return () => clearTimeout(timer);
   }, [query]);
+
+  useEffect(() => {
+    const q = (searchParams.get("q") || "").trim();
+    if (q) {
+      setQuery(q);
+      setStoreSearch(q);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const onHeaderSearch = (event: Event) => {
+      const customEvent = event as CustomEvent<{ query?: string }>;
+      const incoming = String(customEvent?.detail?.query || "").trim();
+      setQuery(incoming);
+      setStoreSearch(incoming);
+    };
+    window.addEventListener("shops-search", onHeaderSearch as EventListener);
+    return () => {
+      window.removeEventListener("shops-search", onHeaderSearch as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     void getCategoryApi();
@@ -250,7 +263,6 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
 
     setHasMore(true);
     setPage(1);
-    setTotalCount(0);
     void fetchStoresData(1, true);
   }, [activeCategory, storeSearch, location?.lat, location?.lng, accessToken]);
 
@@ -303,12 +315,26 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
       <h2>Shop by categories</h2>
       <div className={styles.toolbar}>
         <div className={styles.filters} aria-label="Store categories">
-          {enabledCategories.map((category) => (
+          {categoryData.map((category) => (
             <button
               key={category._id}
               type="button"
-              className={activeCategory === category.name ? styles.activeFilter : styles.filterButton}
-              onClick={() => setActiveCategory(category.name)}
+              className={
+                !category.enabled
+                  ? styles.disabledFilter
+                  : activeCategory === category.name
+                    ? styles.activeFilter
+                    : styles.filterButton
+              }
+              onClick={() => {
+                if (!category.enabled) {
+                  return;
+                }
+                setActiveCategory(category.name);
+              }}
+              disabled={!category.enabled}
+              aria-disabled={!category.enabled}
+              title={category.enabled ? category.name : `${category.name} (Coming soon)`}
             >
               <img src={category.url || FALLBACK_IMAGE} alt={category.name} className={styles.categoryThumb} />
               <span>{category.name}</span>
@@ -316,15 +342,7 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
           ))}
         </div>
         <h2>Nearby Shops</h2>
-        <div className={styles.searchBox}>
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search for a shop, category, or cuisine"
-            aria-label="Search shops"
-          />
-        </div>
+        {query ? <p className={styles.resultHint}>Searching for: {query}</p> : null}
         {/* <p className={styles.resultHint}>
           {categoryLoading ? "Loading categories..." : `Selected category: ${activeCategory || "-"}`}
         </p> */}

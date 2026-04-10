@@ -59,21 +59,27 @@
 
 .filters {
   display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding: 0.25rem 0.05rem 0.45rem;
+  scrollbar-width: thin;
 }
 
 .filterButton,
-.activeFilter {
+.activeFilter,
+.disabledFilter {
   border: 1px solid #d9ded3;
-  border-radius: 16px;
+  border-radius: 18px;
   cursor: pointer;
   font: inherit;
   font-weight: 700;
-  padding: 0.45rem 0.55rem;
+  padding: 0.7rem 0.6rem 0.62rem;
+  min-width: 104px;
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 0.52rem;
   transition:
     transform 180ms ease,
     box-shadow 180ms ease,
@@ -85,21 +91,30 @@
   color: #293227;
 }
 
+.disabledFilter {
+  background: #f3f5f1;
+  color: #9aa297;
+  border-color: #dfe4db;
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
 .activeFilter {
-  background: linear-gradient(135deg, #ff5c1b, #ff7f38);
-  border-color: #ff5c1b;
-  color: #ffffff;
+  background: linear-gradient(145deg, #fff4e7, #ffe6d4);
+  border-color: #ff7f38;
+  color: #7a3b17;
   box-shadow:
     0 10px 24px rgba(255, 92, 27, 0.18),
     0 0 0 1px rgba(255, 127, 56, 0.14);
 }
 
 .categoryThumb {
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
   object-fit: cover;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 2px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
 }
 
 .searchBox {
@@ -143,6 +158,7 @@
 .resultHint {
   color: #62705e;
   font-size: 0.92rem;
+  font-weight: 600;
 }
 
 .grid {
@@ -352,9 +368,9 @@
     box-shadow: 0 8px 18px rgba(28, 33, 24, 0.08);
   }
 
-  .activeFilter:hover {
-    transform: translateY(-1px) scale(1.01);
-  }
+.activeFilter:hover {
+  transform: translateY(-1px) scale(1.01);
+}
 
   .card:hover {
     transform: translateY(-4px);
