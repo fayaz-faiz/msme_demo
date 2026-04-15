@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "./providers";
 import { AppHeader } from "@/shared/ui/AppHeader";
+import { PwaRegister } from "@/shared/pwa/PwaRegister";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -18,9 +19,11 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "MSME",
   description: "Next.js 14 clean architecture starter for auth, shop, product, and cart",
+  manifest: "/manifest.webmanifest",
 };
 
 export const dynamic = 'force-dynamic';
+export const viewport = { themeColor: "#0b5fff" };
 
 export default function RootLayout({
   children,
@@ -30,6 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <PwaRegister />
         <Providers>
           <AppHeader />
           <main className="app-shell">{children}</main>
