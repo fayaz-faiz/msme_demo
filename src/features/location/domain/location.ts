@@ -1,5 +1,6 @@
 export type Location = {
   city: string;
+  state?: string;
   pincode: string;
   label: string;
   lat: number;

@@ -63,6 +63,11 @@
   gap: 0.75rem;
   grid-template-columns: 1fr auto;
   margin-top: 1rem;
+  align-items: start;
+}
+
+.searchField {
+  position: relative;
 }
 
 .inputRow input {
@@ -72,6 +77,23 @@
   color: #1f261d;
   font: inherit;
   padding: 0.95rem 1rem;
+}
+
+.searchDropdown {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: grid;
+  gap: 0.6rem;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid #e3e8db;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 16px 34px rgba(2, 6, 23, 0.2);
+  padding: 0.65rem;
 }
 
 .inputRow input:focus-visible {

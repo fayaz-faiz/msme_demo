@@ -9,10 +9,12 @@ function buildLocationFromAddress(
   address: Record<string, string | undefined>,
 ): Location {
   const city = address.city || address.town || address.village || address.county || "Current area";
+  const state = address.state || address.state_district || "";
   const pincode = address.postcode || "000000";
 
   return {
     city,
+    state,
     pincode,
     label: `${city}, ${pincode}`,
     lat,
@@ -78,10 +80,12 @@ export async function searchLocations(query: string): Promise<LocationSuggestion
   return data.map((entry) => {
     const address = entry.address ?? {};
     const city = address.city || address.town || address.village || address.county || "City";
+    const state = address.state || address.state_district || "";
     const pincode = address.postcode || "000000";
 
     return {
       city,
+      state,
       pincode,
       label: `${city}, ${pincode}`,
       lat: Number(entry.lat),

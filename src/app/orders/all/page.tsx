@@ -198,7 +198,7 @@ export default function AllOrdersPage() {
         <div>
           <p className={styles.kicker}>Orders</p>
           <h1>All past orders</h1>
-          <p>Review every order and quickly jump to tracking details.</p>
+          <p>Review every order and open full order details for each purchase.</p>
         </div>
         <div className={styles.badgeRow}>
           <span>{totalOrders || orders.length} orders</span>
@@ -250,7 +250,7 @@ export default function AllOrdersPage() {
                     <div className={styles.actionRight}>
                       {orderId ? (
                         <Link href={`/orders/${orderId}`} className={styles.primaryButton}>
-                          Track order
+                          View details
                         </Link>
                       ) : null}
                     </div>

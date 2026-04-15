@@ -21,6 +21,9 @@ type AddressItem = {
   country?: string;
   area_code?: string;
   mobileNumber?: string;
+  mobile_number?: string;
+  phone?: string;
+  mobile?: string;
   mobileNumberCountryCode?: string;
   email?: string;
   gps?: string;
@@ -102,6 +105,18 @@ function getReadableError(error: unknown, fallback: string) {
   );
 }
 
+function resolveAddressPhone(address?: AddressItem) {
+  if (!address) {
+    return "";
+  }
+
+  const candidate = String(
+    address.mobileNumber || address.mobile_number || address.phone || address.mobile || "",
+  );
+
+  return candidate.replace(/\D/g, "").slice(0, 10);
+}
+
 export function AddressEditor({ mode, addressId }: AddressEditorProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -148,7 +163,7 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
       setFullAddress(resolved.label);
       setCity(resolved.city);
       setPincode(resolved.pincode);
-      setStateName((previous) => previous || "State");
+      setStateName(String(resolved.state || ""));
       setLocation(resolved);
     }
   };
@@ -176,7 +191,7 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
           setStateName(String(current.state || ""));
           setCountry(String(current.country || "India"));
           setName(String(current.name || ""));
-          setPhone(String(current.mobileNumber || ""));
+          setPhone(resolveAddressPhone(current));
           setEmail(String(current.email || ""));
           setHouseNumber(String(current.building || ""));
           setLocality(String(current.locality || ""));
@@ -196,7 +211,7 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
         setFullAddress(location.label);
         setPincode(location.pincode);
         setCity(location.city);
-        setStateName("State");
+        setStateName(String(location.state || ""));
         setCountry("India");
         setLoadingAddress(false);
         return;
@@ -276,7 +291,7 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
       notifyOrAlert("Please enter valid block or area details.", "warning");
       return false;
     }
-    if (normalizedPhone.length !== 10 || /^(\d)\1{9}$/.test(normalizedPhone)) {
+    if (!/^[6-9]\d{9}$/.test(normalizedPhone) || /^(\d)\1{9}$/.test(normalizedPhone)) {
       notifyOrAlert("Please enter a valid phone number.", "warning");
       return false;
     }
@@ -357,6 +372,7 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
       dispatch(setCurrentLoc({ city: city.trim(), pincode: pincode.trim(), latitude: lat, longitude: lng }));
       setLocation({
         city: city.trim() || "City",
+        state: stateName.trim(),
         pincode: pincode.trim() || "000000",
         label: `${city.trim() || "City"}, ${pincode.trim() || "000000"}`,
         lat,
@@ -395,38 +411,42 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
 
         <div className={styles.locationPanel}>
           <div className={styles.locationTools}>
-            <input
-              type="search"
-              placeholder="Search location, area, or pincode"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
+            <div className={styles.searchField}>
+              <input
+                type="search"
+                placeholder="Search location, area, or pincode"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              {searching ? <p className={styles.helpText}>Searching locations...</p> : null}
+              {searchResults.length > 0 ? (
+                <div className={styles.searchResults}>
+                  {searchResults.map((result) => (
+                    <button
+                      key={`${result.lat}-${result.lng}`}
+                      type="button"
+                      className={styles.resultButton}
+                      onClick={() => {
+                        void updatePosition(result.lat, result.lng);
+                        setFullAddress(result.rawLabel);
+                        setCity(result.city);
+                        setPincode(result.pincode);
+                        setStateName(String(result.state || ""));
+                        setQuery(result.rawLabel);
+                        setSearchResults([]);
+                      }}
+                    >
+                      <strong>{result.label}</strong>
+                      <span>{result.rawLabel}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
             <button type="button" className={styles.secondaryButton} onClick={handleUseCurrentLocation} disabled={loadingCurrent}>
               {loadingCurrent ? "Locating..." : "Use Current Location"}
             </button>
           </div>
-
-          {searching ? <p className={styles.helpText}>Searching locations...</p> : null}
-          {searchResults.length > 0 ? (
-            <div className={styles.searchResults}>
-              {searchResults.map((result) => (
-                <button
-                  key={`${result.lat}-${result.lng}`}
-                  type="button"
-                  className={styles.resultButton}
-                  onClick={() => {
-                    void updatePosition(result.lat, result.lng);
-                    setFullAddress(result.rawLabel);
-                    setCity(result.city);
-                    setPincode(result.pincode);
-                  }}
-                >
-                  <strong>{result.label}</strong>
-                  <span>{result.rawLabel}</span>
-                </button>
-              ))}
-            </div>
-          ) : null}
 
           <iframe title="Selected map location" src={mapEmbedUrl} className={styles.mapFrame} loading="lazy" />
           <div className={styles.coordinates}>

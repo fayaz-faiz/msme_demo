@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { getCartLengthWeb, getMultiCrtData, postDeleteCart } from "@/api";
 import { useAppDispatch } from "@/features/cart/store/hooks";
 import { setCartLength } from "@/redux/slices";
+import { notifyOrAlert } from "@/shared/lib/notify";
 import styles from "./MultiCartList.module.css";
 
 type MultiCartItem = {
@@ -26,6 +27,8 @@ export function MultiCartList() {
   const [loading, setLoading] = useState(false);
   const [multicartData, setMulticartData] = useState<MultiCartItem[]>([]);
   const [dataAvailable, setDataAvailable] = useState(false);
+  const [pendingDeleteCartId, setPendingDeleteCartId] = useState("");
+  const [deletingCartId, setDeletingCartId] = useState("");
 
   const getCartLength = async () => {
     try {
@@ -62,28 +65,25 @@ export function MultiCartList() {
   };
 
   const deleteCart = async (cartId: string) => {
-    const confirmed = window.confirm("Are you sure you want to remove this cart?");
-    if (!confirmed) {
-      return;
-    }
-
-    setLoading(true);
+    setDeletingCartId(cartId);
     try {
       const payload = { cart_id: cartId };
       const response: any = await postDeleteCart(payload);
       const statusCode = response?.data?.statusCode;
       const ok = statusCode === 200 || statusCode === 204 || response?.data?.status === true;
       if (ok) {
+        notifyOrAlert(response?.data?.message || "Cart deleted successfully.", "success");
         await getCartLength();
         await fetchStoresData();
       } else {
-        window.alert(response?.data?.message || "Unable to delete cart.");
+        notifyOrAlert(response?.data?.message || "Unable to delete cart.", "error");
       }
     } catch (err: any) {
       console.error(err);
-      window.alert(err?.response?.data?.message || "Something went wrong while deleting cart.");
+      notifyOrAlert(err?.response?.data?.message || "Something went wrong while deleting cart.", "error");
     } finally {
-      setLoading(false);
+      setDeletingCartId("");
+      setPendingDeleteCartId("");
     }
   };
 
@@ -134,12 +134,50 @@ export function MultiCartList() {
             <button type="button" onClick={() => viewCart(item)}>
               View Cart
             </button>
-            <button type="button" className={styles.deleteButton} onClick={() => deleteCart(item._id)}>
-              Delete Cart
+            <button
+              type="button"
+              className={styles.deleteButton}
+              onClick={() => setPendingDeleteCartId(item._id)}
+              disabled={deletingCartId === item._id}
+            >
+              {deletingCartId === item._id ? "Deleting..." : "Delete Cart"}
             </button>
           </div>
         </article>
       ))}
+
+      {pendingDeleteCartId ? (
+        <div className={styles.modalBackdrop} role="presentation" onClick={() => setPendingDeleteCartId("")}>
+          <div
+            className={styles.modalCard}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Delete cart confirmation"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3>Remove this cart?</h3>
+            <p>This action removes all items from this cart.</p>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.cancelButton}
+                onClick={() => setPendingDeleteCartId("")}
+                disabled={deletingCartId === pendingDeleteCartId}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.confirmDeleteButton}
+                onClick={() => void deleteCart(pendingDeleteCartId)}
+                disabled={deletingCartId === pendingDeleteCartId}
+              >
+                {deletingCartId === pendingDeleteCartId ? "Deleting..." : "Yes, Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

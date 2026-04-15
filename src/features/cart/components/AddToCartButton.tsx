@@ -53,6 +53,8 @@ type CartLengthResponse = {
 type AddUpdateCartResponse = {
   data?: {
     status?: boolean;
+    statusCode?: number;
+    message?: string;
     data?: {
       item_count?: number | string;
       message?: string;
@@ -131,16 +133,38 @@ export function AddToCartButton({ product, useServerCart = false }: AddToCartBut
       const result = (await postAddUpdateCart(payload)) as AddUpdateCartResponse;
       const ok = !!result?.data?.status;
       const itemCount = Number(result?.data?.data?.item_count ?? nextCount);
+      const statusCode = Number(result?.data?.statusCode ?? 0);
+      const message = String(result?.data?.data?.message || result?.data?.message || "Unable to update cart.");
+      const isCartEmptyResponse = statusCode === 406 || /cart\s*is\s*empty/i.test(message);
+
       if (ok) {
         await syncCartLength();
         return { ok: true, itemCount };
       }
 
-      const message = result?.data?.data?.message || "Unable to update cart.";
+      if (isCartEmptyResponse) {
+        await syncCartLength();
+        if (nextCount === 0) {
+          return { ok: false, itemCount: 0 };
+        }
+      }
+
       notifyOrAlert(message, "warning");
       return { ok: false, itemCount: Number.isFinite(itemCount) ? itemCount : 0 };
     } catch (error) {
-      notifyOrAlert(getApiErrorMessage(error, "Unable to update cart."), "error");
+      const typed = error as { response?: { status?: number; data?: { message?: string } } };
+      const statusCode = Number(typed?.response?.status ?? 0);
+      const message = String(getApiErrorMessage(error, "Unable to update cart."));
+      const isCartEmptyResponse = statusCode === 406 || /cart\s*is\s*empty/i.test(message);
+
+      if (isCartEmptyResponse) {
+        await syncCartLength();
+        if (nextCount === 0) {
+          return { ok: false, itemCount: 0 };
+        }
+      }
+
+      notifyOrAlert(message, "error");
       return { ok: false, itemCount: 0 };
     }
   };

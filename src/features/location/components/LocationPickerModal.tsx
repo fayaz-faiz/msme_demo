@@ -240,16 +240,70 @@ export function LocationPickerModal({ open, onClose, onAddressSelected }: Locati
         </div>
 
         <div className={styles.inputRow}>
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search city, locality, or pincode"
-          />
-          <button type="button" className={styles.primaryButton} onClick={resolveCurrentLocation}>
-            Use Current Location
-          </button>
+          {/* <div className={styles.searchField}> */}
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search city, locality, or pincode"
+            />
+
+            {query.trim().length >= 3 ? (
+              <div className={styles.searchDropdown}>
+                {loadingResults ? <p className={styles.emptyText}>Searching locations...</p> : null}
+                {searchError ? <p className={styles.errorText}>{searchError}</p> : null}
+
+                {!loadingResults && !searchError && results.length === 0 ? (
+                  <p className={styles.emptyText}>No matching locations found.</p>
+                ) : null}
+
+                {!loadingResults && !searchError
+                  ? results.map((item) => (
+                    <button
+                      key={`${item.lat}-${item.lng}`}
+                      type="button"
+                      className={styles.resultItem}
+                      onClick={() => {
+                        setLocation(item);
+                        dispatch(setselectedGps(`${item.lat},${item.lng}`));
+                        dispatch(
+                          setCurrentLoc({
+                            city: item.city,
+                            pincode: item.pincode,
+                            latitude: item.lat,
+                            longitude: item.lng,
+                          }),
+                        );
+                        setQuery(item.rawLabel);
+                        setResults([]);
+                        onClose();
+                      }}
+                    >
+                      <div>
+                        <strong>{item.label}</strong>
+                        <p>{item.rawLabel}</p>
+                      </div>
+                      <span>Select</span>
+                    </button>
+                  ))
+                  : null}
+              </div>
+            ) : null}
+          {/* </div> */}
         </div>
+
+        <div className={styles.savedAddresses}>
+          <div className={styles.savedHeader}>
+            <button type="button" className={styles.addAddressButton} onClick={resolveCurrentLocation}>
+              Use Current Location
+            </button>
+            <button type="button" className={styles.addAddressButton} onClick={navigateToAddAddress}>
+              Add Address
+            </button>
+          </div>
+        </div>
+
+
 
         {/* <div className={styles.actionsRow}>
           <span className={styles.statusText}>
@@ -278,9 +332,6 @@ export function LocationPickerModal({ open, onClose, onAddressSelected }: Locati
           <div className={styles.savedAddresses}>
             <div className={styles.savedHeader}>
               <span className={styles.label}>Saved Addresses</span>
-              <button type="button" className={styles.addAddressButton} onClick={navigateToAddAddress}>
-                Add Address
-              </button>
             </div>
             {allAddress?.length ? (
               <div className={styles.savedList}>
@@ -340,42 +391,6 @@ export function LocationPickerModal({ open, onClose, onAddressSelected }: Locati
             )}
           </div>
         ) : null}
-
-        <div className={styles.results}>
-          {loadingResults ? <p className={styles.emptyText}>Searching locations...</p> : null}
-          {searchError ? <p className={styles.errorText}>{searchError}</p> : null}
-
-          {!loadingResults && results.length === 0 && query.trim().length >= 3 ? (
-            <p className={styles.emptyText}>No matching locations found.</p>
-          ) : null}
-
-          {results.map((item) => (
-            <button
-              key={`${item.lat}-${item.lng}`}
-              type="button"
-              className={styles.resultItem}
-              onClick={() => {
-                setLocation(item);
-                dispatch(setselectedGps(`${item.lat},${item.lng}`));
-                dispatch(
-                  setCurrentLoc({
-                    city: item.city,
-                    pincode: item.pincode,
-                    latitude: item.lat,
-                    longitude: item.lng,
-                  }),
-                );
-                onClose();
-              }}
-            >
-              <div>
-                <strong>{item.label}</strong>
-                <p>{item.rawLabel}</p>
-              </div>
-              <span>Select</span>
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   );
