@@ -89,7 +89,7 @@ export function Providers({ children }: ProvidersProps) {
         });
         const fullName = String(profile?.full_name || "").trim();
         const mobileNumber = String(profile?.mobile_number || "").trim();
-        const profilePic = String(profile?.profile_pic || profile?.profilePic || "").trim();
+        const profilePic = String(profile?.profile_pic || "").trim();
 
         if (!fullName && !mobileNumber && !profilePic) {
           return;
