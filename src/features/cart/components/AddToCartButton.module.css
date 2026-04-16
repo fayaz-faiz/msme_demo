@@ -8,19 +8,23 @@
 }
 
 .addButton {
-  min-height: 2.75rem;
-  min-width: 8.75rem;
-  background: #155e63;
-  color: #ffffff;
-  padding: 0.72rem 1rem;
+  min-height: 2.1rem;
+  min-width: 5.25rem;
+  border: 1px solid #6ab08d;
+  background: #eef9f2;
+  color: #1c7a53;
+  border-radius: 11px;
+  padding: 0.24rem 0.62rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   white-space: nowrap;
+  font-size: 0.9rem;
+  font-weight: 800;
 }
 
 .addButton:hover {
-  background: #114a4e;
+  background: #def3e6;
 }
 
 .addButton:disabled,
@@ -34,41 +38,42 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.25rem;
-  border: 1px solid #d9ded3;
-  border-radius: 999px;
-  background: #ffffff;
-  padding: 0.34rem 0.38rem;
-  min-height: 2.75rem;
-  min-width: 8.75rem;
+  border: 1px solid #48a974;
+  border-radius: 11px;
+  background: #1f9966;
+  padding: 0.14rem;
+  min-height: 2.1rem;
+  min-width: 5.5rem;
 }
 
 .stepButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  font-size: 1.1rem;
+  width: 1.56rem;
+  height: 1.56rem;
+  font-size: 1rem;
   font-weight: 800;
   line-height: 1;
-  background: #ff5c1b;
+  background: transparent;
   color: #ffffff;
   padding: 0;
 }
 
 .stepButton:hover {
-  background: #e94f10;
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .quantity {
-  min-width: 2rem;
+  min-width: 1.2rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   font-weight: 800;
-  font-size: 1rem;
+  font-size: 0.88rem;
   line-height: 1.1;
+  color: #ffffff;
 }
 
 .countLoader {

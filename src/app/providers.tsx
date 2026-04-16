@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useRef } from "react";
 import { Provider } from "react-redux";
-import { getRloesIds, getUserProfileDataWeb, postGuestLogin } from "@/api";
+import { getRloesIds, postGuestLogin } from "@/api";
 import { injectStore } from "@/api/apiInstance";
 import { hydrateCart } from "@/features/cart/store/cartSlice";
 import { loadCartFromStorage, saveCartToStorage } from "@/features/cart/store/cart-storage";
@@ -67,36 +67,6 @@ export function Providers({ children }: ProvidersProps) {
     const ROLE_USER = "USER";
     const ROLE_GUEST = "GUEST";
 
-    const fetchAndHydrateUserProfile = async () => {
-      try {
-        const response = await getUserProfileDataWeb();
-        const profileData = (response as { data?: unknown })?.data ?? response;
-        const profile = profileData as {
-          full_name?: string;
-          mobile_number?: string;
-          profile_pic?: string;
-          profilePic?: string;
-        };
-        const fullName = String(profile?.full_name || "").trim();
-        const mobileNumber = String(profile?.mobile_number || "").trim();
-        const profilePic = String(profile?.profile_pic || profile?.profilePic || "").trim();
-
-        if (!fullName && !mobileNumber && !profilePic) {
-          return;
-        }
-
-        store.dispatch(
-          hydrateUser({
-            name: fullName || "User",
-            mobileNumber: mobileNumber || "",
-            profilePic: profilePic || undefined,
-          }),
-        );
-      } catch (error) {
-        console.error("Profile bootstrap fetch failed:", error);
-      }
-    };
-
     const getGuestLoginApi = async (guestRoleId: string) => {
       const payload = { role: guestRoleId };
       const response = await postGuestLogin(payload);
@@ -126,7 +96,6 @@ export function Providers({ children }: ProvidersProps) {
             store.dispatch(loginNameSlice(ROLE_USER));
             store.dispatch(setUserType(ROLE_USER));
             store.dispatch(setIsLoggedIn(true));
-            await fetchAndHydrateUserProfile();
             return;
           }
         }
