@@ -1,9 +1,6 @@
 import { ShopItemsBrowser } from "@/features/shop/components/ShopItemsBrowser";
 
-type ShopDetailsPageProps = {
-  params: {
-    slug: string;
-  };
+type DirectStorePageProps = {
   searchParams?: {
     providerId?: string;
     providerLocationId?: string;
@@ -18,15 +15,26 @@ type ShopDetailsPageProps = {
   };
 };
 
-export default function ShopDetailsPage({ params, searchParams }: ShopDetailsPageProps) {
+const toSlug = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
+export default function DirectStorePage({ searchParams }: DirectStorePageProps) {
+  const providerId = searchParams?.providerId || "";
+  const providerLocationId = searchParams?.providerLocationId || "";
+  const shopName = searchParams?.shopName || "Store";
+  const slugSeed = searchParams?.shopName || providerId || providerLocationId || "store";
+
   return (
     <section className="page">
       <ShopItemsBrowser
-        slug={params.slug}
-        providerId={searchParams?.providerId || ""}
-        providerLocationId={searchParams?.providerLocationId || ""}
+        slug={toSlug(slugSeed) || "store"}
+        providerId={providerId}
+        providerLocationId={providerLocationId}
         category={searchParams?.category || ""}
-        shopName={searchParams?.shopName || params.slug.replace(/-/g, " ")}
+        shopName={shopName}
         shopImage={searchParams?.shopImage || ""}
         distance={searchParams?.distance || ""}
         serviceable={searchParams?.serviceable === "true"}

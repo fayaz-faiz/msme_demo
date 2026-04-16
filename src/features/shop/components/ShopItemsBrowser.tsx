@@ -22,6 +22,9 @@ type ShopItemsBrowserProps = {
   shopImage: string;
   distance: string;
   serviceable: boolean;
+  storeLat?: string;
+  storeLong?: string;
+  storeLng?: string;
 };
 
 type SubCategory = {
@@ -87,12 +90,26 @@ type SearchStoreItemsApiResponse = {
 const PAGE_SIZE = 10;
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80";
+const DEFAULT_LATITUDE = 12.9716;
+const DEFAULT_LONGITUDE = 77.5946;
 
 const toSlug = (value: string) =>
   value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+
+const parseCoordinate = (value?: string | number | null) => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const raw = String(value).trim();
+  if (!raw) {
+    return null;
+  }
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+};
 
 const mapApiItemToProduct = (item: ApiItem, shopSlug: string): ShopProduct => {
   const id = item._id || item.item_id || `${shopSlug}-${Math.random().toString(36).slice(2)}`;
@@ -136,6 +153,9 @@ export function ShopItemsBrowser({
   shopImage,
   distance,
   serviceable,
+  storeLat,
+  storeLong,
+  storeLng,
 }: ShopItemsBrowserProps) {
   const { location } = useLocation();
 
@@ -159,7 +179,29 @@ export function ShopItemsBrowser({
 
   const finalProviderId = storeInfo?.provider_id || providerId;
   const finalProviderLocationId = storeInfo?.provider_location_id || providerLocationId;
-  const finalCategory = storeInfo?.category;
+  const finalCategory = storeInfo?.category || category;
+  const resolvedGpsLatitude = useMemo(() => {
+    const fromQuery = parseCoordinate(storeLat);
+    if (fromQuery !== null) {
+      return fromQuery;
+    }
+    const fromLocation = parseCoordinate(location?.lat);
+    if (fromLocation !== null) {
+      return fromLocation;
+    }
+    return DEFAULT_LATITUDE;
+  }, [storeLat, location?.lat]);
+  const resolvedGpsLongitude = useMemo(() => {
+    const fromQuery = parseCoordinate(storeLong ?? storeLng);
+    if (fromQuery !== null) {
+      return fromQuery;
+    }
+    const fromLocation = parseCoordinate(location?.lng);
+    if (fromLocation !== null) {
+      return fromLocation;
+    }
+    return DEFAULT_LONGITUDE;
+  }, [storeLong, storeLng, location?.lng]);
 
   const resolvedShopName = storeInfo?.provider_name || shopName;
   const resolvedShopImage = storeInfo?.bpp_provider_symbol || shopImage || DEFAULT_IMAGE;
@@ -194,8 +236,8 @@ export function ShopItemsBrowser({
 
   const fetchStoreSubCategories = async (providerIdParam: string, providerLocationIdParam: string) => {
     const data = {
-      gpsLatitude: Number(location?.lat) || 12.9716,
-      gpsLongitude: Number(location?.lng) || 77.5946,
+      gpsLatitude: resolvedGpsLatitude,
+      gpsLongitude: resolvedGpsLongitude,
       provider_id: providerIdParam,
       location_id: providerLocationIdParam,
     };
@@ -286,7 +328,7 @@ export function ShopItemsBrowser({
     if (providerId && providerLocationId) {
       void fetchStoreSubCategories(providerId, providerLocationId);
     }
-  }, [providerId, providerLocationId, location?.lat, location?.lng]);
+  }, [providerId, providerLocationId, resolvedGpsLatitude, resolvedGpsLongitude]);
 
   useEffect(() => {
     if (!showFoodTypeFilter && typeOfFood !== "ALL") {
@@ -349,7 +391,7 @@ export function ShopItemsBrowser({
           <Link href="/shops" className={styles.backLink}>
             Back to shops
           </Link>
-          <p className={styles.kicker}>{category || "Store"}</p>
+          <p className={styles.kicker}>{finalCategory || "Store"}</p>
           <h1>{resolvedShopName}</h1>
           <p>{resolvedDescription || "Browse products from this store."}</p>
           <div className={styles.heroStats}>
