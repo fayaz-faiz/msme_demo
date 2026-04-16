@@ -23,6 +23,7 @@ export function loadAuthFromStorage(): AuthUser | null {
     return {
       name: parsed.name,
       mobileNumber: parsed.mobileNumber ?? parsed.email ?? "",
+      profilePic: parsed.profilePic ?? parsed.profile_pic,
     };
   } catch {
     return null;

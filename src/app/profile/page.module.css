@@ -20,6 +20,67 @@
   padding: 1.25rem;
 }
 
+.profileAvatarPanel {
+  display: grid;
+  gap: 0.6rem;
+  align-items: center;
+  text-align: center;
+}
+
+.profileAvatarButton {
+  position: relative;
+  width: 5rem;
+  height: 5rem;
+  /* border-radius: 999px; */
+  border: 1px solid #dfe4d8;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.profileAvatarImage,
+.avatarFallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #ff5c1b;
+  background: #fff3e7;
+}
+
+.profileAvatarImage {
+  object-fit: cover;
+}
+
+.uploadBadge {
+  position: absolute;
+  right: 0.15rem;
+  bottom: 0.15rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: #ff5c1b;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  font-weight: 800;
+  border: 2px solid #ffffff;
+}
+
+.avatarHint {
+  font-size: 0.85rem;
+  color: #55645f;
+}
+
+.uploadInput {
+  display: none;
+}
+
 .kicker {
   color: #ff5c1b;
   font-size: 0.8rem;

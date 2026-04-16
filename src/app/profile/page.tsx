@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { editProfileWeb, getLatestOrder, getRloesIds, getUserProfileDataWeb, postGuestLogin, postLogout } from "@/api";
+import { editProfileWeb, getLatestOrder, getRloesIds, getUserProfileDataWeb, postGuestLogin, postLogout, postUploadProfile } from "@/api";
 import { useAppDispatch, useAppSelector } from "@/features/cart/store/hooks";
 import { clearCart } from "@/features/cart/store/cartSlice";
 import { loginSuccess, logout } from "@/features/auth/store/authSlice";
@@ -159,10 +159,14 @@ export default function ProfilePage() {
   const [latestOrder, setLatestOrder] = useState<OrderLike | null>(null);
   const [loadingLatest, setLoadingLatest] = useState(false);
   const [nameInput, setNameInput] = useState(userName);
+  const [profilePicUrl, setProfilePicUrl] = useState(user?.profilePic || "");
   const [isEditingName, setIsEditingName] = useState(false);
   const [isSavingName, setIsSavingName] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const isUserSession = loginName === "USER";
 
   const getGuestLoginApi = async (guestRoleId: string) => {
     const payload = { role: guestRoleId };
@@ -284,7 +288,102 @@ export default function ProfilePage() {
 
   useEffect(() => {
     setNameInput(userName);
-  }, [userName]);
+    setProfilePicUrl(user?.profilePic || "");
+  }, [userName, user?.profilePic]);
+
+  const fetchProfileData = async () => {
+    if (!isUserSession) {
+      return;
+    }
+    try {
+      const response = await getUserProfileDataWeb();
+      const profile = (response as {
+        data?: { full_name?: string; mobile_number?: string; profile_pic?: string };
+        full_name?: string;
+        mobile_number?: string;
+        profile_pic?: string;
+      })?.data || (response as {
+        full_name?: string;
+        mobile_number?: string;
+        profile_pic?: string;
+      });
+
+      const fullName = String(profile?.full_name || "").trim();
+      const mobileNumber = String(profile?.mobile_number || "").trim();
+      const profilePic = String(profile?.profile_pic || "").trim();
+
+      if (fullName || mobileNumber || profilePic) {
+        dispatch(
+          loginSuccess({
+            name: fullName || userName,
+            mobileNumber: mobileNumber || userMobile,
+            profilePic: profilePic || undefined,
+          }),
+        );
+      }
+
+      setProfilePicUrl(profilePic || user?.profilePic || "");
+    } catch (err) {
+      console.error("Profile fetch failed:", err);
+    }
+  };
+
+  useEffect(() => {
+    void fetchProfileData();
+  }, [dispatch, isUserSession, user?.mobileNumber, user?.name, user?.profilePic]);
+
+  const handleEditClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64String = result.split(",")[1];
+        resolve(base64String);
+      };
+      reader.onerror = (error) => reject(error);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const postUploadProfileApi = async (mim: string, image: string) => {
+    try {
+      setIsUploadingPhoto(true);
+      const item = {
+        mimetype: mim,
+        base64: image,
+      };
+      const resp: any = await postUploadProfile(item);
+      if (resp?.data?.status === 200 || resp?.data?.status === true) {
+        await fetchProfileData();
+        notifyOrAlert(resp?.data?.data?.message || "Profile picture updated successfully.", "success");
+        return;
+      }
+      throw new Error(String(resp?.data?.message || resp?.data?.data || "Unable to upload profile picture."));
+    } catch (err: unknown) {
+      notifyOrAlert(toReadableMessage((err as { message?: unknown })?.message) || "Unable to upload profile picture.", "error");
+      throw err;
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    try {
+      const base64 = await convertFileToBase64(file);
+      await postUploadProfileApi(file.type, base64);
+      e.target.value = "";
+    } catch (error) {
+      console.error("Please select another image", error);
+    }
+  };
 
   useEffect(() => {
     const fetchLatest = async () => {
@@ -311,41 +410,6 @@ export default function ProfilePage() {
   const latestOrderAddress = useMemo(() => pickAddress(latestOrder), [latestOrder]);
   const latestOrderStatus = useMemo(() => pickOrderStatus(latestOrder), [latestOrder]);
   const latestPaymentStatus = useMemo(() => pickPaymentStatus(latestOrder), [latestOrder]);
-
-  const isUserSession = loginName === "USER";
-
-  useEffect(() => {
-    const fetchProfileData = async () => {
-      if (!isUserSession) {
-        return;
-      }
-      try {
-        const response = await getUserProfileDataWeb();
-        const profile = (response as {
-          data?: { full_name?: string; mobile_number?: string };
-          full_name?: string;
-          mobile_number?: string;
-        })?.data || (response as { full_name?: string; mobile_number?: string });
-        const fullName = String(profile?.full_name || "").trim();
-        const mobileNumber = String(profile?.mobile_number || "").trim();
-
-        if (!fullName && !mobileNumber) {
-          return;
-        }
-
-        dispatch(
-          loginSuccess({
-            name: fullName || user?.name || "User",
-            mobileNumber: mobileNumber || user?.mobileNumber || "",
-          }),
-        );
-      } catch (err) {
-        console.error("Profile fetch failed:", err);
-      }
-    };
-
-    void fetchProfileData();
-  }, [dispatch, isUserSession, user?.mobileNumber, user?.name]);
 
   if (!user && !isUserSession) {
     return (
@@ -381,6 +445,29 @@ export default function ProfilePage() {
           <p className={styles.kicker}>Profile</p>
           <h1>{userName}</h1>
           <p>Review your profile details and past orders in one place.</p>
+        </div>
+        <div className={styles.profileAvatarPanel}>
+          <button
+            type="button"
+            className={styles.profileAvatarButton}
+            onClick={handleEditClick}
+            aria-label="Upload profile photo"
+          >
+            {profilePicUrl ? (
+              <img src={profilePicUrl} alt={userName} className={styles.profileAvatarImage} />
+            ) : (
+              <span className={styles.avatarFallback}>{userName.charAt(0).toUpperCase()}</span>
+            )}
+            <span className={styles.uploadBadge}>{isUploadingPhoto ? "…" : "+"}</span>
+          </button>
+          <p className={styles.avatarHint}>Tap to upload a new profile picture.</p>
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className={styles.uploadInput}
+          />
         </div>
         <div className={styles.badgeRow}>
           <button type="button" className={styles.logoutButton} onClick={() => setShowLogoutConfirm(true)}>

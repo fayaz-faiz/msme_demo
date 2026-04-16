@@ -76,10 +76,12 @@ function mapProfileToAuthUser(profileResponse: unknown) {
   const profile = typed?.data || typed;
   const fullName = String(profile?.full_name || "").trim();
   const mobileNumber = String(profile?.mobile_number || "").trim();
+  const profilePic = String(profile?.profile_pic || profile?.profilePic || "").trim();
 
   return {
     name: fullName || null,
     mobileNumber: mobileNumber || null,
+    profilePic: profilePic || undefined,
   };
 }
 

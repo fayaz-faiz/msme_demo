@@ -40,6 +40,7 @@ export function AppHeader() {
       : "Choose location";
   const displayName = user?.name?.trim() || user?.mobileNumber || (loginName === "USER" ? "User" : null);
   const avatarLabel = displayName ? displayName.charAt(0).toUpperCase() : "U";
+  const avatarImg = user?.profilePic?.trim() || "";
 
   function handleCartClick(event: React.MouseEvent<HTMLAnchorElement>) {
     if (isAuthenticated) {
@@ -190,7 +191,11 @@ export function AppHeader() {
                 <div className="user-chip">
                   <Link href="/profile" className="user-avatar-link" aria-label="Go to profile">
                     <span className="user-avatar" aria-hidden="true">
-                      {avatarLabel}
+                      {avatarImg ? (
+                        <img src={avatarImg} alt={displayName || "User avatar"} className="user-avatar-image" />
+                      ) : (
+                        avatarLabel
+                      )}
                     </span>
                   </Link>
                   <span className="user-name">{displayName}</span>

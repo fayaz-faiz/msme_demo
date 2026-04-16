@@ -77,8 +77,9 @@ export function Providers({ children }: ProvidersProps) {
         })?.data || (response as { full_name?: string; mobile_number?: string });
         const fullName = String(profile?.full_name || "").trim();
         const mobileNumber = String(profile?.mobile_number || "").trim();
+        const profilePic = String(profile?.profile_pic || profile?.profilePic || "").trim();
 
-        if (!fullName && !mobileNumber) {
+        if (!fullName && !mobileNumber && !profilePic) {
           return;
         }
 
@@ -86,6 +87,7 @@ export function Providers({ children }: ProvidersProps) {
           hydrateUser({
             name: fullName || "User",
             mobileNumber: mobileNumber || "",
+            profilePic: profilePic || undefined,
           }),
         );
       } catch (error) {
