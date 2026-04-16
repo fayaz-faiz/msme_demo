@@ -71,10 +71,22 @@ export function Providers({ children }: ProvidersProps) {
       try {
         const response = await getUserProfileDataWeb();
         const profile = (response as {
-          data?: { full_name?: string; mobile_number?: string };
+          data?: {
+            full_name?: string;
+            mobile_number?: string;
+            profile_pic?: string;
+            profilePic?: string;
+          };
           full_name?: string;
           mobile_number?: string;
-        })?.data || (response as { full_name?: string; mobile_number?: string });
+          profile_pic?: string;
+          profilePic?: string;
+        })?.data || (response as {
+          full_name?: string;
+          mobile_number?: string;
+          profile_pic?: string;
+          profilePic?: string;
+        });
         const fullName = String(profile?.full_name || "").trim();
         const mobileNumber = String(profile?.mobile_number || "").trim();
         const profilePic = String(profile?.profile_pic || profile?.profilePic || "").trim();

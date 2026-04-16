@@ -68,9 +68,16 @@ function normalizeMobileNumber(value: string) {
 
 function mapProfileToAuthUser(profileResponse: unknown) {
   const typed = profileResponse as {
-    data?: { full_name?: string; mobile_number?: string };
+    data?: {
+      full_name?: string;
+      mobile_number?: string;
+      profile_pic?: string;
+      profilePic?: string;
+    };
     full_name?: string;
     mobile_number?: string;
+    profile_pic?: string;
+    profilePic?: string;
   };
 
   const profile = typed?.data || typed;
