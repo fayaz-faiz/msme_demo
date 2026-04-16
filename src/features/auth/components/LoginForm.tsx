@@ -67,23 +67,16 @@ function normalizeMobileNumber(value: string) {
 }
 
 function mapProfileToAuthUser(profileResponse: unknown) {
-  const typed = profileResponse as {
-    data?: {
-      full_name?: string;
-      mobile_number?: string;
-      profile_pic?: string;
-      profilePic?: string;
-    };
+  const profileData = (profileResponse as { data?: unknown })?.data ?? profileResponse;
+  const profile = profileData as {
     full_name?: string;
     mobile_number?: string;
     profile_pic?: string;
     profilePic?: string;
   };
-
-  const profile = typed?.data || typed;
   const fullName = String(profile?.full_name || "").trim();
   const mobileNumber = String(profile?.mobile_number || "").trim();
-  const profilePic = String(profile?.profile_pic || "").trim();
+  const profilePic = String(profile?.profile_pic || profile?.profilePic || "").trim();
 
   return {
     name: fullName || null,
