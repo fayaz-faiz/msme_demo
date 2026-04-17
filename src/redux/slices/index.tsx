@@ -1,6 +1,6 @@
 
 import { setAddresses, setLoading, setError,logoutUsersSlice, setSearchQuery, clearSearchQuery, setSelectedIndex, clearselectedIndex } from './addressSlice'
-import { setCartLength,logoutSlice,userAuthDataSlice,
+import { setCartLength, setCartSummary, logoutSlice,userAuthDataSlice,
     clearRoleToken,
     setAccessToken,
     clearAccessToken,
@@ -21,7 +21,7 @@ import deviceReducer from './deviceSlice';
 
 export {selectedAddress, setselectedGps, setCurrentLoc, setAddresses, setLoading, setError,clearRefreshToken, 
     loginNameSlice, setAccessToken, setIsLoggedIn,setRefreshToken,logoutSlice,logoutUserSlice,logoutUsersSlice,
-    logoutUserssSlice, userAuthDataSlice,setCartLength, clearIsLoggedIn, clearAccessToken,clearRoleToken,
+    logoutUserssSlice, userAuthDataSlice, setCartLength, setCartSummary, clearIsLoggedIn, clearAccessToken, clearRoleToken,
     setUserType,
     addressReducer,  apiResponseReducer,authTokenReducer, locationReducer,deviceReducer, setSearchQuery, clearSearchQuery, 
     setSelectedIndex, clearselectedIndex, setDeviceInfo };

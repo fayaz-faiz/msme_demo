@@ -33,6 +33,23 @@
   cursor: not-allowed;
 }
 
+.closedButton {
+  min-height: 2.1rem;
+  min-width: 5.25rem;
+  border: 1px solid #d0d8d2;
+  background: #f4f6f4;
+  color: #9aaa9e;
+  border-radius: 11px;
+  padding: 0.24rem 0.62rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: not-allowed;
+}
+
 .stepper {
   display: inline-flex;
   align-items: center;

@@ -14,6 +14,8 @@ const apiResponseSlice = createSlice({
     loading: false,
     error: null,
     cartLength: 0,
+    cartTotalAmount: 0,
+    cartId: '',
     roleToken: '',
     accessToken: '',
   },
@@ -30,6 +32,8 @@ const apiResponseSlice = createSlice({
       state.loading= false
       state.error= null
       state.cartLength = 0
+      state.cartTotalAmount = 0
+      state.cartId = ''
       state.roleToken= ''
       state.accessToken=''
     },
@@ -98,7 +102,12 @@ const apiResponseSlice = createSlice({
     },
     
     setCartLength: (state, action: PayloadAction<number>) => {
-      state.cartLength = action.payload; 
+      state.cartLength = action.payload;
+    },
+    setCartSummary: (state, action: PayloadAction<{ cartId?: string; totalAmount?: number; itemCount?: number }>) => {
+      if (action.payload.cartId !== undefined) state.cartId = action.payload.cartId;
+      if (action.payload.totalAmount !== undefined) state.cartTotalAmount = action.payload.totalAmount;
+      if (action.payload.itemCount !== undefined) state.cartLength = action.payload.itemCount;
     },
     userAuthDataSlice: (state, action) => {
       state.roleToken = action.payload;
@@ -130,8 +139,8 @@ export const {
   clearUserType,
   setLoading,
   setError,
-  clearError,logoutSlice,setCartLength,
-  userAuthDataSlice,clearRoleToken
+  clearError, logoutSlice, setCartLength, setCartSummary,
+  userAuthDataSlice, clearRoleToken
 } = apiResponseSlice.actions;
 
 export default apiResponseSlice.reducer;

@@ -17,9 +17,13 @@ export default function CartPage() {
       return;
     }
 
-    const allowRedirect = window.confirm("Please login first to view cart. Go to login now?");
+    const allowRedirect = window.confirm(
+      "Please login first to view cart. Go to login now?",
+    );
     if (allowRedirect) {
-      router.replace(`/auth/login?next=${encodeURIComponent(pathname || "/cart")}`);
+      router.replace(
+        `/auth/login?next=${encodeURIComponent(pathname || "/cart")}`,
+      );
     } else {
       router.replace("/");
     }
@@ -31,10 +35,10 @@ export default function CartPage() {
 
   return (
     <section className="page">
-      <h1>Your Carts</h1>
-      <p className="page-intro">
+      <h1>Multi Cart</h1>
+      {/* <p className="page-intro">
         Manage carts by store. View a cart or remove it from your multi-cart list.
-      </p>
+      </p> */}
       <MultiCartList />
     </section>
   );

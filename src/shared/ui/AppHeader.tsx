@@ -251,27 +251,29 @@ export function AppHeader() {
                 )}
               </svg>
             </button>
-            <Link
-              href="/cart"
-              onClick={handleCartClick}
-              className="nav-cart"
-              aria-label={`Cart with ${cartCount} items`}
-            >
-              <svg className="cart-icon" aria-hidden="true" viewBox="0 0 24 24" role="img">
-                <path
-                  d="M4 5h2l2.2 9.1a2 2 0 0 0 2 1.5h6.9a2 2 0 0 0 2-1.5L21 8H7.3"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <circle cx="10" cy="20" r="1.25" fill="currentColor" />
-                <circle cx="18" cy="20" r="1.25" fill="currentColor" />
-              </svg>
-              <span>Cart</span>
-              {cartCount > 0 ? <span className="cart-count">{cartCount}</span> : null}
-            </Link>
+            {cartCount > 0 ? (
+              <Link
+                href="/cart"
+                onClick={handleCartClick}
+                className="nav-cart"
+                aria-label={`Cart with ${cartCount} items`}
+              >
+                <svg className="cart-icon" aria-hidden="true" viewBox="0 0 24 24" role="img">
+                  <path
+                    d="M4 5h2l2.2 9.1a2 2 0 0 0 2 1.5h6.9a2 2 0 0 0 2-1.5L21 8H7.3"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="10" cy="20" r="1.25" fill="currentColor" />
+                  <circle cx="18" cy="20" r="1.25" fill="currentColor" />
+                </svg>
+                <span>Cart</span>
+                <span className="cart-count">{cartCount}</span>
+              </Link>
+            ) : null}
 
             {isAuthenticated ? (
                 <div className="user-chip">
