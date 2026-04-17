@@ -136,13 +136,24 @@ export function AppHeader() {
     );
   };
 
+  const handleClearNavSearch = () => {
+    setNavSearch("");
+    const target = "/#shops";
+    router.push(target);
+    window.dispatchEvent(
+      new CustomEvent("shops-search", {
+        detail: { query: "" },
+      }),
+    );
+  };
+
   return (
     <>
       <header className="topbar">
         <div className="topbar-inner">
           <div className="brand-location">
             <Link href="/" className="brand">
-              MSME
+              <img src="/images/NearshopLogoNew.png" alt="Nearshop" className="brand-logo" />
             </Link>
             <button
               type="button"
@@ -163,7 +174,20 @@ export function AppHeader() {
                 placeholder="Search shops by name"
                 aria-label="Search shops by name"
               />
-              <button type="submit">Search</button>
+              {navSearch.trim() ? (
+                <button type="button" className="nav-search-icon-btn" onClick={handleClearNavSearch} aria-label="Clear search">
+                  <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M5.2 5.2 14.8 14.8M14.8 5.2 5.2 14.8" />
+                  </svg>
+                </button>
+              ) : (
+                <button type="submit" className="nav-search-icon-btn" aria-label="Search shops">
+                  <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <circle cx="8.5" cy="8.5" r="5.6" />
+                    <path d="M12.6 12.6 17 17" />
+                  </svg>
+                </button>
+              )}
             </form>
             <Link
               href="/cart"

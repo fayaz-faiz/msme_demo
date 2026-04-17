@@ -1,22 +1,33 @@
 .page {
   display: grid;
-  gap: 2rem;
+  gap: 1.15rem;
 }
 
 .hero {
   position: relative;
   display: grid;
-  gap: 1.4rem;
-  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  gap: 1rem;
   align-items: center;
-  border: 1px solid #e1e5dc;
-  border-radius: 28px;
-  padding: 1.6rem;
+  border: 1px solid #e8decd;
+  border-radius: 22px;
+  padding: 0.95rem;
   overflow: hidden;
   background:
-    radial-gradient(circle at 20% 15%, #fff0d1 0%, transparent 40%),
-    radial-gradient(circle at 80% 80%, #ffd8b9 0%, transparent 38%),
-    linear-gradient(145deg, #fff9ed 0%, #fff4e4 48%, #fffaf2 100%);
+    radial-gradient(circle at 16% 8%, #ffe8be 0%, transparent 42%),
+    radial-gradient(circle at 88% 88%, #ffd4bc 0%, transparent 36%),
+    linear-gradient(156deg, #fffaf1 0%, #fff4e7 44%, #fffef8 100%);
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(199, 144, 58, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(199, 144, 58, 0.08) 1px, transparent 1px);
+  background-size: 16px 16px;
+  opacity: 0.2;
+  pointer-events: none;
 }
 
 .glowA,
@@ -50,7 +61,8 @@
   position: relative;
   z-index: 2;
   display: grid;
-  gap: 0.9rem;
+  gap: 0.72rem;
+  font-family: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
 }
 
 .kicker {
@@ -67,22 +79,23 @@
 }
 
 .heroText h1 {
-  font-size: clamp(1.95rem, 4vw, 3.22rem);
-  line-height: 1.04;
+  font-size: clamp(1.55rem, 7vw, 3.22rem);
+  line-height: 1.02;
   letter-spacing: -0.02em;
   text-wrap: balance;
 }
 
 .heroText p {
   color: #4d594f;
-  max-width: 58ch;
+  max-width: 52ch;
+  font-size: 0.95rem;
 }
 
 .featurePills {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem;
-  margin-top: 0.3rem;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
 }
 
 .featurePills span {
@@ -90,24 +103,25 @@
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid #ecd7bb;
   color: #7a5f34;
-  font-size: 0.82rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  padding: 0.44rem 0.82rem;
+  padding: 0.36rem 0.68rem;
 }
 
 .heroActions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.65rem;
+  gap: 0.55rem;
+  margin-top: 0.25rem;
 }
 
 .primaryCta,
 .secondaryCta {
   border-radius: 999px;
   font-weight: 800;
-  font-size: 0.9rem;
+  font-size: 0.84rem;
   text-decoration: none;
-  padding: 0.68rem 1rem;
+  padding: 0.58rem 0.9rem;
   transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
@@ -120,7 +134,7 @@
 .secondaryCta {
   color: #3d4b41;
   border: 1px solid #dcc9ab;
-  background: #fff8ed;
+  background: rgba(255, 248, 237, 0.92);
 }
 
 .primaryCta:hover,
@@ -128,39 +142,15 @@
   transform: translateY(-1px);
 }
 
-.heroStats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
-}
-
-.heroStats article {
-  border: 1px solid #ebdbc6;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.82);
-  padding: 0.58rem 0.62rem;
-  display: grid;
-  gap: 0.2rem;
-}
-
-.heroStats strong {
-  font-size: 1rem;
-  color: #1f3529;
-}
-
-.heroStats span {
-  font-size: 0.72rem;
-  color: #667368;
-}
-
 .heroArt {
   position: relative;
   z-index: 2;
-  min-height: 312px;
-  border-radius: 20px;
+  min-height: 248px;
+  border-radius: 18px;
   overflow: hidden;
   isolation: isolate;
   background: #f7f8f3;
+  box-shadow: 0 14px 28px rgba(110, 78, 22, 0.16);
 }
 
 .heroCarousel {
@@ -206,7 +196,7 @@
 
 .carouselOverlay {
   position: absolute;
-  inset: auto 1rem 1rem 1rem;
+  inset: auto 0.7rem 0.75rem 0.7rem;
   z-index: 3;
 }
 
@@ -217,10 +207,10 @@
   transform: translateY(6px);
   width: min(320px, 100%);
   border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 14px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(6px);
-  padding: 0.9rem;
+  padding: 0.75rem;
   animation: captionFade 16s infinite;
 }
 
@@ -241,27 +231,27 @@
 }
 
 .heroCard h3 {
-  font-size: 0.98rem;
+  font-size: 0.9rem;
   color: #ffffff;
 }
 
 .heroCard p {
   color: #f5f6f2;
-  font-size: 0.88rem;
-  margin-top: 0.3rem;
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
 }
 
 .carouselSteps {
   position: absolute;
-  inset: auto 1rem 0.9rem auto;
+  inset: auto 0.7rem 0.62rem auto;
   z-index: 4;
   display: flex;
-  gap: 0.4rem;
+  gap: 0.32rem;
 }
 
 .stepBar {
-  width: 22px;
-  height: 4px;
+  width: 16px;
+  height: 3px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.35);
   overflow: hidden;
@@ -294,16 +284,16 @@
 
 .floatingTag {
   position: absolute;
-  top: 0.9rem;
-  right: 0.9rem;
+  top: 0.62rem;
+  right: 0.62rem;
   z-index: 4;
   border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.85);
   color: #3d4a41;
-  font-size: 0.73rem;
+  font-size: 0.66rem;
   font-weight: 800;
-  padding: 0.35rem 0.68rem;
+  padding: 0.28rem 0.56rem;
   animation: tagFloat 2.5s ease-in-out infinite;
 }
 
@@ -431,13 +421,32 @@
   }
 }
 
-@media (max-width: 1024px) {
+@media (min-width: 980px) {
   .hero {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
+    gap: 1.2rem;
+    padding: 1.25rem;
+    border-radius: 26px;
   }
 
-  .heroStats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .heroText {
+    gap: 0.88rem;
+  }
+
+  .featurePills span {
+    font-size: 0.82rem;
+    padding: 0.42rem 0.8rem;
+  }
+
+  .primaryCta,
+  .secondaryCta {
+    font-size: 0.9rem;
+    padding: 0.66rem 1rem;
+  }
+
+  .heroCard {
+    border-radius: 14px;
+    padding: 0.9rem;
   }
 }
 
@@ -447,25 +456,12 @@
     flex-direction: column;
   }
 
-  .hero {
-    padding: 1.1rem;
-    border-radius: 22px;
-  }
-
-  .heroStats {
-    grid-template-columns: 1fr;
-  }
-
-  .heroArt {
-    min-height: 276px;
-  }
-
-  .heroCard {
-    width: 100%;
-  }
-
   .carouselSteps {
-    left: 1rem;
+    left: 0.7rem;
     right: auto;
+  }
+
+  .featurePills span:nth-child(3) {
+    display: none;
   }
 }
