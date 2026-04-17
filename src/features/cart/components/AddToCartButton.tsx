@@ -17,6 +17,7 @@ import styles from "./AddToCartButton.module.css";
 type AddToCartButtonProps = {
   product: Product;
   useServerCart?: boolean;
+  storeDisabled?: boolean;
 };
 
 type CustomizationOption = {
@@ -62,7 +63,7 @@ type AddUpdateCartResponse = {
   };
 };
 
-export function AddToCartButton({ product, useServerCart = false }: AddToCartButtonProps) {
+export function AddToCartButton({ product, useServerCart = false, storeDisabled = false }: AddToCartButtonProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -322,7 +323,7 @@ export function AddToCartButton({ product, useServerCart = false }: AddToCartBut
                 dispatch(setItemQuantity({ product, quantity: response.itemCount }));
               }}
             >
-              {isUpdating ? "Adding..." : "Add To Cart"}
+              {isUpdating ? "Adding..." : "Add"}
             </button>
           </div>
         </div>
@@ -330,6 +331,14 @@ export function AddToCartButton({ product, useServerCart = false }: AddToCartBut
       document.body,
     )
       : null;
+
+  if (storeDisabled) {
+    return (
+      <button type="button" className={styles.closedButton} disabled>
+        Unavailable
+      </button>
+    );
+  }
 
   if (!quantity) {
     return (
@@ -381,7 +390,7 @@ export function AddToCartButton({ product, useServerCart = false }: AddToCartBut
             dispatch(addItem(product));
           }}
         >
-          {isLoadingCustomizations ? "Loading..." : isUpdating ? "Adding..." : "Add To Cart"}
+          {isLoadingCustomizations ? "Loading..." : isUpdating ? "Adding..." : "Add"}
         </button>
         {customizationModal}
       </>
