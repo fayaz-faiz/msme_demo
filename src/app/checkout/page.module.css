@@ -1,0 +1,257 @@
+﻿.page {
+  display: grid;
+  gap: 1rem;
+}
+
+.hero,
+.card,
+.successCard {
+  border: 1px solid #dfe4d8;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(28, 33, 24, 0.06);
+}
+
+.hero {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  background: linear-gradient(135deg, #fff3e7, #ffffff);
+  padding: 1.25rem;
+}
+
+.kicker {
+  color: #ff5c1b;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero h1,
+.card h2,
+.successCard h1 {
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+  line-height: 1.1;
+}
+
+.hero p,
+.card p,
+.successCard p {
+  color: #5a6657;
+}
+
+.badgeRow {
+  display: grid;
+  gap: 0.5rem;
+  text-align: right;
+}
+
+.badgeRow span {
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #dfe4d8;
+  font-weight: 800;
+  padding: 0.45rem 0.75rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.card,
+.successCard {
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem;
+}
+
+.addressBox {
+  display: grid;
+  gap: 0.35rem;
+  border: 1px solid #e6e9e1;
+  border-radius: 16px;
+  background: #f8faf5;
+  padding: 1rem;
+}
+
+.summaryList {
+  display: grid;
+  gap: 0.65rem;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.summaryRow,
+.totalRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.totalRow {
+  border-top: 1px solid #e6e9e1;
+  padding-top: 0.85rem;
+}
+
+.checkoutButton,
+.primaryButton,
+.secondaryButton {
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.9rem 1rem;
+  text-align: center;
+  text-decoration: none;
+}
+
+.checkoutButton,
+.primaryButton {
+  background: linear-gradient(135deg, #ff5c1b, #ff7f38);
+  color: #ffffff;
+}
+
+.secondaryButton {
+  border: 1px solid #dfe4d8;
+  background: #ffffff;
+  color: #243121;
+}
+
+.primaryButton {
+  width: fit-content;
+}
+
+.checkoutButton:hover,
+.primaryButton:hover {
+  background: linear-gradient(135deg, #e94f10, #ff6930);
+}
+
+.checkoutButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.successCard {
+  position: relative;
+  overflow: hidden;
+  justify-items: center;
+  text-align: center;
+  background: linear-gradient(180deg, #fffaf4 0%, #ffffff 55%, #f9fbf6 100%);
+  animation: successEnter 420ms ease-out both;
+}
+
+.successCard::before,
+.successCard::after {
+  content: "";
+  position: absolute;
+  inset: auto auto 20% -8% / auto auto auto auto;
+  width: 200px;
+  height: 200px;
+  border-radius: 999px;
+  background: rgba(255, 124, 56, 0.12);
+  filter: blur(6px);
+  animation: floatPulse 5s ease-in-out infinite;
+}
+
+.successCard::after {
+  inset: -10% -10% auto auto;
+  width: 160px;
+  height: 160px;
+  background: rgba(21, 94, 99, 0.12);
+  animation-delay: 1s;
+}
+
+.successMark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border-radius: 999px;
+  background: radial-gradient(circle at top, #fff4ec, #ff7f38);
+  color: #ffffff;
+  box-shadow: 0 12px 32px rgba(255, 92, 27, 0.24);
+}
+
+.successGlow {
+  position: absolute;
+  inset: -12px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 127, 56, 0.24);
+  animation: ripple 1.8s ease-out infinite;
+}
+
+.successCheck {
+  position: relative;
+  font-size: 2rem;
+  font-weight: 800;
+  animation: pop 500ms ease-out both;
+}
+
+.successActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+@keyframes successEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0.88);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.34);
+    opacity: 0;
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes floatPulse {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@media (max-width: 960px) {
+  .grid,
+  .hero {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .badgeRow {
+    text-align: left;
+  }
+}

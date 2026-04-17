@@ -1,0 +1,197 @@
+.page {
+  display: grid;
+  gap: 1rem;
+}
+
+.card {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid #dfe4d8;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(28, 33, 24, 0.06);
+  padding: 1.2rem;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.kicker {
+  color: #ff5c1b;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.header h1 {
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+  line-height: 1.15;
+}
+
+.locationPanel {
+  display: grid;
+  gap: 0.8rem;
+  border: 1px solid #e5eade;
+  border-radius: 16px;
+  background: #f9fbf7;
+  padding: 0.9rem;
+}
+
+.locationTools {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.6rem;
+  align-items: start;
+}
+
+.searchField {
+  position: relative;
+}
+
+.locationTools input {
+  border: 1px solid #dfe4d8;
+  border-radius: 10px;
+  font: inherit;
+  padding: 0.6rem 0.7rem;
+}
+
+.searchResults {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 0.45rem;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid #e2e9dc;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 14px 30px rgba(24, 30, 22, 0.12);
+  padding: 0.45rem;
+}
+
+.resultButton {
+  display: grid;
+  gap: 0.2rem;
+  border: 1px solid #edf2e8;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #22301f;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+}
+
+.resultButton:hover {
+  background: #f3f7ee;
+}
+
+.resultButton span {
+  color: #5c6a57;
+  font-size: 0.86rem;
+}
+
+.mapFrame {
+  width: 100%;
+  height: 320px;
+  border: 1px solid #dce4d5;
+  border-radius: 12px;
+}
+
+.coordinates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  color: #4f5d4a;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.formGrid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.field label {
+  color: #5d6958;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.field input,
+.field textarea {
+  border: 1px solid #dfe4d8;
+  border-radius: 10px;
+  font: inherit;
+  padding: 0.6rem 0.7rem;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  border: 1px solid #dfe4d8;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #243121;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.45rem 0.75rem;
+}
+
+.chipActive {
+  border-color: #ff9b6b;
+  background: #fff1e8;
+  color: #a6411f;
+}
+
+.helpText {
+  color: #5f695b;
+}
+
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.7rem 0.9rem;
+}
+
+.primaryButton {
+  border: none;
+  background: linear-gradient(135deg, #ff5c1b, #ff7f38);
+  color: #ffffff;
+}
+
+.secondaryButton {
+  border: 1px solid #dfe4d8;
+  background: #ffffff;
+  color: #243121;
+}
+
+@media (max-width: 820px) {
+  .locationTools {
+    grid-template-columns: 1fr;
+  }
+}

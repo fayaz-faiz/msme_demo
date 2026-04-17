@@ -1,0 +1,444 @@
+.page {
+  display: grid;
+  gap: 1rem;
+}
+
+.hero,
+.card {
+  border: 1px solid #dfe4d8;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(28, 33, 24, 0.06);
+}
+
+.hero {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  background: linear-gradient(135deg, #fff3e7, #ffffff);
+  padding: 1.25rem;
+}
+
+.profileAvatarPanel {
+  display: grid;
+  gap: 0.6rem;
+  align-items: center;
+  text-align: center;
+}
+
+.profileAvatarButton {
+  position: relative;
+  width: 5rem;
+  height: 5rem;
+  /* border-radius: 999px; */
+  border: 1px solid #dfe4d8;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.profileAvatarImage,
+.avatarFallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #ff5c1b;
+  background: #fff3e7;
+}
+
+.profileAvatarImage {
+  object-fit: cover;
+}
+
+.uploadBadge {
+  position: absolute;
+  right: 0.15rem;
+  bottom: 0.15rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: #ff5c1b;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  font-weight: 800;
+  border: 2px solid #ffffff;
+}
+
+.avatarHint {
+  font-size: 0.85rem;
+  color: #55645f;
+}
+
+.uploadInput {
+  display: none;
+}
+
+.kicker {
+  color: #ff5c1b;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero h1,
+.card h2 {
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+  line-height: 1.1;
+}
+
+.hero p,
+.card p {
+  color: #5a6657;
+}
+
+.badgeRow {
+  display: grid;
+  gap: 0.5rem;
+  text-align: right;
+}
+
+.badgeRow span {
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #dfe4d8;
+  font-weight: 800;
+  padding: 0.45rem 0.75rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.card {
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem;
+  min-width: 0;
+}
+
+.headingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.grid > .card:first-child {
+  position: sticky;
+  top: 1rem;
+  align-self: start;
+}
+
+.detailList {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.detailList div {
+  display: grid;
+  gap: 0.15rem;
+  border: 1px solid #e8ece4;
+  border-radius: 16px;
+  background: #f8faf5;
+  padding: 0.9rem;
+}
+
+.detailList span {
+  color: #6a7368;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.detailList strong {
+  color: #1d251d;
+}
+
+.inlineStatic {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.editButton {
+  border: 1px solid #dfe4d8;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #243121;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 0.35rem 0.65rem;
+}
+
+.editButton:hover {
+  background: #f4f7f1;
+}
+
+.inlineEditWrap {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.nameInput {
+  border: 1px solid #dfe4d8;
+  border-radius: 10px;
+  color: #243121;
+  font: inherit;
+  padding: 0.55rem 0.7rem;
+}
+
+.inlineActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.orderList {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.orderCard {
+  display: grid;
+  gap: 0.5rem;
+  border: 1px solid #e8ece4;
+  border-radius: 18px;
+  background: #f9fbf7;
+  padding: 1rem;
+  min-width: 0;
+}
+
+.orderTop,
+.orderActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.orderTop {
+  align-items: start;
+}
+
+.amountWrap {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: end;
+}
+
+.orderTop h3 {
+  font-size: 1rem;
+}
+
+.orderId,
+.orderMeta,
+.orderActions span {
+  color: #667065;
+  font-size: 0.86rem;
+}
+
+.orderId {
+  word-break: break-all;
+}
+
+.paymentTag {
+  border-radius: 999px;
+  background: #f4f7f1;
+  border: 1px solid #dfe4d8;
+  color: #243121;
+  font-weight: 800;
+  padding: 0.35rem 0.6rem;
+}
+
+.paymentTagPaid {
+  background: #ebf9f1;
+  border-color: #8fd7ad;
+  color: #147a3f;
+}
+
+.orderMeta {
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.orderActions {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.actionRight {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: end;
+}
+
+.trackButton,
+.viewAllButton,
+.secondaryButton,
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.85rem 0.98rem;
+  text-align: center;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.trackButton,
+.viewAllButton,
+.primaryButton {
+  background: linear-gradient(135deg, #ff5c1b, #ff7f38);
+  color: #ffffff;
+}
+
+.trackButton:hover,
+.viewAllButton:hover,
+.primaryButton:hover {
+  background: linear-gradient(135deg, #e94f10, #ff6930);
+}
+
+.secondaryButton {
+  border: 1px solid #dfe4d8;
+  background: #ffffff;
+  color: #243121;
+}
+
+.secondaryButton:hover {
+  background: #f4f7f1;
+}
+
+.policyLinks {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.policyLink {
+  border: 1px solid #e2e9dc;
+  border-radius: 14px;
+  background: #f8faf5;
+  color: #233021;
+  font-weight: 700;
+  padding: 0.75rem 0.85rem;
+  text-decoration: none;
+}
+
+.policyLink:hover {
+  background: #f1f5ec;
+}
+
+.logoutButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #f1beb4;
+  border-radius: 14px;
+  background: #fff5f2;
+  color: #a53a24;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.85rem 0.98rem;
+}
+
+.logoutButton:hover {
+  background: #ffe9e2;
+}
+
+.emptyState {
+  border: 1px dashed #dfe4d8;
+  border-radius: 18px;
+  color: #667065;
+  padding: 1rem;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: rgba(19, 24, 18, 0.45);
+  padding: 1rem;
+}
+
+.modalCard {
+  width: min(100%, 440px);
+  display: grid;
+  gap: 0.9rem;
+  border: 1px solid #dfe4d8;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 20px 45px rgba(12, 18, 10, 0.2);
+  padding: 1rem;
+}
+
+.modalCard h3 {
+  font-size: 1.1rem;
+}
+
+.modalCard p {
+  color: #596457;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
+@media (max-width: 960px) {
+  .grid,
+  .hero {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .badgeRow {
+    text-align: left;
+  }
+
+  .orderTop,
+  .orderActions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .actionRight {
+    justify-items: start;
+  }
+
+  .amountWrap {
+    justify-items: start;
+  }
+
+  .grid > .card:first-child {
+    position: static;
+  }
+
+  .modalActions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+}

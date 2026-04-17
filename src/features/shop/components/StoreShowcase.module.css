@@ -1,0 +1,289 @@
+.section {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.kicker {
+  color: #ff5c1b;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.header h2 {
+  font-size: clamp(1.35rem, 2.5vw, 2rem);
+  line-height: 1.1;
+}
+
+.header p {
+  color: #5a6657;
+  max-width: 58ch;
+  margin-top: 0.35rem;
+}
+
+.countPills {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.countPills span {
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #dfe4d8;
+  color: #283227;
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 0.45rem 0.75rem;
+}
+
+.categoryRail {
+  display: flex;
+  gap: 0.8rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.categoryCard,
+.categoryActive {
+  display: grid;
+  gap: 0.45rem;
+  flex: 0 0 132px;
+  border: 1px solid #dfe4d8;
+  border-radius: 18px;
+  background: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.5rem;
+  text-align: left;
+  scroll-snap-align: start;
+  box-shadow: 0 6px 18px rgba(28, 33, 24, 0.05);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.categoryActive {
+  border-color: #ff7f38;
+  background: linear-gradient(180deg, #fff7f0 0%, #ffffff 100%);
+  box-shadow:
+    0 12px 30px rgba(255, 92, 27, 0.16),
+    0 0 0 1px rgba(255, 127, 56, 0.12);
+}
+
+.categoryImage {
+  width: 100%;
+  height: 88px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.categoryCard span,
+.categoryActive span {
+  color: #1f261d;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.categoryActive span {
+  color: #d94e0f;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.65rem;
+}
+
+.toolbar input {
+  border: 1px solid #d9ded3;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #1f261d;
+  font: inherit;
+  padding: 0.9rem 1rem;
+}
+
+.toolbar input:focus-visible {
+  outline: 2px solid #ff7f38;
+  outline-offset: 2px;
+}
+
+.toolbar button,
+.moreRow button {
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.9rem 1rem;
+}
+
+.toolbar button {
+  background: #fff;
+  border: 1px solid #d9ded3;
+  color: #283227;
+}
+
+.storeGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.storeCard {
+  overflow: hidden;
+  border: 1px solid #dfe4d8;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(28, 33, 24, 0.06);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.storeImageWrap {
+  position: relative;
+  height: 170px;
+  overflow: hidden;
+}
+
+.storeImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.38s ease;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.28));
+}
+
+.badge {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #243121;
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 0.35rem 0.65rem;
+}
+
+.storeBody {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.95rem;
+}
+
+.titleRow,
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.titleRow h3 {
+  font-size: 1rem;
+}
+
+.titleRow span {
+  color: #0f6f5d;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.storeBody p {
+  color: #5f685d;
+  font-size: 0.91rem;
+  min-height: 2.75rem;
+}
+
+.meta {
+  color: #364236;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.moreRow {
+  display: flex;
+  justify-content: center;
+}
+
+.moreRow button {
+  background: linear-gradient(135deg, #ff5c1b, #ff7f38);
+  color: #ffffff;
+  min-width: 180px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .categoryCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(28, 33, 24, 0.1);
+  }
+
+  .categoryActive:hover {
+    transform: translateY(-2px) scale(1.01);
+  }
+
+  .storeCard:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 92, 27, 0.18);
+    box-shadow:
+      0 16px 32px rgba(30, 37, 28, 0.14),
+      0 0 0 1px rgba(255, 92, 27, 0.08);
+  }
+
+  .storeCard:hover .storeImage {
+    transform: scale(1.06);
+  }
+}
+
+@media (max-width: 1024px) {
+  .storeGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column;
+    align-items: start;
+  }
+
+  .countPills {
+    width: 100%;
+  }
+
+  .countPills span {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+
+  .toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .storeGrid {
+    grid-template-columns: 1fr;
+  }
+}

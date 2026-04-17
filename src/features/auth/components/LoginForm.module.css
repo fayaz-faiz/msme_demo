@@ -1,0 +1,187 @@
+.form {
+  width: min(460px, 100%);
+  display: grid;
+  gap: 0.9rem;
+  border: 1px solid #d9dfd3;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(26, 34, 23, 0.08);
+  padding: 1.3rem;
+}
+
+.header {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.header h1 {
+  font-size: 1.7rem;
+  line-height: 1.15;
+}
+
+.header p {
+  color: #5a6657;
+  font-size: 0.95rem;
+}
+
+.inputGroup {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.stepHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.inputGroup label {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.inputGroup input {
+  border: 1px solid #d7ddd1;
+  border-radius: 10px;
+  color: #1f261e;
+  font: inherit;
+  padding: 0.7rem 0.75rem;
+}
+
+.inputGroup input:focus-visible {
+  outline: 2px solid #3b83f7;
+  outline-offset: 2px;
+}
+
+.error {
+  color: #c33131;
+  font-size: 0.82rem;
+}
+
+.helperText {
+  color: #6a7368;
+  font-size: 0.82rem;
+}
+
+.primaryButton,
+.secondaryButton,
+.googleButton {
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.72rem 0.9rem;
+}
+
+.primaryButton {
+  background: #155e63;
+  color: #ffffff;
+}
+
+.primaryButton:hover {
+  background: #114a4e;
+}
+
+.primaryButton:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  background: #f4f7f1;
+  color: #243121;
+}
+
+.secondaryButton:hover {
+  background: #eaf0e5;
+}
+
+.inlineActions {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.googleButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border: 1px solid #d7ddd1;
+  background: #ffffff;
+  color: #1e261e;
+}
+
+.googleButton:hover {
+  background: #f5f8f3;
+}
+
+.googleIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ea4335, #fbbc05, #34a853, #4285f4);
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.message {
+  border-radius: 10px;
+  font-size: 0.9rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.snackbar {
+  position: fixed;
+  left: 50%;
+  bottom: 1.1rem;
+  transform: translateX(-50%);
+  z-index: 70;
+  min-width: min(92vw, 360px);
+  box-shadow: 0 12px 34px rgba(2, 6, 23, 0.3);
+}
+
+.successMessage {
+  background: #ecf9f3;
+  color: #1a6c45;
+}
+
+.warningMessage {
+  background: #fff7e6;
+  color: #9b6400;
+}
+
+.errorMessage {
+  background: #fdeceb;
+  color: #ab2727;
+}
+
+.linkButton {
+  border: none;
+  background: none;
+  color: #155e63;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 0;
+}
+
+.linkButton:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .form {
+    padding: 1rem;
+  }
+
+  .stepHeader {
+    align-items: start;
+    flex-direction: column;
+  }
+}
