@@ -377,7 +377,7 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
                   </span>
                 </div>
                 <Link
-                  href={`/shops/${shop.slug}?providerId=${encodeURIComponent(
+                  href={`/store?providerId=${encodeURIComponent(
                     shop.providerId || "",
                   )}&providerLocationId=${encodeURIComponent(
                     shop.providerLocationId || "",

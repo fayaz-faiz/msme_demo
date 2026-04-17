@@ -466,19 +466,14 @@ export function ShopItemsBrowser({
     <section className={styles.wrapper}>
       <header className={styles.mobileHeader}>
         <Link
-          href="/shops"
+          href="/"
           className={styles.backCircle}
-          aria-label="Back to shops"
+          aria-label="Back to dashboard"
         >
           {"<"}
         </Link>
         <div>
-          <h1>Store Products</h1>
-          <p>
-            {serviceable
-              ? `Delivery in ${deliveryLabel}`
-              : "Delivery unavailable right now"}
-          </p>
+          <h1>Expore Other Stores</h1>
         </div>
       </header>
 

@@ -1,9 +1,5 @@
-import { ShopBrowser } from "@/features/shop/components/ShopBrowser";
+import { redirect } from "next/navigation";
 
 export default function ShopsPage() {
-  return (
-    <section className="page">
-      <ShopBrowser />
-    </section>
-  );
+  redirect("/");
 }

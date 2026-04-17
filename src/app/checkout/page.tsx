@@ -50,7 +50,7 @@ export default function CheckoutPage() {
           <p className={styles.kicker}>Cart empty</p>
           <h1>Add items before checkout</h1>
           <p>We could not find any products in your cart. Browse the stores and try again.</p>
-          <Link href="/shops" className={styles.primaryButton}>
+          <Link href="/#shops" className={styles.primaryButton}>
             Browse Shops
           </Link>
         </div>

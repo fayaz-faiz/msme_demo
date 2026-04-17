@@ -22,7 +22,7 @@ export function CartSummary() {
       <section className={styles.emptyState}>
         <h2>Your cart is empty</h2>
         <p>Browse shops and add delicious items to start building your order.</p>
-        <Link href="/shops" className={styles.shopLink}>
+        <Link href="/#shops" className={styles.shopLink}>
           Explore Shops
         </Link>
       </section>
