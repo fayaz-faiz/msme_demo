@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getRloesIds, getUserProfileDataWeb, postGenerateOtp, postLogin } from "@/api";
+import { getRloesIds, postGenerateOtp, postLogin } from "@/api";
 import { loginSuccess } from "@/features/auth/store/authSlice";
 import { useAppDispatch, useAppSelector } from "@/features/cart/store/hooks";
 import {
@@ -64,25 +64,6 @@ type LoginResponse = {
 
 function normalizeMobileNumber(value: string) {
   return value.replace(/\D/g, "").slice(0, 10);
-}
-
-function mapProfileToAuthUser(profileResponse: unknown) {
-  const typed = profileResponse as {
-    data?: { full_name?: string; mobile_number?: string };
-    full_name?: string;
-    mobile_number?: string;
-  };
-
-  const profile = typed?.data || typed;
-  const fullName = String(profile?.full_name || "").trim();
-  const mobileNumber = String(profile?.mobile_number || "").trim();
-  const profilePic = String(profile?.profile_pic || profile?.profilePic || "").trim();
-
-  return {
-    name: fullName || null,
-    mobileNumber: mobileNumber || null,
-    profilePic: profilePic || undefined,
-  };
 }
 
 function validate(values: FormValues, step: LoginStep): FormErrors {
@@ -240,26 +221,11 @@ export function LoginForm() {
       }
 
       const fallbackName = `User ${normalizeMobileNumber(mobileNumber).slice(-4)}`;
-      let resolvedName = fallbackName;
-      let resolvedMobile = mobileNumber;
-
-      try {
-        const profileResponse = await getUserProfileDataWeb();
-        const profileUser = mapProfileToAuthUser(profileResponse);
-        if (profileUser.name) {
-          resolvedName = profileUser.name;
-        }
-        if (profileUser.mobileNumber) {
-          resolvedMobile = profileUser.mobileNumber;
-        }
-      } catch (profileError) {
-        console.error("Profile fetch after login failed:", profileError);
-      }
 
       dispatch(
         loginSuccess({
-          name: resolvedName,
-          mobileNumber: resolvedMobile,
+          name: fallbackName,
+          mobileNumber,
         }),
       );
 
