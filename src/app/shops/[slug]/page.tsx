@@ -1,4 +1,4 @@
-import { ShopItemsBrowser } from "@/features/shop/components/ShopItemsBrowser";
+import { redirect } from "next/navigation";
 
 type ShopDetailsPageProps = {
   params: {
@@ -19,21 +19,18 @@ type ShopDetailsPageProps = {
 };
 
 export default function ShopDetailsPage({ params, searchParams }: ShopDetailsPageProps) {
-  return (
-    <section className="page">
-      <ShopItemsBrowser
-        slug={params.slug}
-        providerId={searchParams?.providerId || ""}
-        providerLocationId={searchParams?.providerLocationId || ""}
-        category={searchParams?.category || ""}
-        shopName={searchParams?.shopName || params.slug.replace(/-/g, " ")}
-        shopImage={searchParams?.shopImage || ""}
-        distance={searchParams?.distance || ""}
-        serviceable={searchParams?.serviceable === "true"}
-        storeLat={searchParams?.storeLat || ""}
-        storeLong={searchParams?.storeLong || ""}
-        storeLng={searchParams?.storeLng || ""}
-      />
-    </section>
-  );
+  const query = new URLSearchParams({
+    providerId: searchParams?.providerId || "",
+    providerLocationId: searchParams?.providerLocationId || "",
+    category: searchParams?.category || "",
+    shopName: searchParams?.shopName || params.slug.replace(/-/g, " "),
+    shopImage: searchParams?.shopImage || "",
+    distance: searchParams?.distance || "",
+    serviceable: searchParams?.serviceable || "false",
+    storeLat: searchParams?.storeLat || "",
+    storeLong: searchParams?.storeLong || "",
+    storeLng: searchParams?.storeLng || "",
+  });
+
+  redirect(`/store?${query.toString()}`);
 }

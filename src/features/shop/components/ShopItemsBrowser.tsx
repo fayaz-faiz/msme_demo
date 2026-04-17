@@ -394,7 +394,7 @@ export function ShopItemsBrowser({
   return (
     <section className={styles.wrapper}>
       <header className={styles.mobileHeader}>
-        <Link href="/shops" className={styles.backCircle} aria-label="Back to shops">
+        <Link href="/" className={styles.backCircle} aria-label="Back to dashboard">
           {"<"}
         </Link>
         <div>

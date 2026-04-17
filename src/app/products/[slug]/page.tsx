@@ -210,7 +210,7 @@ export default function ProductDetailsPage() {
       <header className={styles.topBar}>
         <Link
           href={{
-            pathname: `/shops/${slug}`,
+            pathname: "/store",
             query: {
               providerId,
               providerLocationId,
