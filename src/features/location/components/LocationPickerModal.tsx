@@ -240,7 +240,7 @@ export function LocationPickerModal({ open, onClose, onAddressSelected }: Locati
         </div>
 
         <div className={styles.inputRow}>
-          {/* <div className={styles.searchField}> */}
+          <div className={styles.searchField}>
             <input
               type="search"
               value={query}
@@ -289,7 +289,7 @@ export function LocationPickerModal({ open, onClose, onAddressSelected }: Locati
                   : null}
               </div>
             ) : null}
-          {/* </div> */}
+          </div>
         </div>
 
         <div className={styles.savedAddresses}>
@@ -297,9 +297,11 @@ export function LocationPickerModal({ open, onClose, onAddressSelected }: Locati
             <button type="button" className={styles.addAddressButton} onClick={resolveCurrentLocation}>
               Use Current Location
             </button>
-            <button type="button" className={styles.addAddressButton} onClick={navigateToAddAddress}>
-              Add Address
-            </button>
+            {isUserLoggedIn ? (
+              <button type="button" className={styles.addAddressButton} onClick={navigateToAddAddress}>
+                Add Address
+              </button>
+            ) : null}
           </div>
         </div>
 
