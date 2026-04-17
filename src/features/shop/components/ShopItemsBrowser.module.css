@@ -708,7 +708,8 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--accent);
+  background: #1f9d55;
+  color: #ffffff;
   border-radius: 0;
   display: flex;
   align-items: center;
@@ -745,8 +746,8 @@
 
 .viewCartButton {
   background: #ffffff;
-  color: var(--accent);
-  border: none;
+  color: #1f9d55;
+  border: 1px solid #ffffff;
   border-radius: 10px;
   font: inherit;
   font-size: 0.88rem;

@@ -42,6 +42,7 @@ type StoreData = {
   };
   category?: string;
   total_amount?: number;
+  grand_total?: number | string;
   other_charges?: Array<{ title?: string; amount?: number; price?: { value?: string | number } }>;
   items?: CartItem[];
 };
@@ -381,7 +382,9 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     const amount = Number(charge?.amount ?? charge?.price?.value ?? 0);
     return sum + (Number.isFinite(amount) ? amount : 0);
   }, 0);
-  const payTotal = baseTotal + extraCharges;
+  const computedPayTotal = baseTotal + extraCharges;
+  const payTotal = storeData?.grand_total ?? computedPayTotal;
+  const payTotalDisplay = payTotal ?? "";
 
   if (!cartId) {
     return (
@@ -458,7 +461,6 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     );
   }
 
-  const total = Number(storeData?.total_amount || 0);
   const activeAddr = getActiveAddress();
   const addrText = activeAddr
     ? [activeAddr.building, activeAddr.locality, activeAddr.city, activeAddr.state, activeAddr.area_code]
@@ -505,8 +507,8 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
                       <span className={styles.badge}>{item.item_cancellable_status ? "Cancellable" : "Non-Cancellable"}</span>
                     </div>
                     <div className={styles.itemFooter}>
-                      <AddToCartButton product={toProduct(item)} useServerCart storeDisabled={false} />
                       <span className={styles.itemPrice}>{formatCurrency(itemTotal)}</span>
+                      <AddToCartButton product={toProduct(item)} useServerCart storeDisabled={false} onCartUpdated={verifyCart} />
                     </div>
                   </div>
                 </article>
@@ -536,17 +538,17 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
           <p className={styles.summaryTitle}>Bill details</p>
           <div className={styles.billRow}>
             <span className={styles.billLabel}>Item total</span>
-            <span className={styles.billValue}>{formatCurrency(baseTotal)}</span>
+            <span className={styles.billValue}>{storeData?.total_amount ?? baseTotal}</span>
           </div>
           {(storeData?.other_charges || []).map((charge) => (
             <div key={`${charge.title}-${charge.amount}`} className={styles.billRow}>
               <span className={styles.billLabel}>{charge.title || "Other charges"}</span>
-              <span className={styles.billValue}>{formatCurrency(Number(charge.amount ?? charge?.price?.value ?? 0))}</span>
+              <span className={styles.billValue}>{charge.amount ?? charge?.price?.value ?? 0}</span>
             </div>
           ))}
           <div className={`${styles.billRow} ${styles.billTotal}`}>
             <span>To pay</span>
-            <span>{formatCurrency(payTotal)}</span>
+            <span>{payTotalDisplay}</span>
           </div>
         </div>
 
@@ -558,7 +560,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
             onClick={handleViewDeliveryOptions}
             disabled={isInitializing || loading || cartItems.length === 0}
           >
-            {isInitializing ? "Preparing order..." : `Proceed to checkout · ${formatCurrency(payTotal || total)}`}
+            {isInitializing ? "Preparing order..." : `Proceed to checkout · ${payTotalDisplay}`}
           </button>
           <Link href="/cart" className={styles.backButton}>
             ← Back to carts
@@ -582,17 +584,17 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
             <div className={styles.priceRows}>
               <div className={styles.billRow}>
                 <span className={styles.billLabel}>Item total</span>
-                <span className={styles.billValue}>{formatCurrency(baseTotal)}</span>
+                <span className={styles.billValue}>{storeData?.total_amount ?? baseTotal}</span>
               </div>
               {(storeData?.other_charges || []).map((charge) => (
                 <div key={`${charge.title}-${charge.amount}`} className={styles.billRow}>
                   <span className={styles.billLabel}>{charge.title || "Other charges"}</span>
-                  <span className={styles.billValue}>{formatCurrency(Number(charge.amount ?? charge?.price?.value ?? 0))}</span>
+                  <span className={styles.billValue}>{charge.amount ?? charge?.price?.value ?? 0}</span>
                 </div>
               ))}
               <div className={`${styles.billRow} ${styles.billTotal}`}>
                 <span>Total to pay</span>
-                <span>{formatCurrency(payTotal)}</span>
+                <span>{payTotalDisplay}</span>
               </div>
             </div>
             <div className={styles.modalActions}>
@@ -602,11 +604,10 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
               <button
                 type="button"
                 className={styles.checkoutButton}
-                style={{ flex: 1 }}
                 onClick={paymentGwApi}
                 disabled={isPaymentProcessing}
               >
-                {isPaymentProcessing ? "Processing..." : `Pay ${formatCurrency(payTotal)}`}
+                {isPaymentProcessing ? "Processing..." : `Pay ${payTotalDisplay}`}
               </button>
             </div>
           </div>
@@ -629,4 +630,3 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     </div>
   );
 }
-

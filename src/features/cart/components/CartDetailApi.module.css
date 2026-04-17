@@ -308,9 +308,9 @@
 .checkoutButton {
   width: 100%;
   padding: 0.85rem 1rem;
-  background: #fc8019;
-  color: #fff;
-  border: none;
+  background: #1f9d55;
+  color: #ffffff;
+  border: 1px solid #1f9d55;
   border-radius: 10px;
   font: inherit;
   font-size: 0.95rem;
@@ -321,7 +321,7 @@
 }
 
 .checkoutButton:hover:not(:disabled) {
-  background: #e8720e;
+  background: #188447;
 }
 
 .checkoutButton:active:not(:disabled) {
@@ -329,7 +329,7 @@
 }
 
 .checkoutButton:disabled {
-  background: #ffc794;
+  opacity: 0.65;
   cursor: not-allowed;
 }
 
@@ -617,7 +617,11 @@
 .modalActions {
   display: flex;
   gap: 0.7rem;
-  justify-content: flex-end;
+}
+
+.modalActions > * {
+  flex: 1;
+  min-width: 0;
 }
 
 /* ── Order placing animation ─────────────────────────────────────── */

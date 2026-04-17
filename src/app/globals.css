@@ -321,16 +321,17 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid #6ab08d;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  background: #eef9f2;
+  color: #1c7a53;
   font-weight: 700;
   padding: 0.45rem 0.75rem;
+  transition: background 150ms;
 }
 
 .nav-cart:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: #def3e6;
 }
 
 .cart-icon {
@@ -339,13 +340,13 @@ a {
   width: 1.5rem;
   height: 1.5rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(28, 122, 83, 0.1);
 }
 
 .cart-count {
   min-width: 1.15rem;
   border-radius: 999px;
-  background: #ffb08b;
+  background: #1c7a53;
   color: #ffffff;
   font-size: 0.68rem;
   line-height: 1;

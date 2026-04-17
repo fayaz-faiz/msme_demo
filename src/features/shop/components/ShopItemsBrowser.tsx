@@ -179,6 +179,9 @@ export function ShopItemsBrowser({
   const cartTotalAmount = useAppSelector((state) => state.apiResponse.cartTotalAmount);
   const cartId = useAppSelector((state) => state.apiResponse.cartId);
 
+  const mountCartTotalRef = useRef(cartTotalAmount);
+  const [addedToCartHere, setAddedToCartHere] = useState(false);
+
   const [query, setQuery] = useState("");
   const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -372,6 +375,12 @@ export function ShopItemsBrowser({
       setProductLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!addedToCartHere && cartTotalAmount !== mountCartTotalRef.current) {
+      setAddedToCartHere(true);
+    }
+  }, [cartTotalAmount]);
 
   useEffect(() => {
     const timer = setTimeout(() => setSearchText(query.trim()), 350);
@@ -825,7 +834,7 @@ export function ShopItemsBrowser({
         </div>
       ) : null}
 
-      {cartLength > 0 ? (
+      {addedToCartHere && cartTotalAmount > 0 ? (
         <div className={styles.viewCartBar}>
           <div className={styles.viewCartInfo}>
             <span className={styles.viewCartCount}>

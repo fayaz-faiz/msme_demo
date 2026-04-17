@@ -18,6 +18,7 @@ type AddToCartButtonProps = {
   product: Product;
   useServerCart?: boolean;
   storeDisabled?: boolean;
+  onCartUpdated?: () => void | Promise<void>;
 };
 
 type CustomizationOption = {
@@ -75,7 +76,7 @@ type CartByIdResponse = {
   };
 };
 
-export function AddToCartButton({ product, useServerCart = false, storeDisabled = false }: AddToCartButtonProps) {
+export function AddToCartButton({ product, useServerCart = false, storeDisabled = false, onCartUpdated }: AddToCartButtonProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -343,6 +344,7 @@ export function AddToCartButton({ product, useServerCart = false, storeDisabled 
                 }
                 setShowCustomizationModal(false);
                 dispatch(setItemQuantity({ product, quantity: response.itemCount }));
+                await onCartUpdated?.();
               }}
             >
               {isUpdating ? "Adding..." : "Add"}
@@ -386,10 +388,11 @@ export function AddToCartButton({ product, useServerCart = false, storeDisabled 
                   } else {
                     setIsUpdating(true);
                     const response = await updateServerCart(1);
+                    setIsUpdating(false);
                     if (response.ok) {
                       dispatch(setItemQuantity({ product, quantity: response.itemCount }));
+                      await onCartUpdated?.();
                     }
-                    setIsUpdating(false);
                   }
                 } catch (error) {
                   notifyOrAlert(getApiErrorMessage(error, "Unable to load customizations."), "error");
@@ -406,6 +409,7 @@ export function AddToCartButton({ product, useServerCart = false, storeDisabled 
                 return;
               }
               dispatch(setItemQuantity({ product, quantity: response.itemCount }));
+              await onCartUpdated?.();
               return;
             }
 
@@ -434,7 +438,7 @@ export function AddToCartButton({ product, useServerCart = false, storeDisabled 
             if (nextCount === 0) {
               // Switch back to "Add To Cart" immediately when user decrements from 1.
               dispatch(removeItem({ productId: product.id }));
-              void updateServerCart(0);
+              void updateServerCart(0).then(() => onCartUpdated?.());
               return;
             }
 
@@ -445,6 +449,7 @@ export function AddToCartButton({ product, useServerCart = false, storeDisabled 
               return;
             }
             dispatch(setItemQuantity({ product, quantity: response.itemCount }));
+            await onCartUpdated?.();
             return;
           }
           if (nextCount === 0) {
@@ -475,6 +480,7 @@ export function AddToCartButton({ product, useServerCart = false, storeDisabled 
               return;
             }
             dispatch(setItemQuantity({ product, quantity: response.itemCount }));
+            await onCartUpdated?.();
             return;
           }
           dispatch(increaseQuantity({ productId: product.id }));
