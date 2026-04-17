@@ -24,6 +24,7 @@ export function AppHeader() {
   const { location, isResolving } = useLocation();
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [navSearch, setNavSearch] = useState("");
+  const [isMobileSearchPinned, setIsMobileSearchPinned] = useState(false);
   const [notice, setNotice] = useState<{ open: boolean; message: string; type: AppNoticeType }>({
     open: false,
     message: "",
@@ -32,6 +33,9 @@ export function AppHeader() {
   const cartCount = Math.max(0, Number(apiCartCount || 0));
   const currentQuery = searchParams?.toString();
   const nextPath = currentQuery ? `${pathname}?${currentQuery}` : pathname;
+  const isDashboard = pathname === "/";
+  const shouldHideOnShopPage =
+    pathname === "/store" || pathname === "/shops" || (pathname ? pathname.startsWith("/shops/") : false);
 
   const locationLabel = location
     ? `${location.city}, ${location.pincode}`
@@ -100,6 +104,25 @@ export function AppHeader() {
     };
   }, []);
 
+  useEffect(() => {
+    const updatePinnedState = () => {
+      const isMobile = window.matchMedia("(max-width: 640px)").matches;
+      if (!isMobile) {
+        setIsMobileSearchPinned(false);
+        return;
+      }
+      setIsMobileSearchPinned(window.scrollY > 80);
+    };
+
+    updatePinnedState();
+    window.addEventListener("scroll", updatePinnedState, { passive: true });
+    window.addEventListener("resize", updatePinnedState);
+    return () => {
+      window.removeEventListener("scroll", updatePinnedState);
+      window.removeEventListener("resize", updatePinnedState);
+    };
+  }, []);
+
   const handleNavSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const searchText = navSearch.trim();
@@ -147,6 +170,10 @@ export function AppHeader() {
     );
   };
 
+  if (shouldHideOnShopPage) {
+    return null;
+  }
+
   return (
     <>
       <header className="topbar">
@@ -157,8 +184,15 @@ export function AppHeader() {
             </Link>
             <button
               type="button"
-              className="location-pill"
-              onClick={() => setLocationPickerOpen(true)}
+              className={`location-pill ${!isDashboard ? "location-pill-disabled" : ""}`}
+              onClick={() => {
+                if (isDashboard) {
+                  setLocationPickerOpen(true);
+                }
+              }}
+              disabled={!isDashboard}
+              aria-disabled={!isDashboard}
+              title={isDashboard ? "Change delivery location" : "Address selection is available only on dashboard"}
             >
               <span className="location-dot" aria-hidden="true" />
               <span className="location-copy">Deliver to {locationLabel}</span>
@@ -166,7 +200,12 @@ export function AppHeader() {
           </div>
 
           <div className="header-actions">
-            <form className="nav-search" onSubmit={handleNavSearchSubmit} role="search" aria-label="Search shops">
+            <form
+              className={`nav-search ${isMobileSearchPinned ? "nav-search-pinned" : ""}`}
+              onSubmit={handleNavSearchSubmit}
+              role="search"
+              aria-label="Search shops"
+            >
               <input
                 type="search"
                 value={navSearch}

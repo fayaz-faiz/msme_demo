@@ -42,7 +42,7 @@ a {
   top: 0;
   z-index: 10;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(90deg, #0f172a 0%, #123f42 55%, #ff5c1b 120%);
+  background: linear-gradient(90deg, #62524b 0%, #225c60 55%, #e46e40 120%);
   color: #ffffff;
   backdrop-filter: blur(14px);
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
@@ -55,7 +55,7 @@ a {
   gap: 1rem;
   margin: 0 auto;
   max-width: 1200px;
-  padding: 0.85rem 1rem;
+  padding: 0.35rem 1rem;
 }
 
 .brand-location {
@@ -101,6 +101,15 @@ a {
 
 .location-pill:hover {
   background: rgba(255, 255, 255, 0.14);
+}
+
+.location-pill-disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.location-pill-disabled:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .location-dot {
@@ -513,7 +522,6 @@ input[type="text"] {
 @media (max-width: 640px) {
   .topbar {
     position: static;
-    box-shadow: none;
   }
 
   .topbar-inner {
@@ -541,6 +549,7 @@ input[type="text"] {
     order: 1;
     flex: 1 1 auto;
     min-width: 0;
+    position: relative;
   }
 
   .nav-search input {
@@ -581,6 +590,18 @@ input[type="text"] {
   .logout-button {
     padding: 0.34rem 0.58rem;
     font-size: 0.8rem;
+  }
+
+  .nav-search-pinned {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 0.45rem);
+    left: 0.72rem;
+    right: 0.72rem;
+    z-index: 40;
+    width: auto;
+    background: rgba(18, 63, 66, 0.96);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 22px rgba(8, 20, 23, 0.28);
   }
 
   .panel-row {

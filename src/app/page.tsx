@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 
+import Link from "next/link";
 import { ShopBrowser } from "@/features/shop/components/ShopBrowser";
 import { AppFooter } from "@/shared/ui/AppFooter";
 import styles from "./page.module.css";
@@ -72,9 +73,12 @@ export default function HomePage() {
             ))}
           </div>
           <div className={styles.floatingTag} aria-hidden="true">
-            Trending near you
+            Live now
           </div>
-        </div>
+          <div className={styles.heroStatusPill} aria-hidden="true">
+            Delivery slots open in your area
+          </div>
+        </div> 
       </section>
 
       <section id="shops">
