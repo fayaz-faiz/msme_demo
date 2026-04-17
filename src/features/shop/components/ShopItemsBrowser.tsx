@@ -642,7 +642,7 @@ export function ShopItemsBrowser({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search products, brands, or sizes..."
+            placeholder="Search products..."
             aria-label="Search store items"
           />
         </div>
