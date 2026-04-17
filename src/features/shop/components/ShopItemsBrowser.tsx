@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { searchStoreByItems, postStoreSubcatApi } from "@/api";
 import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
@@ -171,8 +172,12 @@ export function ShopItemsBrowser({
   storeLong,
   storeLng,
 }: ShopItemsBrowserProps) {
+  const router = useRouter();
   const { location } = useLocation();
   const accessToken = useAppSelector((state) => state.apiResponse.accessToken);
+  const cartLength = useAppSelector((state) => state.apiResponse.cartLength);
+  const cartTotalAmount = useAppSelector((state) => state.apiResponse.cartTotalAmount);
+  const cartId = useAppSelector((state) => state.apiResponse.cartId);
 
   const [query, setQuery] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -817,6 +822,42 @@ export function ShopItemsBrowser({
       {!loading && !providerStatus ? (
         <div className={styles.pagination}>
           <span>This provider is currently unavailable.</span>
+        </div>
+      ) : null}
+
+      {cartLength > 0 ? (
+        <div className={styles.viewCartBar}>
+          <div className={styles.viewCartInfo}>
+            <span className={styles.viewCartCount}>
+              {cartLength} {cartLength === 1 ? "item" : "items"}
+            </span>
+            <span className={styles.viewCartAmount}>
+              ₹{cartTotalAmount.toLocaleString("en-IN")}
+            </span>
+          </div>
+          <button
+            type="button"
+            className={styles.viewCartButton}
+            onClick={() => router.push(cartId ? `/cart/view?cartId=${encodeURIComponent(cartId)}` : "/cart")}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <circle cx="9" cy="21" r="1" />
+              <circle cx="20" cy="21" r="1" />
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+            </svg>
+            View Cart
+          </button>
         </div>
       ) : null}
     </section>

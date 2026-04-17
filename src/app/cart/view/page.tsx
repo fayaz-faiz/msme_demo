@@ -20,9 +20,13 @@ export default function CartViewPage() {
       return;
     }
 
-    const allowRedirect = window.confirm("Please login first to view cart. Go to login now?");
+    const allowRedirect = window.confirm(
+      "Please login first to view cart. Go to login now?",
+    );
     if (allowRedirect) {
-      router.replace(`/auth/login?next=${encodeURIComponent(pathname || "/cart/view")}`);
+      router.replace(
+        `/auth/login?next=${encodeURIComponent(pathname || "/cart/view")}`,
+      );
     } else {
       router.replace("/");
     }
@@ -32,13 +36,5 @@ export default function CartViewPage() {
     return null;
   }
 
-  return (
-    <section className="page">
-      <h1>Your Cart</h1>
-      <p className="page-intro">
-        Review selected products, update quantities, and view delivery options when you are ready.
-      </p>
-      <CartDetailApi cartId={cartId} />
-    </section>
-  );
+  return <CartDetailApi cartId={cartId} />;
 }

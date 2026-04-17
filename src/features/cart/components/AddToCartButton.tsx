@@ -3,12 +3,12 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { getCartLengthWeb, postAddUpdateCart, postSearchByIdWeb } from "@/api";
+import { getCartLengthWeb, postAddUpdateCart, postCartByIdWeb, postSearchByIdWeb } from "@/api";
 import { Product } from "@/features/product/domain/product";
 import { addItem, decreaseQuantity, increaseQuantity, removeItem, setItemQuantity } from "@/features/cart/store/cartSlice";
 import { useAppDispatch, useAppSelector } from "@/features/cart/store/hooks";
 import { useLocation } from "@/features/location/context/location-context";
-import { setCartLength } from "@/redux/slices";
+import { setCartLength, setCartSummary } from "@/redux/slices";
 import { notifyOrAlert } from "@/shared/lib/notify";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -57,8 +57,20 @@ type AddUpdateCartResponse = {
     statusCode?: number;
     message?: string;
     data?: {
+      cart_id?: string;
       item_count?: number | string;
+      total_amount?: number;
+      grand_total?: number;
       message?: string;
+    };
+  };
+};
+
+type CartByIdResponse = {
+  data?: {
+    data?: {
+      total_amount?: number;
+      item_count?: number;
     };
   };
 };
@@ -139,15 +151,26 @@ export function AddToCartButton({ product, useServerCart = false, storeDisabled 
       const isCartEmptyResponse = statusCode === 406 || /cart\s*is\s*empty/i.test(message);
 
       if (ok) {
-        await syncCartLength();
+        const cartId = String(result?.data?.data?.cart_id || "");
+        if (cartId) {
+          try {
+            const cartResp = (await postCartByIdWeb({ cart_id: cartId })) as CartByIdResponse;
+            const totalAmount = Number(cartResp?.data?.data?.total_amount ?? 0);
+            const cartItemCount = Number(cartResp?.data?.data?.item_count ?? itemCount);
+            dispatch(setCartSummary({ cartId, totalAmount, itemCount: cartItemCount }));
+          } catch {
+            // non-critical — cart summary update fails silently
+          }
+        } else {
+          await syncCartLength();
+        }
         return { ok: true, itemCount };
       }
 
       if (isCartEmptyResponse) {
-        await syncCartLength();
-        if (nextCount === 0) {
-          return { ok: false, itemCount: 0 };
-        }
+        dispatch(setCartSummary({ cartId: "", totalAmount: 0, itemCount: 0 }));
+        dispatch(setCartLength(0));
+        return { ok: false, itemCount: 0 };
       }
 
       notifyOrAlert(message, "warning");
@@ -159,10 +182,9 @@ export function AddToCartButton({ product, useServerCart = false, storeDisabled 
       const isCartEmptyResponse = statusCode === 406 || /cart\s*is\s*empty/i.test(message);
 
       if (isCartEmptyResponse) {
-        await syncCartLength();
-        if (nextCount === 0) {
-          return { ok: false, itemCount: 0 };
-        }
+        dispatch(setCartSummary({ cartId: "", totalAmount: 0, itemCount: 0 }));
+        dispatch(setCartLength(0));
+        return { ok: false, itemCount: 0 };
       }
 
       notifyOrAlert(message, "error");

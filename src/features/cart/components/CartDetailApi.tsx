@@ -5,11 +5,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getAddressWeb, getCartLengthWeb, initializeCartWeb, payemntGw, postAddUpdateCart, postCartByIdWeb, verifyCartWeb } from "@/api";
-import { clearCart } from "@/features/cart/store/cartSlice";
+import { getAddressWeb, getCartLengthWeb, initializeCartWeb, payemntGw, postCartByIdWeb, verifyCartWeb } from "@/api";
+import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
+import { clearCart, setItemQuantity } from "@/features/cart/store/cartSlice";
 import { useLocation } from "@/features/location/context/location-context";
 import { useAppDispatch, useAppSelector } from "@/features/cart/store/hooks";
 import { LocationPickerModal } from "@/features/location/components/LocationPickerModal";
+import { Product } from "@/features/product/domain/product";
 import { setCartLength } from "@/redux/slices";
 import { formatCurrency } from "@/shared/lib/format-currency";
 import { notifyOrAlert } from "@/shared/lib/notify";
@@ -64,7 +66,6 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [error, setError] = useState("");
-  const [activeItemId, setActiveItemId] = useState("");
   const [isInitializing, setIsInitializing] = useState(false);
   const [allAddress, setAllAddress] = useState<AddressItem[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
@@ -345,32 +346,23 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     }
   };
 
-  const updateItemCount = async (item: CartItem, nextCount: number) => {
-    setActiveItemId(item.ce_item_id);
-    try {
-      const payload = {
-        ce_item_id: item.ce_item_id,
-        count: Math.max(0, nextCount),
-        paymentType: "ON-ORDER",
-        gps: getActiveAddress()?.gps || `${location?.lat ?? ""},${location?.lng ?? ""}`,
-        area_code: storeData?.provider_address?.area_code || getActiveAddress()?.area_code || location?.pincode || "",
-        dest_location: "SEARCH",
-        customization: {},
-      };
-      const result: any = await postAddUpdateCart(payload);
-      const ok = !!result?.data?.status;
-      if (!ok) {
-        notifyOrAlert(result?.data?.data?.message || "Unable to update cart item.", "warning");
-      }
-      await verifyCart();
-      await syncCartLength();
-    } catch (err: any) {
-      console.error(err);
-      notifyOrAlert(err?.response?.data?.message || "Unable to update cart item.", "error");
-    } finally {
-      setActiveItemId("");
-    }
-  };
+  const toProduct = (item: CartItem): Product => ({
+    id: item.ce_item_id,
+    slug: item.ce_item_id,
+    shopSlug: storeData?.provider_name || "",
+    name: item.item_name || "Item",
+    description: item.item_quantity || "",
+    price: Number(item.total_amount || item.original_amount || 0),
+    stock: 999,
+    image: item.item_symbol || "",
+  });
+
+  useEffect(() => {
+    cartItems.forEach((item) => {
+      dispatch(setItemQuantity({ product: toProduct(item), quantity: item.count }));
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartItems]);
 
   useEffect(() => {
     void verifyCart();
@@ -405,15 +397,58 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
 
   if (loading && cartItems.length === 0) {
     return (
-      <section className={styles.emptyState}>
-        <p>Loading cart details...</p>
-      </section>
+      <div className={styles.skeletonLayout}>
+        {/* Left skeleton */}
+        <div className={styles.skeletonLeft}>
+          {/* Store card */}
+          <div className={styles.skeletonStoreCard}>
+            <div className={`${styles.skeletonBase} ${styles.skeletonStoreImg}`} />
+            <div className={styles.skeletonStoreBody}>
+              <div className={`${styles.skeletonBase} ${styles.skeletonLine}`} style={{ width: "55%" }} />
+              <div className={`${styles.skeletonBase} ${styles.skeletonLineSm}`} style={{ width: "40%" }} />
+            </div>
+          </div>
+
+          {/* Items card */}
+          <div className={styles.skeletonItemsCard}>
+            {[1, 2, 3].map((i) => (
+              <div key={i} className={styles.skeletonItem}>
+                <div className={`${styles.skeletonBase} ${styles.skeletonThumb}`} />
+                <div className={styles.skeletonBody}>
+                  <div className={`${styles.skeletonBase} ${styles.skeletonLine}`} style={{ width: "70%" }} />
+                  <div className={`${styles.skeletonBase} ${styles.skeletonLineSm}`} style={{ width: "45%" }} />
+                  <div className={`${styles.skeletonBase} ${styles.skeletonLineSm}`} style={{ width: "35%" }} />
+                  <div className={`${styles.skeletonBase} ${styles.skeletonBtn}`} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right skeleton */}
+        <div className={styles.skeletonRight}>
+          <div className={styles.skeletonSummaryCard}>
+            <div className={`${styles.skeletonBase} ${styles.skeletonLine}`} style={{ width: "45%" }} />
+            {[1, 2, 3].map((i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
+                <div className={`${styles.skeletonBase} ${styles.skeletonLineSm}`} style={{ width: "40%" }} />
+                <div className={`${styles.skeletonBase} ${styles.skeletonLineSm}`} style={{ width: "25%" }} />
+              </div>
+            ))}
+          </div>
+          <div className={styles.skeletonCtaCard}>
+            <div className={`${styles.skeletonBase} ${styles.skeletonCtaBtn}`} />
+            <div className={`${styles.skeletonBase} ${styles.skeletonCtaBtn}`} style={{ opacity: 0.5 }} />
+          </div>
+        </div>
+      </div>
     );
   }
 
   if (error && cartItems.length === 0) {
     return (
       <section className={styles.emptyState}>
+        <span className={styles.emptyIcon}>🛒</span>
         <h2>Unable to load cart</h2>
         <p>{error}</p>
         <Link href="/cart" className={styles.backButton}>
@@ -424,95 +459,106 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
   }
 
   const total = Number(storeData?.total_amount || 0);
+  const activeAddr = getActiveAddress();
+  const addrText = activeAddr
+    ? [activeAddr.building, activeAddr.locality, activeAddr.city, activeAddr.state, activeAddr.area_code]
+        .filter(Boolean)
+        .join(", ")
+    : "";
 
   return (
-    <section className={styles.layout}>
+    <div className={styles.layout}>
+      {/* ── Left panel ── */}
       <div className={styles.leftPanel}>
+        {/* Store header */}
         <div className={styles.storeHeader}>
           <img
+            className={styles.storeImg}
             src={storeData?.provider_symbol || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80"}
             alt={storeData?.provider_name || "Store"}
           />
-          <div>
-            <h2>{storeData?.provider_name || "Store"}</h2>
-            <p>{storeData?.provider_address?.street || "-"}</p>
+          <div className={styles.storeInfo}>
+            <p className={styles.storeName}>{storeData?.provider_name || "Store"}</p>
+            <p className={styles.storeAddress}>{storeData?.provider_address?.street || "-"}</p>
           </div>
+          <span className={styles.itemCount}>{cartItems.length} {cartItems.length === 1 ? "item" : "items"}</span>
         </div>
 
-        <div className={styles.itemList}>
-          {cartItems.map((item) => {
-            const itemTotal = Number(item.total_amount || item.original_amount || 0);
-            const rowLoading = activeItemId === item.ce_item_id;
-            return (
-              <article key={item.ce_item_id} className={styles.itemCard}>
-                <img src={item.item_symbol || ""} alt={item.item_name || "Item"} />
-                <div className={styles.itemBody}>
-                  <h3>{item.item_name}</h3>
-                  <p>{item.item_quantity}</p>
-                  <div className={styles.itemMeta}>
-                    <span className={styles.returnableBadge}>{item.item_returnable_status ? "Returnable" : "Non-Returnable"}</span>
-                    <span className={styles.returnableBadge}>{item.item_cancellable_status ? "Cancellable" : "Non-Cancellable"}</span>
-                  </div>
-                  <div className={styles.itemFooter}>
-                    <div className={styles.stepper}>
-                      <button
-                        type="button"
-                        disabled={rowLoading}
-                        onClick={() => updateItemCount(item, item.count - 1)}
-                      >
-                        -
-                      </button>
-                      <span>{rowLoading ? <span className={styles.rowLoader} /> : item.count}</span>
-                      <button
-                        type="button"
-                        disabled={rowLoading}
-                        onClick={() => updateItemCount(item, item.count + 1)}
-                      >
-                        +
-                      </button>
+        {/* Items */}
+        <div className={styles.itemsCard}>
+          <p className={styles.itemsCardHeader}>Your order</p>
+          <div className={styles.itemList}>
+            {cartItems.map((item) => {
+              const itemTotal = Number(item.total_amount || item.original_amount || 0);
+              return (
+                <article key={item.ce_item_id} className={styles.itemCard}>
+                  <img
+                    className={styles.itemThumb}
+                    src={item.item_symbol || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=200&q=60"}
+                    alt={item.item_name || "Item"}
+                  />
+                  <div className={styles.itemBody}>
+                    <p className={styles.itemName}>{item.item_name}</p>
+                    {item.item_quantity ? <p className={styles.itemQty}>{item.item_quantity}</p> : null}
+                    <div className={styles.itemBadges}>
+                      <span className={styles.badge}>{item.item_returnable_status ? "Returnable" : "Non-Returnable"}</span>
+                      <span className={styles.badge}>{item.item_cancellable_status ? "Cancellable" : "Non-Cancellable"}</span>
                     </div>
-                    <strong>{formatCurrency(itemTotal)}</strong>
+                    <div className={styles.itemFooter}>
+                      <AddToCartButton product={toProduct(item)} useServerCart storeDisabled={false} />
+                      <span className={styles.itemPrice}>{formatCurrency(itemTotal)}</span>
+                    </div>
                   </div>
-                </div>
-              </article>
-            );
-          })}
+                </article>
+              );
+            })}
+          </div>
         </div>
       </div>
 
+      {/* ── Right panel ── */}
       <aside className={styles.summaryPanel}>
-        <h3>Summary</h3>
-        <div className={styles.deliveryAddress}>
-          <div className={styles.deliveryHead}>
-            <span>Delivery address</span>
+        {/* Delivery address */}
+        <div className={styles.addressCard}>
+          <div className={styles.addressHead}>
+            <span className={styles.addressLabel}>Delivery address</span>
             <button type="button" className={styles.changeAddressButton} onClick={() => setShowLocationPicker(true)}>
               Change
             </button>
           </div>
-          {getActiveAddress()?._id ? (
-            <p>
-              {`${getActiveAddress()?.building || ""}, ${getActiveAddress()?.locality || ""}, ${getActiveAddress()?.city || ""}, ${getActiveAddress()?.state || ""} - ${getActiveAddress()?.area_code || ""}`}
-            </p>
-          ) : (
-            <p>No delivery address selected.</p>
-          )}
+          {addrText
+            ? <p className={styles.addressText}>{addrText}</p>
+            : <p className={styles.noAddress}>Add a delivery address</p>}
         </div>
-        <div className={styles.summaryRow}>
-          <span>Items</span>
-          <span>{cartItems.length}</span>
+
+        {/* Bill details */}
+        <div className={styles.summaryCard}>
+          <p className={styles.summaryTitle}>Bill details</p>
+          <div className={styles.billRow}>
+            <span className={styles.billLabel}>Item total</span>
+            <span className={styles.billValue}>{formatCurrency(baseTotal)}</span>
+          </div>
+          {(storeData?.other_charges || []).map((charge) => (
+            <div key={`${charge.title}-${charge.amount}`} className={styles.billRow}>
+              <span className={styles.billLabel}>{charge.title || "Other charges"}</span>
+              <span className={styles.billValue}>{formatCurrency(Number(charge.amount ?? charge?.price?.value ?? 0))}</span>
+            </div>
+          ))}
+          <div className={`${styles.billRow} ${styles.billTotal}`}>
+            <span>To pay</span>
+            <span>{formatCurrency(payTotal)}</span>
+          </div>
         </div>
-        <div className={styles.summaryRow}>
-          <span>Total</span>
-          <strong>{formatCurrency(total)}</strong>
-        </div>
-        <div className={styles.actions}>
+
+        {/* CTAs */}
+        <div className={styles.ctaCard}>
           <button
             type="button"
             className={styles.checkoutButton}
             onClick={handleViewDeliveryOptions}
             disabled={isInitializing || loading || cartItems.length === 0}
           >
-            {isInitializing ? "Loading delivery options..." : "View delivery options"}
+            {isInitializing ? "Preparing order..." : `Proceed to checkout · ${formatCurrency(payTotal || total)}`}
           </button>
           <Link href="/cart" className={styles.backButton}>
             ← Back to carts
@@ -526,60 +572,61 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
         onAddressSelected={(addressId) => setSelectedAddressId(addressId)}
       />
 
+      {/* Delivery options modal */}
       {showDeliveryOptions ? (
         <div className={styles.modalBackdrop} role="presentation" onClick={() => setShowDeliveryOptions(false)}>
-          <div className={styles.modalCard} role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
-            <h3>Delivery options</h3>
-            <p className={styles.modalSubtext}>
-              Cart initialized successfully. Delivery is managed by the store.
-            </p>
+          <div className={styles.modalCard} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalDrag} />
+            <p className={styles.modalTitle}>Review & Pay</p>
+            <p className={styles.modalSubtext}>Delivery is managed by the store.</p>
             <div className={styles.priceRows}>
-              <div className={styles.summaryRow}>
-                <span>Item total</span>
-                <strong>{formatCurrency(baseTotal)}</strong>
+              <div className={styles.billRow}>
+                <span className={styles.billLabel}>Item total</span>
+                <span className={styles.billValue}>{formatCurrency(baseTotal)}</span>
               </div>
               {(storeData?.other_charges || []).map((charge) => (
-                <div key={`${charge.title}-${charge.amount}-${charge?.price?.value}`} className={styles.summaryRow}>
-                  <span>{charge.title || "Charge"}</span>
-                  <strong>{formatCurrency(Number(charge.amount ?? charge?.price?.value ?? 0))}</strong>
+                <div key={`${charge.title}-${charge.amount}`} className={styles.billRow}>
+                  <span className={styles.billLabel}>{charge.title || "Other charges"}</span>
+                  <span className={styles.billValue}>{formatCurrency(Number(charge.amount ?? charge?.price?.value ?? 0))}</span>
                 </div>
               ))}
-              <div className={styles.summaryRow}>
+              <div className={`${styles.billRow} ${styles.billTotal}`}>
                 <span>Total to pay</span>
-                <strong>{formatCurrency(payTotal)}</strong>
+                <span>{formatCurrency(payTotal)}</span>
               </div>
             </div>
             <div className={styles.modalActions}>
               <button type="button" className={styles.backButton} onClick={() => setShowDeliveryOptions(false)}>
-                Close
+                Cancel
               </button>
               <button
                 type="button"
                 className={styles.checkoutButton}
+                style={{ flex: 1 }}
                 onClick={paymentGwApi}
                 disabled={isPaymentProcessing}
               >
-                {isPaymentProcessing ? "Processing..." : "Proceed"}
+                {isPaymentProcessing ? "Processing..." : `Pay ${formatCurrency(payTotal)}`}
               </button>
             </div>
           </div>
         </div>
       ) : null}
 
+      {/* Order placing modal */}
       {showOrderPlacing ? (
-        <div className={styles.modalBackdrop} role="presentation" onClick={() => setShowOrderPlacing(false)}>
-          <div className={styles.modalCardSmall} role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
-            <h3 className={styles.orderTitle}>Placing Your Order</h3>
-            <p className={styles.modalSubtext}>Placing your order, please wait!!</p>
+        <div className={styles.modalBackdrop} role="presentation">
+          <div className={styles.modalCardSmall} role="dialog" aria-modal="true">
+            <div className={styles.modalDrag} />
+            <p className={styles.orderTitle}>Placing Your Order</p>
+            <p className={styles.modalSubtext}>Hang tight, we&apos;re confirming your order...</p>
             <div className={styles.placingLoader} aria-hidden="true">
-              <span />
-              <span />
-              <span />
+              <span /><span /><span />
             </div>
           </div>
         </div>
       ) : null}
-    </section>
+    </div>
   );
 }
 
