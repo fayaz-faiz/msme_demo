@@ -383,6 +383,119 @@
   }
 }
 
+/* ── Skeleton loader ─────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -700px 0; }
+  100% { background-position:  700px 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.skeletonPulse {
+  background: linear-gradient(
+    90deg,
+    #eaf0ec 25%,
+    #f5fbf7 50%,
+    #eaf0ec 75%
+  );
+  background-size: 700px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Store-card skeleton */
+.skeletonStoreCard {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 0.8rem;
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 0.78rem;
+  overflow: hidden;
+}
+
+.skeletonStoreImg {
+  composes: skeletonPulse;
+  width: 80px;
+  height: 80px;
+  border-radius: 14px;
+  flex-shrink: 0;
+}
+
+.skeletonStoreBody {
+  display: grid;
+  gap: 0.52rem;
+  align-content: center;
+}
+
+/* Generic shimmer lines */
+.skeletonLine {
+  composes: skeletonPulse;
+  height: 12px;
+  border-radius: 6px;
+}
+
+.skeletonLineSm {
+  composes: skeletonPulse;
+  height: 9px;
+  border-radius: 5px;
+}
+
+/* Chip skeleton */
+.skeletonChip {
+  composes: skeletonPulse;
+  flex: 0 0 auto;
+  height: 30px;
+  border-radius: 999px;
+}
+
+/* Product card skeleton */
+.skeletonCard {
+  border: 1px solid #dce8de;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(20, 35, 24, 0.05);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  animation: fadeIn 260ms ease both;
+}
+
+.skeletonCardImg {
+  composes: skeletonPulse;
+  aspect-ratio: 1.45 / 1;
+}
+
+.skeletonCardBody {
+  padding: 0.66rem;
+  display: grid;
+  gap: 0.52rem;
+  align-content: start;
+}
+
+.skeletonPriceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-top: 0.18rem;
+}
+
+.skeletonBtn {
+  composes: skeletonPulse;
+  height: 30px;
+  width: 66px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.gridFadeIn {
+  animation: fadeIn 300ms ease both;
+}
+
 @media (min-width: 741px) {
   .wrapper {
     gap: 1rem;
@@ -398,6 +511,16 @@
   }
 
   .storeImage {
+    width: 96px;
+    height: 96px;
+  }
+
+  .skeletonStoreCard {
+    grid-template-columns: 96px 1fr;
+    gap: 0.95rem;
+  }
+
+  .skeletonStoreImg {
     width: 96px;
     height: 96px;
   }
