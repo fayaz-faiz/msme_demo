@@ -149,6 +149,10 @@ a {
   justify-content: flex-end;
 }
 
+.mobile-search-toggle {
+  display: none;
+}
+
 .nav-search {
   display: inline-flex;
   align-items: center;
@@ -313,6 +317,7 @@ a {
 }
 
 .nav-cart {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
@@ -338,14 +343,18 @@ a {
 }
 
 .cart-count {
-  min-width: 1.4rem;
+  min-width: 1.15rem;
   border-radius: 999px;
   background: #ffb08b;
   color: #ffffff;
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   line-height: 1;
-  padding: 0.22rem 0.42rem;
+  padding: 0.16rem 0.32rem;
   text-align: center;
+  position: absolute;
+  top: -0.3rem;
+  right: -0.3rem;
+  z-index: 1;
 }
 
 .app-shell {
@@ -521,66 +530,138 @@ input[type="text"] {
 
 @media (max-width: 640px) {
   .topbar {
-    position: static;
+    position: relative;
+    z-index: 80;
+    overflow: visible;
   }
 
   .topbar-inner {
-    flex-wrap: wrap;
-    gap: 0.55rem;
-    padding: 0.62rem 0.72rem;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+    padding: 0.52rem 0.62rem;
+    position: relative;
+    overflow: visible;
+    z-index: 81;
   }
 
   .brand-location {
     order: 1;
-    width: 100%;
-    gap: 0.5rem;
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 0.34rem;
+    justify-content: flex-start;
+    align-items: center;
   }
 
   .header-actions {
     order: 2;
     margin-left: 0;
     flex-wrap: nowrap;
-    justify-content: space-between;
-    width: 100%;
-    gap: 0.45rem;
+    justify-content: flex-end;
+    width: auto;
+    flex: 0 0 auto;
+    gap: 0.28rem;
   }
 
-  .nav-search {
-    order: 1;
-    flex: 1 1 auto;
+  .brand {
+    max-width: 30vw;
+  }
+
+  .brand-logo {
+    height: 1.58rem;
+  }
+
+  .location-pill {
+    padding: 0.36rem 0.48rem;
+    max-width: 36vw;
+    gap: 0.36rem;
+    margin-left: 0;
+  }
+
+  .location-copy {
+    font-size: 0.69rem;
+  }
+
+  .nav-cart {
+    gap: 0;
+    padding: 0.32rem;
+    min-width: 2rem;
+    justify-content: center;
+  }
+
+  .nav-cart > span:first-of-type {
+    display: none;
+  }
+
+  .cart-icon {
+    width: 1.28rem;
+    height: 1.28rem;
+  }
+
+  .desktop-search {
+    display: none;
+  }
+
+  .mobile-search-toggle {
+    display: inline-grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .mobile-search-toggle svg {
+    width: 0.94rem;
+    height: 0.94rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .mobile-search-panel {
+    position: absolute;
+    top: calc(100% + 0.25rem);
+    left: 0;
+    right: 0;
+    z-index: 120;
+    width: auto;
     min-width: 0;
-    position: relative;
+    margin-top: 0;
+    background: rgba(18, 63, 66, 0.98);
+    border-color: rgba(255, 255, 255, 0.24);
+    box-shadow: 0 10px 20px rgba(8, 20, 23, 0.22);
   }
 
-  .nav-search input {
+  .mobile-search-panel input {
     width: 100%;
     min-width: 0;
     font-size: 0.84rem;
   }
 
-  .brand {
-    max-width: 44vw;
+  .user-chip {
+    gap: 0;
+    padding: 0.14rem;
   }
 
-  .brand-logo {
+  .user-avatar {
+    width: 1.72rem;
     height: 1.72rem;
   }
 
-  .location-pill {
-    padding: 0.45rem 0.64rem;
-    max-width: 52vw;
-  }
-
-  .location-copy {
-    font-size: 0.78rem;
-  }
-
-  .nav-cart span {
-    display: none;
-  }
-
-  .nav-cart {
-    padding: 0.4rem 0.54rem;
+  .nav-login {
+    min-width: 2rem;
+    padding: 0.36rem 0.52rem;
+    font-size: 0.76rem;
   }
 
   .user-name {
@@ -588,20 +669,7 @@ input[type="text"] {
   }
 
   .logout-button {
-    padding: 0.34rem 0.58rem;
-    font-size: 0.8rem;
-  }
-
-  .nav-search-pinned {
-    position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + 0.45rem);
-    left: 0.72rem;
-    right: 0.72rem;
-    z-index: 40;
-    width: auto;
-    background: rgba(18, 63, 66, 0.96);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 10px 22px rgba(8, 20, 23, 0.28);
+    display: none;
   }
 
   .panel-row {

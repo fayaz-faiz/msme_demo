@@ -53,6 +53,8 @@ type AddressPayload = {
   id?: string;
 };
 
+const MAP_DELTA = 0.01;
+
 function parseGps(gps?: string) {
   const [latStr, lngStr] = String(gps || "").split(",");
   const lat = Number(latStr || 0);
@@ -146,13 +148,32 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
   const [saveAs, setSaveAs] = useState("Home");
 
   const mapEmbedUrl = useMemo(() => {
-    const delta = 0.01;
+    const delta = MAP_DELTA;
     const left = lng - delta;
     const right = lng + delta;
     const top = lat + delta;
     const bottom = lat - delta;
     return `https://www.openstreetmap.org/export/embed.html?bbox=${left}%2C${bottom}%2C${right}%2C${top}&layer=mapnik&marker=${lat}%2C${lng}`;
   }, [lat, lng]);
+  const mapBounds = useMemo(() => {
+    const left = lng - MAP_DELTA;
+    const right = lng + MAP_DELTA;
+    const top = lat + MAP_DELTA;
+    const bottom = lat - MAP_DELTA;
+    return { left, right, top, bottom };
+  }, [lat, lng]);
+  const mapMarkerStyle = useMemo(() => {
+    const width = mapBounds.right - mapBounds.left;
+    const height = mapBounds.top - mapBounds.bottom;
+    const x = width ? ((lng - mapBounds.left) / width) * 100 : 50;
+    const y = height ? ((mapBounds.top - lat) / height) * 100 : 50;
+    const safeX = Math.min(100, Math.max(0, x));
+    const safeY = Math.min(100, Math.max(0, y));
+    return {
+      left: `${safeX}%`,
+      top: `${safeY}%`,
+    };
+  }, [lat, lng, mapBounds]);
 
   const updatePosition = async (nextLat: number, nextLng: number) => {
     setLat(nextLat);
@@ -267,6 +288,19 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
       await updatePosition(location.lat, location.lng);
     }
     setLoadingCurrent(false);
+  };
+
+  const handleMapPick = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const xRatio = (event.clientX - rect.left) / rect.width;
+    const yRatio = (event.clientY - rect.top) / rect.height;
+
+    const nextLng = mapBounds.left + (mapBounds.right - mapBounds.left) * Math.min(1, Math.max(0, xRatio));
+    const nextLat = mapBounds.top - (mapBounds.top - mapBounds.bottom) * Math.min(1, Math.max(0, yRatio));
+
+    await updatePosition(nextLat, nextLng);
+    setSearchResults([]);
+    setQuery("");
   };
 
   const handleConfirmLocation = () => {
@@ -409,60 +443,80 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
           </button>
         </div>
 
-        <div className={styles.locationPanel}>
-          <div className={styles.locationTools}>
-            <div className={styles.searchField}>
-              <input
-                type="search"
-                placeholder="Search location, area, or pincode"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-              />
-              {searching ? <p className={styles.helpText}>Searching locations...</p> : null}
-              {searchResults.length > 0 ? (
-                <div className={styles.searchResults}>
-                  {searchResults.map((result) => (
-                    <button
-                      key={`${result.lat}-${result.lng}`}
-                      type="button"
-                      className={styles.resultButton}
-                      onClick={() => {
-                        void updatePosition(result.lat, result.lng);
-                        setFullAddress(result.rawLabel);
-                        setCity(result.city);
-                        setPincode(result.pincode);
-                        setStateName(String(result.state || ""));
-                        setQuery(result.rawLabel);
-                        setSearchResults([]);
-                      }}
-                    >
-                      <strong>{result.label}</strong>
-                      <span>{result.rawLabel}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
+        {!locationConfirmed ? (
+          <div className={styles.locationPanel}>
+            <div className={styles.locationTools}>
+              <div className={styles.searchField}>
+                <input
+                  type="search"
+                  placeholder="Search location, area, or pincode"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+                {searching ? <p className={styles.helpText}>Searching locations...</p> : null}
+                {searchResults.length > 0 ? (
+                  <div className={styles.searchResults}>
+                    {searchResults.map((result) => (
+                      <button
+                        key={`${result.lat}-${result.lng}`}
+                        type="button"
+                        className={styles.resultButton}
+                        onClick={() => {
+                          void updatePosition(result.lat, result.lng);
+                          setFullAddress(result.rawLabel);
+                          setCity(result.city);
+                          setPincode(result.pincode);
+                          setStateName(String(result.state || ""));
+                          setQuery(result.rawLabel);
+                          setSearchResults([]);
+                        }}
+                      >
+                        <strong>{result.label}</strong>
+                        <span>{result.rawLabel}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              <button type="button" className={styles.secondaryButton} onClick={handleUseCurrentLocation} disabled={loadingCurrent}>
+                {loadingCurrent ? "Locating..." : "Use Current Location"}
+              </button>
             </div>
-            <button type="button" className={styles.secondaryButton} onClick={handleUseCurrentLocation} disabled={loadingCurrent}>
-              {loadingCurrent ? "Locating..." : "Use Current Location"}
+
+            <div className={styles.mapFrameWrap}>
+              <iframe title="Selected map location" src={mapEmbedUrl} className={styles.mapFrame} loading="lazy" />
+              <button
+                type="button"
+                className={styles.mapClickLayer}
+                onClick={handleMapPick}
+                aria-label="Pick location from map"
+              />
+              <span className={styles.mapMarker} style={mapMarkerStyle} aria-hidden="true" />
+            </div>
+            <p className={styles.helpText}>Tap anywhere on the map to move the pointer, then confirm location.</p>
+            <div className={styles.coordinates}>
+              <span>Latitude: {lat}</span>
+              <span>Longitude: {lng}</span>
+            </div>
+            <button type="button" className={styles.primaryButton} onClick={handleConfirmLocation}>
+              Confirm Location
             </button>
           </div>
-
-          <iframe title="Selected map location" src={mapEmbedUrl} className={styles.mapFrame} loading="lazy" />
-          <div className={styles.coordinates}>
-            <span>Latitude: {lat}</span>
-            <span>Longitude: {lng}</span>
+        ) : (
+          <div className={styles.currentCard}>
+            <p className={styles.kicker}>Location Confirmed</p>
+            <strong>{fullAddress || "Selected map location"}</strong>
+            <span>
+              {city} {pincode ? `- ${pincode}` : ""}
+            </span>
           </div>
-          <button type="button" className={styles.primaryButton} onClick={handleConfirmLocation}>
-            Confirm Location
-          </button>
-        </div>
+        )}
 
         {locationConfirmed ? (
           <div className={styles.formGrid}>
             <div className={styles.field}>
               <label>Current Address</label>
-              <textarea value={fullAddress} onChange={(event) => setFullAddress(event.target.value)} rows={2} />
+              <textarea value={fullAddress} rows={2} readOnly disabled />
             </div>
             <div className={styles.field}>
               <label>Flat / House Number</label>
@@ -490,15 +544,15 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
             </div>
             <div className={styles.field}>
               <label>Pincode</label>
-              <input value={pincode} onChange={(event) => setPincode(event.target.value)} />
+              <input value={pincode} readOnly disabled />
             </div>
             <div className={styles.field}>
               <label>City</label>
-              <input value={city} onChange={(event) => setCity(event.target.value)} />
+              <input value={city} readOnly disabled />
             </div>
             <div className={styles.field}>
               <label>State</label>
-              <input value={stateName} onChange={(event) => setStateName(event.target.value)} />
+              <input value={stateName} readOnly disabled />
             </div>
             <div className={styles.field}>
               <label>Save As</label>

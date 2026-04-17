@@ -24,7 +24,8 @@ export function AppHeader() {
   const { location, isResolving } = useLocation();
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [navSearch, setNavSearch] = useState("");
-  const [isMobileSearchPinned, setIsMobileSearchPinned] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [notice, setNotice] = useState<{ open: boolean; message: string; type: AppNoticeType }>({
     open: false,
     message: "",
@@ -105,21 +106,18 @@ export function AppHeader() {
   }, []);
 
   useEffect(() => {
-    const updatePinnedState = () => {
-      const isMobile = window.matchMedia("(max-width: 640px)").matches;
-      if (!isMobile) {
-        setIsMobileSearchPinned(false);
-        return;
+    const updateViewportState = () => {
+      const mobile = window.matchMedia("(max-width: 640px)").matches;
+      setIsMobileViewport(mobile);
+      if (!mobile) {
+        setIsMobileSearchOpen(false);
       }
-      setIsMobileSearchPinned(window.scrollY > 80);
     };
 
-    updatePinnedState();
-    window.addEventListener("scroll", updatePinnedState, { passive: true });
-    window.addEventListener("resize", updatePinnedState);
+    updateViewportState();
+    window.addEventListener("resize", updateViewportState);
     return () => {
-      window.removeEventListener("scroll", updatePinnedState);
-      window.removeEventListener("resize", updatePinnedState);
+      window.removeEventListener("resize", updateViewportState);
     };
   }, []);
 
@@ -141,6 +139,10 @@ export function AppHeader() {
           shopsSection.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       });
+    }
+
+    if (isMobileViewport) {
+      setIsMobileSearchOpen(false);
     }
   };
 
@@ -168,6 +170,10 @@ export function AppHeader() {
         detail: { query: "" },
       }),
     );
+  };
+
+  const toggleMobileSearch = () => {
+    setIsMobileSearchOpen((previous) => !previous);
   };
 
   if (shouldHideOnShopPage) {
@@ -201,7 +207,7 @@ export function AppHeader() {
 
           <div className="header-actions">
             <form
-              className={`nav-search ${isMobileSearchPinned ? "nav-search-pinned" : ""}`}
+              className="nav-search desktop-search"
               onSubmit={handleNavSearchSubmit}
               role="search"
               aria-label="Search shops"
@@ -228,6 +234,23 @@ export function AppHeader() {
                 </button>
               )}
             </form>
+            <button
+              type="button"
+              className="mobile-search-toggle"
+              onClick={toggleMobileSearch}
+              aria-label={isMobileSearchOpen ? "Close search" : "Open search"}
+            >
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                {isMobileSearchOpen ? (
+                  <path d="M5.2 5.2 14.8 14.8M14.8 5.2 5.2 14.8" />
+                ) : (
+                  <>
+                    <circle cx="8.5" cy="8.5" r="5.6" />
+                    <path d="M12.6 12.6 17 17" />
+                  </>
+                )}
+              </svg>
+            </button>
             <Link
               href="/cart"
               onClick={handleCartClick}
@@ -272,6 +295,32 @@ export function AppHeader() {
               </Link>
             )}
           </div>
+          {isMobileViewport && isMobileSearchOpen ? (
+            <form className="nav-search mobile-search-panel" onSubmit={handleNavSearchSubmit} role="search" aria-label="Search shops">
+              <input
+                type="search"
+                value={navSearch}
+                onChange={(event) => handleNavSearchChange(event.target.value)}
+                placeholder="Search shops by name"
+                aria-label="Search shops by name"
+                autoFocus
+              />
+              {navSearch.trim() ? (
+                <button type="button" className="nav-search-icon-btn" onClick={handleClearNavSearch} aria-label="Clear search">
+                  <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M5.2 5.2 14.8 14.8M14.8 5.2 5.2 14.8" />
+                  </svg>
+                </button>
+              ) : (
+                <button type="submit" className="nav-search-icon-btn" aria-label="Search shops">
+                  <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <circle cx="8.5" cy="8.5" r="5.6" />
+                    <path d="M12.6 12.6 17 17" />
+                  </svg>
+                </button>
+              )}
+            </form>
+          ) : null}
         </div>
       </header>
       <LocationPickerModal open={locationPickerOpen} onClose={() => setLocationPickerOpen(false)} />
