@@ -3,10 +3,10 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
-import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { searchStoreByItems, postStoreSubcatApi } from "@/api";
 import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
+import { useAppSelector } from "@/features/cart/store/hooks";
 import { useLocation } from "@/features/location/context/location-context";
 import { ProductTypeBadge } from "@/features/product/components/ProductMeta";
 import { Product } from "@/features/product/domain/product";
@@ -158,6 +158,7 @@ export function ShopItemsBrowser({
   storeLng,
 }: ShopItemsBrowserProps) {
   const { location } = useLocation();
+  const accessToken = useAppSelector((state) => state.apiResponse.accessToken);
 
   const [query, setQuery] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -174,6 +175,7 @@ export function ShopItemsBrowser({
   const [noData, setNoData] = useState(false);
   const [totalItems, setTotalItems] = useState(0);
   const [providerStatus, setProviderStatus] = useState(true);
+  const [storeInfoLoaded, setStoreInfoLoaded] = useState(false);
 
   const observerRef = useRef<HTMLDivElement | null>(null);
 
@@ -257,6 +259,7 @@ export function ShopItemsBrowser({
       console.error("getStoreSubCatList error:", err);
     } finally {
       setLoading(false);
+      setStoreInfoLoaded(true);
     }
   };
 
@@ -325,10 +328,11 @@ export function ShopItemsBrowser({
   }, [query]);
 
   useEffect(() => {
+    if (!accessToken) return;
     if (providerId && providerLocationId) {
       void fetchStoreSubCategories(providerId, providerLocationId);
     }
-  }, [providerId, providerLocationId, resolvedGpsLatitude, resolvedGpsLongitude]);
+  }, [providerId, providerLocationId, resolvedGpsLatitude, resolvedGpsLongitude, accessToken]);
 
   useEffect(() => {
     if (!showFoodTypeFilter && typeOfFood !== "ALL") {
@@ -337,6 +341,8 @@ export function ShopItemsBrowser({
   }, [showFoodTypeFilter, typeOfFood]);
 
   useEffect(() => {
+    if (!accessToken) return;
+    if (!storeInfoLoaded) return;
     if (!finalProviderId || !finalProviderLocationId || !finalCategory || !selectedSubCategory) {
       return;
     }
@@ -346,6 +352,8 @@ export function ShopItemsBrowser({
     setNoData(false);
     void fetchItems(1, true);
   }, [
+    accessToken,
+    storeInfoLoaded,
     finalProviderId,
     finalProviderLocationId,
     selectedSubCategory,
@@ -381,52 +389,80 @@ export function ShopItemsBrowser({
   }, [productLoading, noProducts, page, products.length, selectedSubCategory, searchText, typeOfFood, sortBy]);
 
   const showLoader = productLoading && products.length === 0;
+  const deliveryLabel = resolvedDistance && resolvedDistance !== "-" ? resolvedDistance : "30-45 mins";
 
   return (
     <section className={styles.wrapper}>
-      <div className={styles.hero} style={{ "--accent": "#ff7f38" } as CSSProperties}>
-        <img src={resolvedShopImage} alt={resolvedShopName} className={styles.heroImage} loading="eager" decoding="async" />
-        <div className={styles.heroOverlay} />
-        <div className={styles.heroBody}>
-          <Link href="/shops" className={styles.backLink}>
-            Back to shops
-          </Link>
-          <p className={styles.kicker}>{finalCategory || "Store"}</p>
-          <h1>{resolvedShopName}</h1>
-          <p>{resolvedDescription || "Browse products from this store."}</p>
-          <div className={styles.heroStats}>
-            <span>{resolvedDistance}</span>
-            <span className={serviceable ? styles.deliverable : styles.notDelivering}>
-              {serviceable ? "Deliverable" : "Currently not delivering"}
-            </span>
-            <span>{providerStatus ? "Store Open" : "Store Unavailable"}</span>
+      <header className={styles.mobileHeader}>
+        <Link href="/shops" className={styles.backCircle} aria-label="Back to shops">
+          {"<"}
+        </Link>
+        <div>
+          <h1>Store Products</h1>
+          <p>{serviceable ? `Delivery in ${deliveryLabel}` : "Delivery unavailable right now"}</p>
+        </div>
+      </header>
+
+      {!storeInfoLoaded ? (
+        <div className={styles.skeletonStoreCard}>
+          <div className={styles.skeletonStoreImg} />
+          <div className={styles.skeletonStoreBody}>
+            <div className={styles.skeletonLine} style={{ width: "58%" }} />
+            <div className={styles.skeletonLineSm} style={{ width: "78%" }} />
+            <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+              <div className={styles.skeletonChip} style={{ width: 72, height: 22 }} />
+              <div className={styles.skeletonChip} style={{ width: 92, height: 22 }} />
+              <div className={styles.skeletonChip} style={{ width: 60, height: 22 }} />
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className={styles.storeCard}>
+          <img src={resolvedShopImage} alt={resolvedShopName} className={styles.storeImage} loading="eager" decoding="async" />
+          <div className={styles.storeBody}>
+            <h2>{resolvedShopName}</h2>
+            <p>{resolvedDescription || "Serving your nearby area"}</p>
+            <div className={styles.storeMeta}>
+              <span>{deliveryLabel}</span>
+              <span className={serviceable ? styles.deliverable : styles.notDelivering}>
+                {serviceable ? "Serving your area" : "Not serviceable"}
+              </span>
+              <span>{providerStatus ? "Open" : "Unavailable"}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className={styles.toolbar}>
         <div className={styles.searchBox}>
+          <span className={styles.searchIcon} aria-hidden>
+            Search
+          </span>
           <input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={`Search items in ${resolvedShopName}`}
+            placeholder="Search products, brands, or sizes..."
             aria-label="Search store items"
           />
         </div>
 
         <div className={styles.filterRow}>
           <div className={styles.chips}>
-            {subCategoryData.map((subCat) => (
-              <button
-                key={subCat.subCategoryName}
-                type="button"
-                className={selectedSubCategory === subCat.subCategoryName ? styles.activeChip : styles.chip}
-                onClick={() => setSelectedSubCategory(subCat.subCategoryName)}
-              >
-                {subCat.subCategoryName}
-              </button>
-            ))}
+            {!storeInfoLoaded
+              ? [72, 96, 64, 88, 76].map((w, i) => (
+                  <div key={i} className={styles.skeletonChip} style={{ width: w }} />
+                ))
+              : subCategoryData.map((subCat) => (
+                  <button
+                    key={subCat.subCategoryName}
+                    type="button"
+                    className={selectedSubCategory === subCat.subCategoryName ? styles.activeChip : styles.chip}
+                    onClick={() => setSelectedSubCategory(subCat.subCategoryName)}
+                  >
+                    {subCat.subCategoryName}
+                  </button>
+                ))}
           </div>
 
           <div className={styles.selectors}>
@@ -450,31 +486,42 @@ export function ShopItemsBrowser({
           </div>
         </div>
 
-        <p className={styles.resultHint}>Showing {products.length} of {totalItems} items</p>
+        {products.length > 0 ? (
+          <p className={styles.resultHint}>Showing {products.length} of {totalItems} items</p>
+        ) : null}
       </div>
 
       {showLoader ? (
-        <div className={styles.loaderWrap}>
-          <div className={styles.loader} />
-          <p>Fetching items from server...</p>
+        <div className={styles.grid}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className={styles.skeletonCard} style={{ animationDelay: `${i * 45}ms` }}>
+              <div className={styles.skeletonCardImg} />
+              <div className={styles.skeletonCardBody}>
+                <div className={styles.skeletonLineSm} style={{ width: "46%" }} />
+                <div className={styles.skeletonLine} style={{ width: "84%" }} />
+                <div className={styles.skeletonLineSm} style={{ width: "66%" }} />
+                <div className={styles.skeletonPriceRow}>
+                  <div className={styles.skeletonLine} style={{ width: "38%" }} />
+                  <div className={styles.skeletonBtn} />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : null}
 
       {!showLoader ? (
-        <div className={styles.grid}>
+        <div className={`${styles.grid} ${styles.gridFadeIn}`}>
           {products.map((product) => (
             <article key={product.id} className={styles.card}>
               <div className={styles.imageWrap}>
                 <img src={product.image} alt={product.name} className={styles.image} loading="lazy" decoding="async" />
               </div>
               <div className={styles.body}>
-                <div className={styles.cardTop}>
-                  <h2 className={styles.productName}>{product.name}</h2>
-                  <span className={styles.price}>{formatCurrency(product.price)}</span>
-                </div>
+                <p className={styles.unitTag}>{product.subCategoryName || "1 PCS"}</p>
+                <h2 className={styles.productName}>{product.name}</h2>
                 <ProductTypeBadge foodType={product.foodType} />
                 <p className={styles.productDescription}>{product.description}</p>
-                {product.hasVariants ? <p className={styles.variantHint}>Customisable</p> : null}
                 {!isFoodAndBeverageCategory ? (
                   <div className={styles.meta}>
                     <Link
@@ -498,7 +545,13 @@ export function ShopItemsBrowser({
                     </Link>
                   </div>
                 ) : null}
-                <AddToCartButton product={product} useServerCart />
+                <div className={styles.priceRow}>
+                  <div className={styles.priceStack}>
+                    <span className={styles.price}>{formatCurrency(product.price)}</span>
+                    {product.hasVariants ? <span className={styles.variantHint}>Customisable</span> : null}
+                  </div>
+                  <AddToCartButton product={product} useServerCart />
+                </div>
               </div>
             </article>
           ))}
