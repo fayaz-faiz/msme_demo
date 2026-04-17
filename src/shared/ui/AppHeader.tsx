@@ -36,7 +36,8 @@ export function AppHeader() {
   const nextPath = currentQuery ? `${pathname}?${currentQuery}` : pathname;
   const isDashboard = pathname === "/";
   const shouldHideOnShopPage =
-    pathname === "/store" || pathname === "/shops" || (pathname ? pathname.startsWith("/shops/") : false);
+    pathname === "/store" || pathname === "/shops" || (pathname ? pathname.startsWith("/shops/") : false) ||
+    pathname === "/cart" || (pathname ? pathname.startsWith("/cart/") : false);
 
   const locationLabel = location
     ? `${location.city}, ${location.pincode}`

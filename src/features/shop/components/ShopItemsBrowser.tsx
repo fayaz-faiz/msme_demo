@@ -13,6 +13,7 @@ import { ProductTypeBadge } from "@/features/product/components/ProductMeta";
 import { Product } from "@/features/product/domain/product";
 import { formatCurrency } from "@/shared/lib/format-currency";
 import styles from "./ShopItemsBrowser.module.css";
+import { BackButton } from "@/shared/ui/BackButton";
 
 type ShopItemsBrowserProps = {
   slug: string;
@@ -176,7 +177,9 @@ export function ShopItemsBrowser({
   const { location } = useLocation();
   const accessToken = useAppSelector((state) => state.apiResponse.accessToken);
   const cartLength = useAppSelector((state) => state.apiResponse.cartLength);
-  const cartTotalAmount = useAppSelector((state) => state.apiResponse.cartTotalAmount);
+  const cartTotalAmount = useAppSelector(
+    (state) => state.apiResponse.cartTotalAmount,
+  );
   const cartId = useAppSelector((state) => state.apiResponse.cartId);
 
   const mountCartTotalRef = useRef(cartTotalAmount);
@@ -479,105 +482,109 @@ export function ShopItemsBrowser({
   return (
     <section className={styles.wrapper}>
       <header className={styles.mobileHeader}>
-        <Link
-          href="/"
-          className={styles.backCircle}
-          aria-label="Back to dashboard"
-        >
-          {"<"}
-        </Link>
-        <div>
-          <h1>Expore Other Stores</h1>
-        </div>
+        <BackButton label="Expore Other Stores" href="/" />
       </header>
 
-      {!storeInfoLoaded ? (
-        <div className={styles.skeletonStoreCard}>
-          {/* Row 1 skeleton: image + body */}
-          <div className={styles.skeletonStoreHeader}>
-            <div className={styles.skeletonStoreImg} />
-            <div className={styles.skeletonStoreBody}>
-              <div
-                style={{
-                  display: "flex",
-                  gap: "0.42rem",
-                  alignItems: "center",
-                }}
-              >
-                <div className={styles.skeletonLine} style={{ width: "50%" }} />
+      <div className={styles.storeCardShell}>
+        {!storeInfoLoaded ? (
+          <div className={styles.skeletonStoreCard}>
+            {/* Row 1 skeleton: image + body */}
+            <div className={styles.skeletonStoreHeader}>
+              <div className={styles.skeletonStoreImg} />
+              <div className={styles.skeletonStoreBody}>
                 <div
-                  className={styles.skeletonChip}
-                  style={{ width: 68, height: 20 }}
+                  style={{
+                    display: "flex",
+                    gap: "0.42rem",
+                    alignItems: "center",
+                  }}
+                >
+                  <div
+                    className={styles.skeletonLine}
+                    style={{ width: "50%" }}
+                  />
+                  <div
+                    className={styles.skeletonChip}
+                    style={{ width: 68, height: 20 }}
+                  />
+                </div>
+                <div
+                  className={styles.skeletonLineSm}
+                  style={{ width: "78%" }}
                 />
-              </div>
-              <div className={styles.skeletonLineSm} style={{ width: "78%" }} />
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <div className={styles.skeletonLineSm} style={{ width: 58 }} />
-                <div className={styles.skeletonLineSm} style={{ width: 82 }} />
-              </div>
-            </div>
-          </div>
-          {/* Row 2 skeleton: tags */}
-          <div className={styles.skeletonTagsRow}>
-            <div
-              className={styles.skeletonChip}
-              style={{ width: 94, height: 26, borderRadius: 8 }}
-            />
-            <div
-              className={styles.skeletonChip}
-              style={{ width: 74, height: 26, borderRadius: 8 }}
-            />
-          </div>
-          {/* Row 3 skeleton: footer */}
-          <div className={styles.skeletonFooterRow}>
-            <div
-              className={styles.skeletonChip}
-              style={{ width: 54, height: 22, borderRadius: 999 }}
-            />
-            <div className={styles.skeletonLineSm} style={{ width: 110 }} />
-          </div>
-        </div>
-      ) : (
-        <div className={styles.storeCard}>
-          {/* Row 1: image + name / address / contact */}
-          <div className={styles.storeHeader}>
-            <img
-              src={resolvedShopImage}
-              alt={resolvedShopName}
-              className={styles.storeImage}
-              loading="eager"
-              decoding="async"
-            />
-            <div className={styles.storeBody}>
-              <div className={styles.storeNameRow}>
-                <h2 className={styles.storeName}>{resolvedShopName}</h2>
-                {storeInfo?.verified && (
-                  <span className={styles.verifiedBadge}>✓ Verified</span>
-                )}
-              </div>
-              {resolvedDescription ? (
-                <p className={styles.storeAddress}>{resolvedDescription}</p>
-              ) : null}
-              <div className={styles.storeMetaInline}>
-                {resolvedDistance && resolvedDistance !== "-" && (
-                  <span className={styles.distanceTag}>
-                    📍 {resolvedDistance}
-                  </span>
-                )}
-                {storeInfo?.provider_contact_no && (
-                  <a
-                    href={`tel:${storeInfo.provider_contact_no}`}
-                    className={styles.contactLink}
-                  >
-                    📞 {storeInfo.provider_contact_no}
-                  </a>
-                )}
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <div
+                    className={styles.skeletonLineSm}
+                    style={{ width: 58 }}
+                  />
+                  <div
+                    className={styles.skeletonLineSm}
+                    style={{ width: 82 }}
+                  />
+                </div>
               </div>
             </div>
+            {/* Row 2 skeleton: tags */}
+            <div className={styles.skeletonTagsRow}>
+              <div
+                className={styles.skeletonChip}
+                style={{ width: 94, height: 26, borderRadius: 8 }}
+              />
+              <div
+                className={styles.skeletonChip}
+                style={{ width: 74, height: 26, borderRadius: 8 }}
+              />
+            </div>
+            {/* Row 3 skeleton: footer */}
+            <div className={styles.skeletonFooterRow}>
+              <div
+                className={styles.skeletonChip}
+                style={{ width: 54, height: 22, borderRadius: 999 }}
+              />
+              <div className={styles.skeletonLineSm} style={{ width: 110 }} />
+            </div>
           </div>
+        ) : (
+          <div className={styles.storeCard}>
+            {/* Row 1: image + name / address / contact */}
+            <div className={styles.storeHeader}>
+              <img
+                src={resolvedShopImage}
+                alt={resolvedShopName}
+                className={styles.storeImage}
+                loading="eager"
+                decoding="async"
+              />
+              <div className={styles.storeBody}>
+                <div className={styles.storeNameRow}>
+                  <h2 className={styles.storeName}>{resolvedShopName}</h2>
+                  {storeInfo?.verified && (
+                    <span className={styles.verifiedBadge}>✓ Verified</span>
+                  )}
+                </div>
+                {resolvedDescription ? (
+                  <p className={styles.storeAddress}>{resolvedDescription}</p>
+                ) : null}
+                <div className={styles.storeMetaInline}>
+                  {resolvedDistance && resolvedDistance !== "-" && (
+                    <span className={styles.distanceTag}>
+                      📍 {resolvedDistance}
+                    </span>
+                  )}
+                  {storeInfo?.provider_contact_no && (
+                    <a
+                      href={`tel:${storeInfo.provider_contact_no}`}
+                      className={styles.contactLink}
+                    >
+                      📞 {storeInfo.provider_contact_no}
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
 
-          {/* Row 2: subcategory chips + offer badge — commented out for now */}
-          {/* {((storeInfo?.provider_subcategories?.length ?? 0) > 0 ||
+            {/* Row 2: subcategory chips + offer badge — commented out for now */}
+            {/* {((storeInfo?.provider_subcategories?.length ?? 0) > 0 ||
             (storeInfo?.provider_offers?.length ?? 0) > 0) && (
             <div className={styles.storeTagsRow}>
               {storeInfo?.provider_subcategories?.map((sub) => (
@@ -591,24 +598,27 @@ export function ShopItemsBrowser({
             </div>
           )} */}
 
-          {/* Row 3: status footer */}
-          <div className={styles.storeFooter}>
-            <span className={isStoreOpen ? styles.openPill : styles.closedPill}>
-              {isStoreOpen ? "Open" : "Closed"}
-            </span>
-            <span className={styles.footerDot}>•</span>
-            <span
-              className={
-                serviceable ? styles.deliverable : styles.notDelivering
-              }
-            >
-              {serviceable
-                ? `Delivery in ${deliveryLabel} mins`
-                : "Not serviceable"}
-            </span>
+            {/* Row 3: status footer */}
+            <div className={styles.storeFooter}>
+              <span
+                className={isStoreOpen ? styles.openPill : styles.closedPill}
+              >
+                {isStoreOpen ? "Open" : "Closed"}
+              </span>
+              <span className={styles.footerDot}>•</span>
+              <span
+                className={
+                  serviceable ? styles.deliverable : styles.notDelivering
+                }
+              >
+                {serviceable
+                  ? `Delivery in ${deliveryLabel} mins`
+                  : "Not serviceable"}
+              </span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className={styles.toolbar}>
         <div className={styles.searchBox}>
@@ -847,7 +857,13 @@ export function ShopItemsBrowser({
           <button
             type="button"
             className={styles.viewCartButton}
-            onClick={() => router.push(cartId ? `/cart/view?cartId=${encodeURIComponent(cartId)}` : "/cart")}
+            onClick={() =>
+              router.push(
+                cartId
+                  ? `/cart/view?cartId=${encodeURIComponent(cartId)}`
+                  : "/cart",
+              )
+            }
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

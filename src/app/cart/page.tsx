@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { MultiCartList } from "@/features/cart/components/MultiCartList";
 import { useAppSelector } from "@/features/cart/store/hooks";
+import { BackButton } from "@/shared/ui/BackButton";
 
 export default function CartPage() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function CartPage() {
 
   return (
     <section className="page">
+      <BackButton href="/" />
       <h1>Multi Cart</h1>
       {/* <p className="page-intro">
         Manage carts by store. View a cart or remove it from your multi-cart list.

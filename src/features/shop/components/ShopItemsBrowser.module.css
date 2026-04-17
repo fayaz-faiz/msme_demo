@@ -61,12 +61,18 @@
 }
 
 /* ── Store card ─────────────────────────────────────── */
+.storeCardShell {
+  background: linear-gradient(90deg, #62524b 0%, #225c60 55%, #e46e40 120%);
+  padding: 1rem 1rem 1.25rem;
+}
+
 .storeCard {
   background: var(--panel);
-  border-bottom: 1px solid var(--line);
+  border-radius: 16px;
   padding: 1rem 1rem 0.75rem;
   display: grid;
   gap: 0.75rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
 }
 
 .storeHeader {
@@ -268,7 +274,9 @@
   display: grid;
   gap: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-top: 0.75rem;
 }
+
 
 .searchBox {
   position: relative;
@@ -415,7 +423,7 @@
 .imageWrap {
   width: 100%;
   height: auto;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   border-radius: 0;
   margin: 0;
@@ -589,10 +597,11 @@
 
 .skeletonStoreCard {
   background: var(--panel);
-  border-bottom: 1px solid var(--line);
+  border-radius: 16px;
   padding: 1rem 1rem 0.75rem;
   display: grid;
   gap: 0.75rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
 }
 
 .skeletonStoreHeader {
@@ -665,7 +674,7 @@
 .skeletonCardImg {
   composes: skeletonPulse;
   width: 100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 4 / 3;
   height: auto;
   border-radius: 0;
   margin: 0;

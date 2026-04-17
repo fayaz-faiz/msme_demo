@@ -15,6 +15,7 @@ import { Product } from "@/features/product/domain/product";
 import { setCartLength } from "@/redux/slices";
 import { formatCurrency } from "@/shared/lib/format-currency";
 import { notifyOrAlert } from "@/shared/lib/notify";
+import { BackButton } from "@/shared/ui/BackButton";
 import styles from "./CartDetailApi.module.css";
 
 type CartDetailApiProps = {
@@ -41,6 +42,7 @@ type StoreData = {
     area_code?: string;
   };
   category?: string;
+  original_amount?: number;
   total_amount?: number;
   grand_total?: number | string;
   other_charges?: Array<{ title?: string; amount?: number; price?: { value?: string | number } }>;
@@ -300,15 +302,27 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
         return true;
       } else {
         const message = response?.data?.data?.message || response?.data?.message || "Cart verification failed.";
-        setError(message);
-        notifyOrAlert(message, "warning");
+        const isLocationError = response?.data?.statusCode === 404 || /far from the store|different address/i.test(message);
+        if (isLocationError) {
+          notifyOrAlert(message, "warning");
+          setShowLocationPicker(true);
+        } else {
+          setError(message);
+          notifyOrAlert(message, "warning");
+        }
         return false;
       }
     } catch (err: any) {
       console.error(err);
-      const message = err?.response?.data?.message || "Cart verification failed.";
+      const message =
+        err?.response?.data?.data?.message ||
+        err?.response?.data?.message ||
+        "Cart verification failed.";
       setError(message);
-      notifyOrAlert(message, "error");
+      notifyOrAlert(message, "warning");
+      if (err?.response?.status === 404 || /far from the store|different address/i.test(message)) {
+        setShowLocationPicker(true);
+      }
       return false;
     } finally {
       setLoading(false);
@@ -377,14 +391,14 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     }
   }, [selectedAddressFromRedux?._id]);
 
-  const baseTotal = Number(storeData?.total_amount || 0);
+  const baseTotal = Number(storeData?.original_amount ?? storeData?.total_amount ?? 0);
   const extraCharges = (storeData?.other_charges || []).reduce((sum, charge) => {
     const amount = Number(charge?.amount ?? charge?.price?.value ?? 0);
     return sum + (Number.isFinite(amount) ? amount : 0);
   }, 0);
   const computedPayTotal = baseTotal + extraCharges;
-  const payTotal = storeData?.grand_total ?? computedPayTotal;
-  const payTotalDisplay = payTotal ?? "";
+  const payTotal = Number(storeData?.grand_total ?? computedPayTotal);
+  const payTotalDisplay = formatCurrency(payTotal);
 
   if (!cartId) {
     return (
@@ -469,6 +483,10 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     : "";
 
   return (
+    <>
+      <div className={styles.pageBack}>
+        <BackButton href="/cart" />
+      </div>
     <div className={styles.layout}>
       {/* ── Left panel ── */}
       <div className={styles.leftPanel}>
@@ -530,7 +548,11 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
           </div>
           {addrText
             ? <p className={styles.addressText}>{addrText}</p>
-            : <p className={styles.noAddress}>Add a delivery address</p>}
+            : (
+              <button type="button" className={styles.noAddressButton} onClick={() => setShowLocationPicker(true)}>
+                Select a delivery address
+              </button>
+            )}
         </div>
 
         {/* Bill details */}
@@ -538,12 +560,12 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
           <p className={styles.summaryTitle}>Bill details</p>
           <div className={styles.billRow}>
             <span className={styles.billLabel}>Item total</span>
-            <span className={styles.billValue}>{storeData?.total_amount ?? baseTotal}</span>
+            <span className={styles.billValue}>{formatCurrency(baseTotal)}</span>
           </div>
           {(storeData?.other_charges || []).map((charge) => (
             <div key={`${charge.title}-${charge.amount}`} className={styles.billRow}>
               <span className={styles.billLabel}>{charge.title || "Other charges"}</span>
-              <span className={styles.billValue}>{charge.amount ?? charge?.price?.value ?? 0}</span>
+              <span className={styles.billValue}>{formatCurrency(Number(charge?.amount ?? charge?.price?.value ?? 0))}</span>
             </div>
           ))}
           <div className={`${styles.billRow} ${styles.billTotal}`}>
@@ -558,13 +580,13 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
             type="button"
             className={styles.checkoutButton}
             onClick={handleViewDeliveryOptions}
-            disabled={isInitializing || loading || cartItems.length === 0}
+            disabled={isInitializing || loading || cartItems.length === 0 || !activeAddr}
           >
             {isInitializing ? "Preparing order..." : `Proceed to checkout · ${payTotalDisplay}`}
           </button>
-          <Link href="/cart" className={styles.backButton}>
+          {/* <Link href="/cart" className={styles.backButton}>
             ← Back to carts
-          </Link>
+          </Link> */}
         </div>
       </aside>
 
@@ -584,12 +606,12 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
             <div className={styles.priceRows}>
               <div className={styles.billRow}>
                 <span className={styles.billLabel}>Item total</span>
-                <span className={styles.billValue}>{storeData?.total_amount ?? baseTotal}</span>
+                <span className={styles.billValue}>{formatCurrency(baseTotal)}</span>
               </div>
               {(storeData?.other_charges || []).map((charge) => (
                 <div key={`${charge.title}-${charge.amount}`} className={styles.billRow}>
                   <span className={styles.billLabel}>{charge.title || "Other charges"}</span>
-                  <span className={styles.billValue}>{charge.amount ?? charge?.price?.value ?? 0}</span>
+                  <span className={styles.billValue}>{formatCurrency(Number(charge?.amount ?? charge?.price?.value ?? 0))}</span>
                 </div>
               ))}
               <div className={`${styles.billRow} ${styles.billTotal}`}>
@@ -628,5 +650,6 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
         </div>
       ) : null}
     </div>
+    </>
   );
 }

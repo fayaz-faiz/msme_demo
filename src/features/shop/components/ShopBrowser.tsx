@@ -302,60 +302,57 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
 
   return (
     <section className={styles.wrapper}>
-      {/* <div className={styles.headerCard}>
-        <div>
-          <h1>Browse Shops</h1>
-          <p>Search stores, inspect ratings, and jump into the item catalog with one click.</p>
-        </div>
-        <div className={styles.stats}>
-          <span>{filteredShops.length} stores</span>
-          <span>{storeLoading ? "Loading from server..." : `Total: ${totalCount}`}</span>
-        </div>
-      </div> */}
-      <h2>Shop by categories</h2>
-      <div className={styles.toolbar}>
-        <div className={styles.filters} aria-label="Store categories">
-          {categoryData.map((category) => (
-            <button
-              key={category._id}
-              type="button"
-              className={
-                !category.enabled
-                  ? styles.disabledFilter
-                  : activeCategory === category.name
-                    ? styles.activeFilter
-                    : styles.filterButton
-              }
-              onClick={() => {
-                if (!category.enabled) {
-                  return;
-                }
-                setActiveCategory(category.name);
-              }}
-              disabled={!category.enabled}
-              aria-disabled={!category.enabled}
-              title={category.enabled ? category.name : `${category.name} (Coming soon)`}
-            >
-              <img src={category.url || FALLBACK_IMAGE} alt={category.name} className={styles.categoryThumb} />
-              <span>{category.name}</span>
-            </button>
-          ))}
-        </div>
-        <h2>Nearby Shops</h2>
-        {query ? <p className={styles.resultHint}>Searching for: {query}</p> : null}
-        {/* <p className={styles.resultHint}>
-          {categoryLoading ? "Loading categories..." : `Selected category: ${activeCategory || "-"}`}
-        </p> */}
+      <div className={styles.sectionHeader}>
+        <h2 className={styles.sectionTitle}>Shop by Categories</h2>
+        <p className={styles.sectionSub}>Browse local stores near you</p>
+      </div>
+
+      <div className={styles.filters} aria-label="Store categories">
+        {categoryData.map((category) => (
+          <button
+            key={category._id}
+            type="button"
+            className={
+              !category.enabled
+                ? styles.disabledFilter
+                : activeCategory === category.name
+                  ? styles.activeFilter
+                  : styles.filterButton
+            }
+            onClick={() => {
+              if (!category.enabled) return;
+              setActiveCategory(category.name);
+            }}
+            disabled={!category.enabled}
+            aria-disabled={!category.enabled}
+            title={category.enabled ? category.name : `${category.name} (Coming soon)`}
+          >
+            <img src={category.url || FALLBACK_IMAGE} alt={category.name} className={styles.categoryThumb} />
+            <span>{category.name}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.nearbyHeader}>
+        <h2 className={styles.nearbyTitle}>Nearby Shops</h2>
+        {query ? <p className={styles.resultHint}>Results for &ldquo;{query}&rdquo;</p> : null}
       </div>
 
       {showFullLoader ? (
-        <div className={styles.loaderWrap}>
-          <div className={styles.loader} />
-          <p>Fetching stores from server...</p>
+        <div className={styles.skeletonGrid}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className={styles.skeletonCard}>
+              <div className={styles.skeletonImage} />
+              <div className={styles.skeletonBody}>
+                <div className={`${styles.skeletonLine} ${styles.title}`} />
+                <div className={`${styles.skeletonLine} ${styles.sub}`} />
+                <div className={`${styles.skeletonLine} ${styles.sub2}`} />
+                <div className={`${styles.skeletonLine} ${styles.btn}`} />
+              </div>
+            </div>
+          ))}
         </div>
-      ) : null}
-
-      {!showFullLoader ? (
+      ) : (
         <div className={styles.grid}>
           {filteredShops.map((shop) => (
             <article key={shop.id} className={styles.card}>
@@ -363,17 +360,15 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
                 <img src={shop.image} alt={shop.name} className={styles.image} loading="lazy" decoding="async" />
                 <div className={styles.overlay} />
                 <div className={styles.badge}>{shop.category}</div>
+                <span className={styles.ratingBadge}>{shop.rating.toFixed(1)} ★</span>
               </div>
               <div className={styles.body}>
-                <div className={styles.cardTop}>
-                  <h2>{shop.name}</h2>
-                  <span className={styles.rating}>{shop.rating.toFixed(1)} ★</span>
-                </div>
-                <p>{shop.description}</p>
+                <h2 className={styles.cardTitle}>{shop.name}</h2>
+                <p className={styles.cardDesc}>{shop.description}</p>
                 <div className={styles.meta}>
-                  <span>{shop.deliveryTime}</span>
+                  <span className={styles.deliveryTime}>🕐 {shop.deliveryTime}</span>
                   <span className={shop.serviceable ? styles.deliverable : styles.notDelivering}>
-                    {shop.serviceable ? "Deliverable" : "Currently not delivering"}
+                    {shop.serviceable ? "● Open" : "● Closed"}
                   </span>
                 </div>
                 <Link
@@ -388,32 +383,33 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
                   )}&serviceable=${encodeURIComponent(String(!!shop.serviceable))}`}
                   className={styles.openButton}
                 >
-                  Open Store
+                  Open Store →
                 </Link>
               </div>
             </article>
           ))}
         </div>
-      ) : null}
+      )}
 
-      {!storeLoading && filteredShops.length === 0 ? (
-        <div className={styles.pagination}>
-          <span>No stores found for this category/search.</span>
+      {!storeLoading && filteredShops.length === 0 && !showFullLoader ? (
+        <div className={styles.emptyState}>
+          <span className={styles.emptyIcon}>🏪</span>
+          <p>No stores found for this category.</p>
         </div>
       ) : null}
 
       {storeLoading && stores.length > 0 ? (
-        <div className={styles.pagination}>
+        <div className={styles.loadingMore}>
           <div className={styles.loaderSmall} />
-          <span>Loading more stores...</span>
+          <span>Loading more stores…</span>
         </div>
       ) : null}
 
       <div ref={observerRef} className={styles.scrollSentinel} />
 
       {!hasMore && filteredShops.length > 0 ? (
-        <div className={styles.pagination}>
-          <span>All stores loaded.</span>
+        <div className={styles.endMessage}>
+          <span>You&apos;ve seen all stores</span>
         </div>
       ) : null}
     </section>
