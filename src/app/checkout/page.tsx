@@ -14,6 +14,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
+  const isHydrated = useAppSelector((state) => state.auth.isHydrated);
   const items = useAppSelector((state) => state.cart.items);
   const { location } = useLocation();
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -27,6 +28,10 @@ export default function CheckoutPage() {
       }
     };
   }, []);
+
+  if (!isHydrated) {
+    return null;
+  }
 
   if (!user) {
     return (

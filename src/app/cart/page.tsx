@@ -10,11 +10,12 @@ export default function CartPage() {
   const router = useRouter();
   const pathname = usePathname();
   const user = useAppSelector((state) => state.auth.user);
+  const isHydrated = useAppSelector((state) => state.auth.isHydrated);
   const loginName = useAppSelector((state) => state.authToken.loginName);
   const isAuthenticated = !!user || loginName === "USER";
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isHydrated || isAuthenticated) {
       return;
     }
 
@@ -28,9 +29,9 @@ export default function CartPage() {
     } else {
       router.replace("/");
     }
-  }, [isAuthenticated, router, pathname]);
+  }, [isHydrated, isAuthenticated, router, pathname]);
 
-  if (!isAuthenticated) {
+  if (!isHydrated || !isAuthenticated) {
     return null;
   }
 

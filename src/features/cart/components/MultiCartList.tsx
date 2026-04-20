@@ -17,9 +17,15 @@ type MultiCartItem = {
   provider_address?: {
     street?: string;
   };
+  gps?: string;
   items?: unknown[];
   total_amount?: string | number;
 };
+
+function formatGpsCoord(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return "";
+  return value.toFixed(6);
+}
 
 export function MultiCartList() {
   const router = useRouter();
@@ -101,7 +107,15 @@ export function MultiCartList() {
   };
 
   const viewCart = (cartData: MultiCartItem) => {
-    router.push(`/cart/view?cartId=${encodeURIComponent(cartData._id)}`);
+    const [rawLat, rawLng] = (cartData.gps || "").split(",");
+    const latStr = rawLat?.trim() || "";
+    const lngStr = rawLng?.trim() || "";
+    const lat = latStr ? formatGpsCoord(Number(latStr)) : "";
+    const lng = lngStr ? formatGpsCoord(Number(lngStr)) : "";
+    const params = new URLSearchParams({ cartId: cartData._id });
+    if (lat) params.set("lat", lat);
+    if (lng) params.set("lng", lng);
+    router.push(`/cart/view?${params.toString()}`);
   };
 
   useEffect(() => {

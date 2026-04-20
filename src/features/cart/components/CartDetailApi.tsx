@@ -71,6 +71,11 @@ type AddressItem = {
   gps?: string;
 };
 
+function formatGpsCoord(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value) || value === 0) return "";
+  return value.toFixed(6);
+}
+
 export function CartDetailApi({ cartId }: CartDetailApiProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -329,8 +334,10 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     setError("");
     try {
       const activeAddress = getActiveAddress();
+      const lat = formatGpsCoord(location?.lat);
+      const lng = formatGpsCoord(location?.lng);
       const gps =
-        activeAddress?.gps || `${location?.lat ?? ""},${location?.lng ?? ""}`;
+        activeAddress?.gps || (lat && lng ? `${lat},${lng}` : "");
       const payload = {
         cart_id: cartId,
         gps,
@@ -357,6 +364,10 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
         if (statusCode === 501) {
           notifyOrAlert("Cart updated successfully.", "success");
           router.back();
+          return false;
+        }
+        if (statusCode === 504) {
+          notifyOrAlert(message, "error");
           return false;
         }
         const isLocationError =
