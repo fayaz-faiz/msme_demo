@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { editProfileWeb, getLatestOrder, getRloesIds, getUserProfileDataWeb, postGuestLogin, postLogout } from "@/api";
+import { editProfileWeb, getLatestOrder, getRloesIds, getUserProfileDataWeb, postGuestLogin, postLogout, postUploadProfile } from "@/api";
 import { useAppDispatch, useAppSelector } from "@/features/cart/store/hooks";
 import { clearCart } from "@/features/cart/store/cartSlice";
 import { loginSuccess, logout } from "@/features/auth/store/authSlice";
@@ -161,8 +162,10 @@ export default function ProfilePage() {
   const [nameInput, setNameInput] = useState(userName);
   const [isEditingName, setIsEditingName] = useState(false);
   const [isSavingName, setIsSavingName] = useState(false);
+  const [isUploadingProfilePic, setIsUploadingProfilePic] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isUserSession = loginName === "USER";
   const displayName = user?.name?.trim() || user?.mobileNumber || null;
   const avatarLabel = displayName ? displayName.charAt(0).toUpperCase() : "U";
@@ -265,12 +268,7 @@ export default function ProfilePage() {
         data?: { status?: boolean; data?: unknown; message?: unknown };
       };
       if (result?.data?.status === true) {
-        dispatch(
-          loginSuccess({
-            name: trimmedName,
-            mobileNumber: user?.mobileNumber || "",
-          }),
-        );
+        await fetchProfileData();
         setIsEditingName(false);
         notifyOrAlert(toReadableMessage(result?.data?.data) || "Profile updated successfully", "success");
         return;
@@ -284,6 +282,73 @@ export default function ProfilePage() {
     } finally {
       setIsSavingName(false);
     }
+  };
+
+  const convertFileToBase64 = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const value = String(reader.result || "");
+        const base64 = value.includes(",") ? value.split(",")[1] : value;
+        resolve(base64);
+      };
+      reader.onerror = () => reject(reader.error || new Error("Unable to read file."));
+      reader.readAsDataURL(file);
+    });
+
+  const postUploadProfileApi = async (mimeType: string, image: string) => {
+    try {
+      const payload = {
+        mimetype: mimeType,
+        base64: image,
+      };
+      const resp = await postUploadProfile(payload) as {
+        data?: { status?: number; statusCode?: number; message?: unknown; data?: { message?: unknown } };
+      };
+      const isSuccess = resp?.data?.status === 200 || resp?.data?.statusCode === 200;
+      if (isSuccess) {
+        await fetchProfileData();
+        notifyOrAlert(
+          toReadableMessage(resp?.data?.data?.message) ||
+            toReadableMessage(resp?.data?.message) ||
+            "Profile image updated successfully.",
+          "success",
+        );
+        return;
+      }
+      notifyOrAlert(
+        toReadableMessage(resp?.data?.data?.message) ||
+          toReadableMessage(resp?.data?.message) ||
+          "Unable to update profile image.",
+        "error",
+      );
+    } catch (err: unknown) {
+      notifyOrAlert(getErrorMessage(err, "Unable to update profile image."), "error");
+      console.error("postUploadProfileApi error:", err);
+    }
+  };
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsUploadingProfilePic(true);
+    try {
+      const base64 = await convertFileToBase64(file);
+      await postUploadProfileApi(file.type, base64);
+    } catch (error) {
+      console.error("Please select another image", error);
+      notifyOrAlert("Please select another image.", "warning");
+    } finally {
+      setIsUploadingProfilePic(false);
+      event.target.value = "";
+    }
+  };
+
+  const openFilePicker = () => {
+    if (isUploadingProfilePic) {
+      return;
+    }
+    fileInputRef.current?.click();
   };
 
   useEffect(() => {
@@ -386,12 +451,38 @@ export default function ProfilePage() {
 
       {/* ── User card ── */}
       <div className={styles.userCard}>
-        <div className={styles.avatarCircle}>
-          {avatarImg ? (
-            <img src={avatarImg} alt={userName} className={styles.avatarImg} />
-          ) : (
-            avatarLabel
-          )}
+        <div className={styles.avatarWrap}>
+          <div className={styles.avatarCircle}>
+            {avatarImg ? (
+              <img src={avatarImg} alt={userName} className={styles.avatarImg} />
+            ) : (
+              avatarLabel
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className={styles.hiddenFileInput}
+            aria-label="Upload profile picture"
+          />
+          <button
+            type="button"
+            className={styles.avatarEditButton}
+            onClick={openFilePicker}
+            disabled={isUploadingProfilePic}
+            aria-label="Edit profile picture"
+            title="Edit profile picture"
+          >
+            {isUploadingProfilePic ? (
+              "..."
+            ) : (
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M10 4v12M4 10h12" />
+              </svg>
+            )}
+          </button>
         </div>
         <div className={styles.userInfo}>
           {isEditingName ? (
