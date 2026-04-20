@@ -418,12 +418,7 @@ export function ShopItemsBrowser({
   }, [cartTotalAmount]);
 
   useEffect(() => {
-    try {
-      const ref = document.referrer;
-      setHasInternalHistory(!!ref && new URL(ref).origin === window.location.origin);
-    } catch {
-      setHasInternalHistory(false);
-    }
+    setHasInternalHistory(window.history.length > 1);
   }, []);
 
 
