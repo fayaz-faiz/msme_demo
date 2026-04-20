@@ -207,6 +207,7 @@ export function ShopItemsBrowser({
   const [providerStatus, setProviderStatus] = useState(true);
   const [maxTimeToShip, setMaxTimeToShip] = useState("");
   const [storeInfoLoaded, setStoreInfoLoaded] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const observerRef = useRef<HTMLDivElement | null>(null);
 
@@ -381,6 +382,31 @@ export function ShopItemsBrowser({
     } finally {
       setLoading(false);
       setProductLoading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const buyerWebUrl =
+      process.env.NEXT_PUBLIC_BUYER_WEB_URL || "https://retail-buyer-web.nearshop.in";
+    const params = new URLSearchParams({
+      providerId: finalProviderId,
+      providerLocationId: finalProviderLocationId,
+      category: finalCategory || mappedCategory || category,
+      storeLat: String(resolvedGpsLatitude),
+      storeLong: String(resolvedGpsLongitude),
+    });
+    const shareUrl = `${buyerWebUrl}/store?${params.toString()}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: resolvedShopName, url: shareUrl });
+      } catch {
+        // user cancelled
+      }
+    } else {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
     }
   };
 
@@ -565,6 +591,25 @@ export function ShopItemsBrowser({
                   {storeInfo?.verified && (
                     <span className={styles.verifiedBadge}>✓ Verified</span>
                   )}
+                  <button
+                    type="button"
+                    className={styles.shareButton}
+                    onClick={handleShare}
+                    aria-label="Share store"
+                    title={shareCopied ? "Link copied!" : "Share store"}
+                  >
+                    {shareCopied ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                      </svg>
+                    )}
+                    <span>{shareCopied ? "Copied!" : "Share"}</span>
+                  </button>
                 </div>
                 {resolvedDescription ? (
                   <p className={styles.storeAddress}>{resolvedDescription}</p>
