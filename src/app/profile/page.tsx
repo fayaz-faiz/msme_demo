@@ -152,6 +152,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
+  const isHydrated = useAppSelector((state) => state.auth.isHydrated);
   const loginName = useAppSelector((state) => state.authToken.loginName);
   const refreshToken = useAppSelector((state) => state.authToken.refreshToken);
   const userName = user?.name?.trim() || "User";
@@ -347,6 +348,10 @@ export default function ProfilePage() {
   const latestOrderAddress = useMemo(() => pickAddress(latestOrder), [latestOrder]);
   const latestOrderStatus = useMemo(() => pickOrderStatus(latestOrder), [latestOrder]);
   const latestPaymentStatus = useMemo(() => pickPaymentStatus(latestOrder), [latestOrder]);
+
+  if (!isHydrated) {
+    return null;
+  }
 
   if (!user && !isUserSession) {
     return (
