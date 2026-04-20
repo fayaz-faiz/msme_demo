@@ -6,13 +6,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { searchStoreByItems, postStoreSubcatApi } from "@/api";
+import { useDebounce } from "@/shared/lib/use-debounce";
 import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
 import { useAppSelector } from "@/features/cart/store/hooks";
 import { useLocation } from "@/features/location/context/location-context";
 import { ProductTypeBadge } from "@/features/product/components/ProductMeta";
 import { Product } from "@/features/product/domain/product";
 import { formatCurrency } from "@/shared/lib/format-currency";
+import { toOndcCategory } from "@/features/shop/domain/ondc-category";
 import styles from "./ShopItemsBrowser.module.css";
+import { BackButton } from "@/shared/ui/BackButton";
 
 type ShopItemsBrowserProps = {
   slug: string;
@@ -176,23 +179,24 @@ export function ShopItemsBrowser({
   const { location } = useLocation();
   const accessToken = useAppSelector((state) => state.apiResponse.accessToken);
   const cartLength = useAppSelector((state) => state.apiResponse.cartLength);
-  const cartTotalAmount = useAppSelector((state) => state.apiResponse.cartTotalAmount);
+  const cartTotalAmount = useAppSelector(
+    (state) => state.apiResponse.cartTotalAmount,
+  );
   const cartId = useAppSelector((state) => state.apiResponse.cartId);
 
   const mountCartTotalRef = useRef(cartTotalAmount);
   const [addedToCartHere, setAddedToCartHere] = useState(false);
 
   const [query, setQuery] = useState("");
-  const [searchText, setSearchText] = useState("");
+  const searchText = useDebounce(query);
   const [loading, setLoading] = useState(false);
   const [productLoading, setProductLoading] = useState(false);
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [subCategoryData, setSubCategoryData] = useState<SubCategory[]>([]);
   const [selectedSubCategory, setSelectedSubCategory] = useState("All Items");
   const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null);
-  const [typeOfFood, setTypeOfFood] = useState<"ALL" | "Veg" | "Non-Veg">(
-    "ALL",
-  );
+  const [vegFilter, setVegFilter] = useState(false);
+  const [nonVegFilter, setNonVegFilter] = useState(false);
   const [sortBy, setSortBy] = useState<
     "RELEVANCE" | "PRICE_LOW_TO_HIGH" | "PRICE_HIGH_TO_LOW"
   >("RELEVANCE");
@@ -206,10 +210,12 @@ export function ShopItemsBrowser({
 
   const observerRef = useRef<HTMLDivElement | null>(null);
 
+  const mappedCategory = toOndcCategory(category);
+
   const finalProviderId = storeInfo?.provider_id || providerId;
   const finalProviderLocationId =
     storeInfo?.provider_location_id || providerLocationId;
-  const finalCategory = storeInfo?.category || category;
+  const finalCategory = storeInfo?.category || mappedCategory;
   const resolvedGpsLatitude = useMemo(() => {
     const fromQuery = parseCoordinate(storeLat);
     if (fromQuery !== null) {
@@ -243,7 +249,7 @@ export function ShopItemsBrowser({
       .filter(Boolean)
       .join(", ") || "";
   const showFoodTypeFilter = useMemo(() => {
-    const value = String(finalCategory || category || "")
+    const value = String(finalCategory || mappedCategory || "")
       .toLowerCase()
       .trim();
     if (!value) {
@@ -251,13 +257,15 @@ export function ShopItemsBrowser({
     }
     return (
       value === "grocery" ||
+      value.includes("ret10") ||
+      value.includes("ret11") ||
       value.includes("f&b") ||
       value.includes("fnb") ||
       value.includes("food & beverage")
     );
-  }, [finalCategory, category]);
+  }, [finalCategory, mappedCategory]);
   const isFoodAndBeverageCategory = useMemo(() => {
-    const rawValue = String(finalCategory || category || "")
+    const rawValue = String(finalCategory || mappedCategory || "")
       .toLowerCase()
       .trim();
     if (!rawValue) {
@@ -276,7 +284,7 @@ export function ShopItemsBrowser({
       normalizedValue.includes("foodandbeverages") ||
       normalizedValue.includes("ret11")
     );
-  }, [finalCategory, category]);
+  }, [finalCategory, mappedCategory]);
 
   const fetchStoreSubCategories = async (
     providerIdParam: string,
@@ -328,8 +336,8 @@ export function ShopItemsBrowser({
       page: pageNo,
       pageSize: PAGE_SIZE,
       category: finalCategory,
-      veg: showFoodTypeFilter && typeOfFood === "Veg" ? "yes" : "",
-      nonVeg: showFoodTypeFilter && typeOfFood === "Non-Veg" ? "yes" : "",
+      veg: showFoodTypeFilter && vegFilter ? "yes" : "",
+      nonVeg: showFoodTypeFilter && nonVegFilter ? "yes" : "",
     };
 
     try {
@@ -382,10 +390,6 @@ export function ShopItemsBrowser({
     }
   }, [cartTotalAmount]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setSearchText(query.trim()), 350);
-    return () => clearTimeout(timer);
-  }, [query]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -401,10 +405,11 @@ export function ShopItemsBrowser({
   ]);
 
   useEffect(() => {
-    if (!showFoodTypeFilter && typeOfFood !== "ALL") {
-      setTypeOfFood("ALL");
+    if (!showFoodTypeFilter) {
+      setVegFilter(false);
+      setNonVegFilter(false);
     }
-  }, [showFoodTypeFilter, typeOfFood]);
+  }, [showFoodTypeFilter]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -429,7 +434,8 @@ export function ShopItemsBrowser({
     finalProviderLocationId,
     selectedSubCategory,
     searchText,
-    typeOfFood,
+    vegFilter,
+    nonVegFilter,
     sortBy,
     category,
     finalCategory,
@@ -469,7 +475,8 @@ export function ShopItemsBrowser({
     products.length,
     selectedSubCategory,
     searchText,
-    typeOfFood,
+    vegFilter,
+    nonVegFilter,
     sortBy,
   ]);
 
@@ -479,105 +486,109 @@ export function ShopItemsBrowser({
   return (
     <section className={styles.wrapper}>
       <header className={styles.mobileHeader}>
-        <Link
-          href="/"
-          className={styles.backCircle}
-          aria-label="Back to dashboard"
-        >
-          {"<"}
-        </Link>
-        <div>
-          <h1>Expore Other Stores</h1>
-        </div>
+        <BackButton label="Expore Other Stores" />
       </header>
 
-      {!storeInfoLoaded ? (
-        <div className={styles.skeletonStoreCard}>
-          {/* Row 1 skeleton: image + body */}
-          <div className={styles.skeletonStoreHeader}>
-            <div className={styles.skeletonStoreImg} />
-            <div className={styles.skeletonStoreBody}>
-              <div
-                style={{
-                  display: "flex",
-                  gap: "0.42rem",
-                  alignItems: "center",
-                }}
-              >
-                <div className={styles.skeletonLine} style={{ width: "50%" }} />
+      <div className={styles.storeCardShell}>
+        {!storeInfoLoaded ? (
+          <div className={styles.skeletonStoreCard}>
+            {/* Row 1 skeleton: image + body */}
+            <div className={styles.skeletonStoreHeader}>
+              <div className={styles.skeletonStoreImg} />
+              <div className={styles.skeletonStoreBody}>
                 <div
-                  className={styles.skeletonChip}
-                  style={{ width: 68, height: 20 }}
+                  style={{
+                    display: "flex",
+                    gap: "0.42rem",
+                    alignItems: "center",
+                  }}
+                >
+                  <div
+                    className={styles.skeletonLine}
+                    style={{ width: "50%" }}
+                  />
+                  <div
+                    className={styles.skeletonChip}
+                    style={{ width: 68, height: 20 }}
+                  />
+                </div>
+                <div
+                  className={styles.skeletonLineSm}
+                  style={{ width: "78%" }}
                 />
-              </div>
-              <div className={styles.skeletonLineSm} style={{ width: "78%" }} />
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <div className={styles.skeletonLineSm} style={{ width: 58 }} />
-                <div className={styles.skeletonLineSm} style={{ width: 82 }} />
-              </div>
-            </div>
-          </div>
-          {/* Row 2 skeleton: tags */}
-          <div className={styles.skeletonTagsRow}>
-            <div
-              className={styles.skeletonChip}
-              style={{ width: 94, height: 26, borderRadius: 8 }}
-            />
-            <div
-              className={styles.skeletonChip}
-              style={{ width: 74, height: 26, borderRadius: 8 }}
-            />
-          </div>
-          {/* Row 3 skeleton: footer */}
-          <div className={styles.skeletonFooterRow}>
-            <div
-              className={styles.skeletonChip}
-              style={{ width: 54, height: 22, borderRadius: 999 }}
-            />
-            <div className={styles.skeletonLineSm} style={{ width: 110 }} />
-          </div>
-        </div>
-      ) : (
-        <div className={styles.storeCard}>
-          {/* Row 1: image + name / address / contact */}
-          <div className={styles.storeHeader}>
-            <img
-              src={resolvedShopImage}
-              alt={resolvedShopName}
-              className={styles.storeImage}
-              loading="eager"
-              decoding="async"
-            />
-            <div className={styles.storeBody}>
-              <div className={styles.storeNameRow}>
-                <h2 className={styles.storeName}>{resolvedShopName}</h2>
-                {storeInfo?.verified && (
-                  <span className={styles.verifiedBadge}>✓ Verified</span>
-                )}
-              </div>
-              {resolvedDescription ? (
-                <p className={styles.storeAddress}>{resolvedDescription}</p>
-              ) : null}
-              <div className={styles.storeMetaInline}>
-                {resolvedDistance && resolvedDistance !== "-" && (
-                  <span className={styles.distanceTag}>
-                    📍 {resolvedDistance}
-                  </span>
-                )}
-                {storeInfo?.provider_contact_no && (
-                  <a
-                    href={`tel:${storeInfo.provider_contact_no}`}
-                    className={styles.contactLink}
-                  >
-                    📞 {storeInfo.provider_contact_no}
-                  </a>
-                )}
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <div
+                    className={styles.skeletonLineSm}
+                    style={{ width: 58 }}
+                  />
+                  <div
+                    className={styles.skeletonLineSm}
+                    style={{ width: 82 }}
+                  />
+                </div>
               </div>
             </div>
+            {/* Row 2 skeleton: tags */}
+            <div className={styles.skeletonTagsRow}>
+              <div
+                className={styles.skeletonChip}
+                style={{ width: 94, height: 26, borderRadius: 8 }}
+              />
+              <div
+                className={styles.skeletonChip}
+                style={{ width: 74, height: 26, borderRadius: 8 }}
+              />
+            </div>
+            {/* Row 3 skeleton: footer */}
+            <div className={styles.skeletonFooterRow}>
+              <div
+                className={styles.skeletonChip}
+                style={{ width: 54, height: 22, borderRadius: 999 }}
+              />
+              <div className={styles.skeletonLineSm} style={{ width: 110 }} />
+            </div>
           </div>
+        ) : (
+          <div className={styles.storeCard}>
+            {/* Row 1: image + name / address / contact */}
+            <div className={styles.storeHeader}>
+              <img
+                src={resolvedShopImage}
+                alt={resolvedShopName}
+                className={styles.storeImage}
+                loading="eager"
+                decoding="async"
+              />
+              <div className={styles.storeBody}>
+                <div className={styles.storeNameRow}>
+                  <h2 className={styles.storeName}>{resolvedShopName}</h2>
+                  {storeInfo?.verified && (
+                    <span className={styles.verifiedBadge}>✓ Verified</span>
+                  )}
+                </div>
+                {resolvedDescription ? (
+                  <p className={styles.storeAddress}>{resolvedDescription}</p>
+                ) : null}
+                <div className={styles.storeMetaInline}>
+                  {resolvedDistance && resolvedDistance !== "-" && (
+                    <span className={styles.distanceTag}>
+                      📍 {resolvedDistance}
+                    </span>
+                  )}
+                  {storeInfo?.provider_contact_no && (
+                    <a
+                      href={`tel:${storeInfo.provider_contact_no}`}
+                      className={styles.contactLink}
+                    >
+                      📞 {storeInfo.provider_contact_no}
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
 
-          {/* Row 2: subcategory chips + offer badge — commented out for now */}
-          {/* {((storeInfo?.provider_subcategories?.length ?? 0) > 0 ||
+            {/* Row 2: subcategory chips + offer badge — commented out for now */}
+            {/* {((storeInfo?.provider_subcategories?.length ?? 0) > 0 ||
             (storeInfo?.provider_offers?.length ?? 0) > 0) && (
             <div className={styles.storeTagsRow}>
               {storeInfo?.provider_subcategories?.map((sub) => (
@@ -591,24 +602,27 @@ export function ShopItemsBrowser({
             </div>
           )} */}
 
-          {/* Row 3: status footer */}
-          <div className={styles.storeFooter}>
-            <span className={isStoreOpen ? styles.openPill : styles.closedPill}>
-              {isStoreOpen ? "Open" : "Closed"}
-            </span>
-            <span className={styles.footerDot}>•</span>
-            <span
-              className={
-                serviceable ? styles.deliverable : styles.notDelivering
-              }
-            >
-              {serviceable
-                ? `Delivery in ${deliveryLabel} mins`
-                : "Not serviceable"}
-            </span>
+            {/* Row 3: status footer */}
+            <div className={styles.storeFooter}>
+              <span
+                className={isStoreOpen ? styles.openPill : styles.closedPill}
+              >
+                {isStoreOpen ? "Open" : "Closed"}
+              </span>
+              <span className={styles.footerDot}>•</span>
+              <span
+                className={
+                  serviceable ? styles.deliverable : styles.notDelivering
+                }
+              >
+                {serviceable
+                  ? `Delivery in ${deliveryLabel} mins`
+                  : "Not serviceable"}
+              </span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className={styles.toolbar}>
         <div className={styles.searchBox}>
@@ -632,7 +646,7 @@ export function ShopItemsBrowser({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search products, brands, or sizes..."
+            placeholder="Search products..."
             aria-label="Search store items"
           />
         </div>
@@ -667,16 +681,36 @@ export function ShopItemsBrowser({
 
           <div className={styles.selectors}>
             {showFoodTypeFilter ? (
-              <select
-                value={typeOfFood}
-                onChange={(event) =>
-                  setTypeOfFood(event.target.value as "ALL" | "Veg" | "Non-Veg")
-                }
-              >
-                <option value="ALL">All Food</option>
-                <option value="Veg">Veg</option>
-                <option value="Non-Veg">Non-Veg</option>
-              </select>
+              <div className={styles.foodToggleGroup}>
+                <button
+                  type="button"
+                  className={`${styles.foodToggleBtn} ${vegFilter ? styles.foodToggleBtnVegActive : ""}`}
+                  onClick={() => {
+                    setVegFilter((v) => !v);
+                    setNonVegFilter(false);
+                  }}
+                  aria-pressed={vegFilter}
+                >
+                  <span
+                    className={`${styles.foodTypeIcon} ${styles.foodTypeIconVeg}`}
+                  />
+                  Veg
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.foodToggleBtn} ${nonVegFilter ? styles.foodToggleBtnNonVegActive : ""}`}
+                  onClick={() => {
+                    setNonVegFilter((v) => !v);
+                    setVegFilter(false);
+                  }}
+                  aria-pressed={nonVegFilter}
+                >
+                  <span
+                    className={`${styles.foodTypeIcon} ${styles.foodTypeIconNonVeg}`}
+                  />
+                  Non-Veg
+                </button>
+              </div>
             ) : null}
             <select
               value={sortBy}
@@ -770,7 +804,7 @@ export function ShopItemsBrowser({
                           providerId: finalProviderId,
                           providerLocationId: finalProviderLocationId,
                           parentItemId: product.parentItemId || "",
-                          category: finalCategory || category || "",
+                          category: finalCategory || mappedCategory || "",
                           subCategoryName:
                             product.subCategoryName ||
                             selectedSubCategory ||
@@ -847,7 +881,13 @@ export function ShopItemsBrowser({
           <button
             type="button"
             className={styles.viewCartButton}
-            onClick={() => router.push(cartId ? `/cart/view?cartId=${encodeURIComponent(cartId)}` : "/cart")}
+            onClick={() =>
+              router.push(
+                cartId
+                  ? `/cart/view?cartId=${encodeURIComponent(cartId)}`
+                  : "/cart",
+              )
+            }
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

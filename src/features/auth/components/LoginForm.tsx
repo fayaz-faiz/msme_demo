@@ -63,7 +63,10 @@ type LoginResponse = {
 };
 
 function normalizeMobileNumber(value: string) {
-  return value.replace(/\D/g, "").slice(0, 10);
+  let digits = value.replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1);
+  return digits.slice(0, 10);
 }
 
 function validate(values: FormValues, step: LoginStep): FormErrors {
@@ -230,7 +233,7 @@ export function LoginForm() {
       );
 
       showSnackbar(response?.data?.message || "Logged in successfully.", "success");
-      router.push(nextPath);
+      router.replace(nextPath);
       return true;
     } catch (error: unknown) {
       const typedError = error as ApiErrorLike;

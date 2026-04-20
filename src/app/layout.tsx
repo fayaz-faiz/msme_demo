@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -23,7 +23,11 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = 'force-dynamic';
-export const viewport = { themeColor: "#0b5fff" };
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0b5fff",
+};
 
 export default function RootLayout({
   children,

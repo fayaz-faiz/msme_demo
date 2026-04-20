@@ -70,17 +70,30 @@ export function MultiCartList() {
       const payload = { cart_id: cartId };
       const response: any = await postDeleteCart(payload);
       const statusCode = response?.data?.statusCode;
-      const ok = statusCode === 200 || statusCode === 204 || response?.data?.status === true;
+      const ok =
+        statusCode === 200 ||
+        statusCode === 204 ||
+        response?.data?.status === true;
       if (ok) {
-        notifyOrAlert(response?.data?.message || "Cart deleted successfully.", "success");
+        notifyOrAlert(
+          response?.data?.message || "Cart deleted successfully.",
+          "success",
+        );
         await getCartLength();
         await fetchStoresData();
       } else {
-        notifyOrAlert(response?.data?.message || "Unable to delete cart.", "error");
+        notifyOrAlert(
+          response?.data?.message || "Unable to delete cart.",
+          "error",
+        );
       }
     } catch (err: any) {
       console.error(err);
-      notifyOrAlert(err?.response?.data?.message || "Something went wrong while deleting cart.", "error");
+      notifyOrAlert(
+        err?.response?.data?.message ||
+          "Something went wrong while deleting cart.",
+        "error",
+      );
     } finally {
       setDeletingCartId("");
       setPendingDeleteCartId("");
@@ -120,13 +133,22 @@ export function MultiCartList() {
             <img
               className={styles.providerImage}
               alt={item?.provider_name || "Provider"}
-              src={item?.provider_symbol || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80"}
+              src={
+                item?.provider_symbol ||
+                "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80"
+              }
             />
             <div className={styles.details}>
               <h3>{item?.provider_name || "Store"}</h3>
               <p>{item?.provider_address?.street || "-"}</p>
-              <p>{(item?.items?.length || 0) > 1 ? `+ ${(item?.items?.length || 0) - 1} items` : ""}</p>
-              <strong>Total: Rs. {Number(item?.total_amount || 0).toFixed(2)}</strong>
+              <p>
+                {(item?.items?.length || 0) > 1
+                  ? `+ ${(item?.items?.length || 0) - 1} items`
+                  : ""}
+              </p>
+              <strong>
+                Total: Rs. {Number(item?.total_amount || 0).toFixed(2)}
+              </strong>
             </div>
           </div>
 
@@ -147,7 +169,11 @@ export function MultiCartList() {
       ))}
 
       {pendingDeleteCartId ? (
-        <div className={styles.modalBackdrop} role="presentation" onClick={() => setPendingDeleteCartId("")}>
+        <div
+          className={styles.modalBackdrop}
+          role="presentation"
+          onClick={() => setPendingDeleteCartId("")}
+        >
           <div
             className={styles.modalCard}
             role="dialog"
@@ -172,7 +198,9 @@ export function MultiCartList() {
                 onClick={() => void deleteCart(pendingDeleteCartId)}
                 disabled={deletingCartId === pendingDeleteCartId}
               >
-                {deletingCartId === pendingDeleteCartId ? "Deleting..." : "Yes, Delete"}
+                {deletingCartId === pendingDeleteCartId
+                  ? "Deleting..."
+                  : "Yes, Delete"}
               </button>
             </div>
           </div>

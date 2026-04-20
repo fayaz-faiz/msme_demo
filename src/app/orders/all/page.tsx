@@ -110,6 +110,42 @@ function formatPaymentLabel(status: string) {
   return status.replace(/-/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
+function getStatusVariant(status: string): "placed" | "delivered" | "cancelled" | "default" {
+  const s = status.toLowerCase();
+  if (s.includes("deliver") || s.includes("complet")) return "delivered";
+  if (s.includes("cancel")) return "cancelled";
+  if (s.includes("place") || s.includes("process") || s.includes("accept") || s.includes("dispatch") || s.includes("pending")) return "placed";
+  return "default";
+}
+
+function getPaymentVariant(status: string): "paid" | "pending" | "default" {
+  const s = status.toLowerCase();
+  if (s === "paid" || s === "success" || s === "completed") return "paid";
+  if (s === "pending" || s === "unpaid") return "pending";
+  return "default";
+}
+
+function SkeletonCard() {
+  return (
+    <div className={styles.skeletonCard}>
+      <div className={styles.skeletonAccent} />
+      <div className={styles.skeletonBody}>
+        <div className={styles.skeletonRow}>
+          <div className={styles.skeletonLine} style={{ height: 18, width: "38%" }} />
+          <div className={styles.skeletonLine} style={{ height: 18, width: "22%" }} />
+        </div>
+        <div className={styles.skeletonLine} style={{ height: 13, width: "60%" }} />
+        <div className={styles.skeletonLine} style={{ height: 1, width: "100%", opacity: 0.4 }} />
+        <div className={styles.skeletonLine} style={{ height: 13, width: "80%" }} />
+        <div className={styles.skeletonRow}>
+          <div className={styles.skeletonLine} style={{ height: 26, width: "32%", borderRadius: 20 }} />
+          <div className={styles.skeletonLine} style={{ height: 32, width: "26%", borderRadius: 20 }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AllOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -151,7 +187,11 @@ export default function AllOrdersPage() {
     return rows
       .map((entry) => {
         const normalized = entry as Record<string, unknown>;
-        return (normalized?.summary as OrderLike) || (normalized as OrderLike);
+        const summary = normalized?.summary;
+        if (summary && typeof summary === "object" && !Array.isArray(summary)) {
+          return { ...normalized, ...(summary as OrderLike) } as OrderLike;
+        }
+        return normalized as OrderLike;
       })
       .filter(Boolean);
   };
@@ -192,36 +232,64 @@ export default function AllOrdersPage() {
 
   const hasMore = useMemo(() => orders.length < totalOrders, [orders.length, totalOrders]);
 
+  const statusChipClass: Record<string, string> = {
+    placed: styles.chipPlaced,
+    delivered: styles.chipDelivered,
+    cancelled: styles.chipCancelled,
+    default: styles.chipDefault,
+  };
+
+  const accentClass: Record<string, string> = {
+    placed: styles.accentPlaced,
+    delivered: styles.accentDelivered,
+    cancelled: styles.accentCancelled,
+    default: styles.accentDefault,
+  };
+
+  const paymentChipClass: Record<string, string> = {
+    paid: styles.paymentPaid,
+    pending: styles.paymentPending,
+    default: styles.paymentDefault,
+  };
+
   return (
-    <section className={styles.page}>
-      <div className={styles.hero}>
-        <div>
-          <p className={styles.kicker}>Orders</p>
-          <h1>All past orders</h1>
-          <p>Review every order and open full order details for each purchase.</p>
+    <div className={styles.page}>
+      {/* Header */}
+      <div className={styles.header}>
+        <div className={styles.headerLeft}>
+          <Link href="/profile" className={styles.backBtn} aria-label="Back to profile">←</Link>
+          <div>
+            <p className={styles.headerTitle}>My Orders</p>
+            <p className={styles.headerSubtitle}>Track &amp; review your purchases</p>
+          </div>
         </div>
-        <div className={styles.badgeRow}>
-          <span>{totalOrders || orders.length} orders</span>
-          <Link href="/profile" className={`${styles.secondaryButton} ${styles.backProfileLink}`}>
-            <span className={styles.backIcon} aria-hidden="true">←</span>
-            <span>Back to Profile</span>
-          </Link>
-        </div>
+        {(totalOrders > 0 || orders.length > 0) && (
+          <span className={styles.orderCountBadge}>{totalOrders || orders.length} orders</span>
+        )}
       </div>
 
-      <section className={styles.card}>
-        {loading ? (
-          <p className={styles.emptyState}>Loading orders...</p>
-        ) : error ? (
-          <div className={styles.errorWrap}>
-            <p className={styles.emptyState}>{error}</p>
-            <button type="button" className={styles.primaryButton} onClick={() => void fetchOrders(1, false)}>
-              Retry
-            </button>
-          </div>
-        ) : orders.length === 0 ? (
-          <p className={styles.emptyState}>No past orders found yet.</p>
-        ) : (
+      {/* Content */}
+      {loading ? (
+        <div className={styles.skeletonList}>
+          {[1, 2, 3].map((n) => <SkeletonCard key={n} />)}
+        </div>
+      ) : error ? (
+        <div className={styles.emptyState}>
+          <span className={styles.emptyIcon}>⚠️</span>
+          <p className={styles.emptyTitle}>Something went wrong</p>
+          <p className={styles.emptySubtitle}>{error}</p>
+          <button type="button" className={styles.retryBtn} onClick={() => void fetchOrders(1, false)}>
+            Try again
+          </button>
+        </div>
+      ) : orders.length === 0 ? (
+        <div className={styles.emptyState}>
+          <span className={styles.emptyIcon}>🛍️</span>
+          <p className={styles.emptyTitle}>No orders yet</p>
+          <p className={styles.emptySubtitle}>Your past orders will appear here once you place one.</p>
+        </div>
+      ) : (
+        <>
           <div className={styles.orderList}>
             {orders.map((order, index) => {
               const orderId = pickOrderId(order);
@@ -230,53 +298,70 @@ export default function AllOrdersPage() {
               const paymentStatus = pickPaymentStatus(order);
               const date = pickOrderDate(order);
               const address = pickAddress(order);
+              const sv = getStatusVariant(status);
+              const pv = getPaymentVariant(paymentStatus);
               return (
                 <article key={`${orderId}-${index}`} className={styles.orderCard}>
-                  <div className={styles.orderTop}>
-                    <div>
-                      <p className={styles.orderId}>Order {orderId || "-"}</p>
-                      <h3>{status}</h3>
+                  <div className={`${styles.cardAccent} ${accentClass[sv]}`} />
+                  <div className={styles.cardBody}>
+                    <div className={styles.cardTop}>
+                      <div className={styles.cardTopLeft}>
+                        <span className={`${styles.statusChip} ${statusChipClass[sv]}`}>
+                          <span className={styles.statusDot} />
+                          {status}
+                        </span>
+                        {orderId && (
+                          <p className={styles.orderId}>#{orderId}</p>
+                        )}
+                      </div>
+                      <div className={styles.amountBlock}>
+                        <span className={styles.amount}>{formatCurrency(amount)}</span>
+                        <span className={`${styles.paymentChip} ${paymentChipClass[pv]}`}>
+                          {formatPaymentLabel(paymentStatus)}
+                        </span>
+                      </div>
                     </div>
-                    <div className={styles.amountWrap}>
-                      <strong>{formatCurrency(amount)}</strong>
-                      <span className={`${styles.paymentTag} ${paymentStatus.toLowerCase() === "paid" ? styles.paymentTagPaid : ""}`}>
-                        {formatPaymentLabel(paymentStatus)}
-                      </span>
-                    </div>
-                  </div>
-                  <p className={styles.orderMeta}>{address}</p>
-                  <div className={styles.orderActions}>
-                    <span>{date}</span>
-                    <div className={styles.actionRight}>
-                      {orderId ? (
-                        <Link href={`/orders/${orderId}`} className={styles.primaryButton}>
-                          View details
+
+                    {address !== "-" && (
+                      <>
+                        <hr className={styles.divider} />
+                        <div className={styles.addressRow}>
+                          <span className={styles.addressIcon}>📍</span>
+                          <span>{address}</span>
+                        </div>
+                      </>
+                    )}
+
+                    <div className={styles.cardBottom}>
+                      <span className={styles.dateChip}>🕐 {date}</span>
+                      {orderId && (
+                        <Link href={`/orders/${orderId}`} className={styles.viewBtn}>
+                          View details <span className={styles.viewArrow}>→</span>
                         </Link>
-                      ) : null}
+                      )}
                     </div>
                   </div>
                 </article>
               );
             })}
           </div>
-        )}
-        {!loading && !error && orders.length > 0 ? (
+
           <div className={styles.loadMoreWrap}>
             {hasMore ? (
               <button
                 type="button"
-                className={styles.secondaryButton}
+                className={styles.loadMoreBtn}
                 onClick={() => void fetchOrders(page, true)}
                 disabled={loadingMore}
               >
-                {loadingMore ? "Loading..." : "Load more orders"}
+                {loadingMore ? "Loading…" : "Load more orders"}
               </button>
             ) : (
-              <p className={styles.endText}>You have reached the end of your order history.</p>
+              <p className={styles.endText}>You&apos;ve seen all your orders</p>
             )}
           </div>
-        ) : null}
-      </section>
-    </section>
+        </>
+      )}
+    </div>
   );
 }

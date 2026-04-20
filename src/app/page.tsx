@@ -1,37 +1,13 @@
-/* eslint-disable @next/next/no-img-element */
-
-import Link from "next/link";
 import { ShopBrowser } from "@/features/shop/components/ShopBrowser";
 import { AppFooter } from "@/shared/ui/AppFooter";
+import { PreventBackNavigation } from "@/shared/ui/PreventBackNavigation";
 import styles from "./page.module.css";
-
-const heroSlides = [
-  {
-    title: "Breakfast Rush",
-    subtitle: "Fresh picks from nearby kitchens in minutes.",
-    image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1400&q=80",
-  },
-  {
-    title: "Grocery Refill",
-    subtitle: "Daily essentials with better local prices.",
-    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1400&q=80",
-  },
-  {
-    title: "Dinner Plans",
-    subtitle: "Top-rated meals from your favorite stores.",
-    image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=1400&q=80",
-  },
-  {
-    title: "Weekend Treats",
-    subtitle: "New arrivals and chef specials near you.",
-    image: "https://images.unsplash.com/photo-1520201163981-8cc95007dd2a?auto=format&fit=crop&w=1400&q=80",
-  },
-];
 
 export default function HomePage() {
   return (
     <div className={styles.page}>
-      <section className={styles.hero}>
+      <PreventBackNavigation />
+      {/* <section className={styles.hero}>
         <div className={styles.glowA} aria-hidden="true" />
         <div className={styles.glowB} aria-hidden="true" />
         <div className={styles.heroText}>
@@ -79,7 +55,7 @@ export default function HomePage() {
             Delivery slots open in your area
           </div>
         </div> 
-      </section>
+      </section> */}
 
       <section id="shops">
         <ShopBrowser />
