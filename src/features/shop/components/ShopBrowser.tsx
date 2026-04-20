@@ -371,7 +371,7 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
     <section className={styles.wrapper}>
       <div className={styles.sectionHeader}>
         <h2 className={styles.sectionTitle}>Shop by Categories</h2>
-        <p className={styles.sectionSub}>Browse local stores near you</p>
+        {/* <p className={styles.sectionSub}>Browse local stores near you</p> */}
       </div>
 
       <div className={styles.filtersWrap}>

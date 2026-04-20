@@ -40,6 +40,7 @@ export function AppHeader() {
   const currentQuery = searchParams?.toString();
   const nextPath = currentQuery ? `${pathname}?${currentQuery}` : pathname;
   const isDashboard = pathname === "/";
+  const showNavSearch = isDashboard;
   const shouldHideOnShopPage =
     pathname === "/store" ||
     pathname === "/shops" ||
@@ -269,60 +270,64 @@ export function AppHeader() {
           </div>
 
           <div className="header-actions">
-            <form
-              className="nav-search desktop-search"
-              onSubmit={handleNavSearchSubmit}
-              role="search"
-              aria-label="Search shops"
-            >
-              <input
-                type="search"
-                value={navSearch}
-                onChange={(event) => handleNavSearchChange(event.target.value)}
-                placeholder="Search shops by name"
-                aria-label="Search shops by name"
-              />
-              {navSearch.trim() ? (
-                <button
-                  type="button"
-                  className="nav-search-icon-btn"
-                  onClick={handleClearNavSearch}
-                  aria-label="Clear search"
-                >
-                  <svg viewBox="0 0 20 20" aria-hidden="true">
-                    <path d="M5.2 5.2 14.8 14.8M14.8 5.2 5.2 14.8" />
-                  </svg>
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  className="nav-search-icon-btn"
+            {showNavSearch ? (
+              <>
+                <form
+                  className="nav-search desktop-search"
+                  onSubmit={handleNavSearchSubmit}
+                  role="search"
                   aria-label="Search shops"
                 >
+                  <input
+                    type="search"
+                    value={navSearch}
+                    onChange={(event) => handleNavSearchChange(event.target.value)}
+                    placeholder="Search shops by name"
+                    aria-label="Search shops by name"
+                  />
+                  {navSearch.trim() ? (
+                    <button
+                      type="button"
+                      className="nav-search-icon-btn"
+                      onClick={handleClearNavSearch}
+                      aria-label="Clear search"
+                    >
+                      <svg viewBox="0 0 20 20" aria-hidden="true">
+                        <path d="M5.2 5.2 14.8 14.8M14.8 5.2 5.2 14.8" />
+                      </svg>
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      className="nav-search-icon-btn"
+                      aria-label="Search shops"
+                    >
+                      <svg viewBox="0 0 20 20" aria-hidden="true">
+                        <circle cx="8.5" cy="8.5" r="5.6" />
+                        <path d="M12.6 12.6 17 17" />
+                      </svg>
+                    </button>
+                  )}
+                </form>
+                <button
+                  type="button"
+                  className="mobile-search-toggle"
+                  onClick={toggleMobileSearch}
+                  aria-label={isMobileSearchOpen ? "Close search" : "Open search"}
+                >
                   <svg viewBox="0 0 20 20" aria-hidden="true">
-                    <circle cx="8.5" cy="8.5" r="5.6" />
-                    <path d="M12.6 12.6 17 17" />
+                    {isMobileSearchOpen ? (
+                      <path d="M5.2 5.2 14.8 14.8M14.8 5.2 5.2 14.8" />
+                    ) : (
+                      <>
+                        <circle cx="8.5" cy="8.5" r="5.6" />
+                        <path d="M12.6 12.6 17 17" />
+                      </>
+                    )}
                   </svg>
                 </button>
-              )}
-            </form>
-            <button
-              type="button"
-              className="mobile-search-toggle"
-              onClick={toggleMobileSearch}
-              aria-label={isMobileSearchOpen ? "Close search" : "Open search"}
-            >
-              <svg viewBox="0 0 20 20" aria-hidden="true">
-                {isMobileSearchOpen ? (
-                  <path d="M5.2 5.2 14.8 14.8M14.8 5.2 5.2 14.8" />
-                ) : (
-                  <>
-                    <circle cx="8.5" cy="8.5" r="5.6" />
-                    <path d="M12.6 12.6 17 17" />
-                  </>
-                )}
-              </svg>
-            </button>
+              </>
+            ) : null}
             {isAuthenticated ? (
               <Link
                 href="/cart"
@@ -384,7 +389,7 @@ export function AppHeader() {
               </Link>
             )}
           </div>
-          {isMobileViewport && isMobileSearchOpen ? (
+          {showNavSearch && isMobileViewport && isMobileSearchOpen ? (
             <form
               className="nav-search mobile-search-panel"
               onSubmit={handleNavSearchSubmit}
