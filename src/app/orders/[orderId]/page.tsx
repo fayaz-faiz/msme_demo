@@ -101,19 +101,21 @@ function normalizeOrderDetailsPayload(response: unknown): UnknownRecord | null {
   }
 
   const payload = typed?.data?.data;
+
   if (Array.isArray(payload) && payload[0]) {
     const first = asRecord(payload[0]);
-    if (!first) {
-      return null;
-    }
-    const summary = asRecord(first.summary);
-    return summary || first;
+    if (!first) return null;
+    return asRecord(first.summary) || first;
   }
 
   const payloadRecord = asRecord(payload);
   if (payloadRecord) {
-    const summary = asRecord(payloadRecord.summary);
-    return summary || payloadRecord;
+    // New API shape: { request_id, apiType, message: [{ _id, summary, ... }] }
+    if (Array.isArray(payloadRecord.message) && payloadRecord.message.length > 0) {
+      const first = asRecord(payloadRecord.message[0] as unknown);
+      if (first) return asRecord(first.summary) || first;
+    }
+    return asRecord(payloadRecord.summary) || payloadRecord;
   }
 
   return null;

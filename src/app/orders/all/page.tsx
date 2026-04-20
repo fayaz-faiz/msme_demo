@@ -146,6 +146,22 @@ function SkeletonCard() {
   );
 }
 
+type OrderItem = { name: string; image: string; qty: number; unitText: string };
+
+function normalizeOrderItems(order: OrderLike): OrderItem[] {
+  const rawItems = Array.isArray(order?.items) ? order.items : [];
+  return rawItems.map((raw, index) => {
+    const item = asRecord(raw) || {};
+    const qty = Number(item.count ?? item.quantity ?? 1);
+    return {
+      name: String(item.item_name || item.name || item.title || `Item ${index + 1}`),
+      image: String(item.item_symbol || ""),
+      qty: Number.isFinite(qty) && qty > 0 ? qty : 1,
+      unitText: String(item.item_quantity || ""),
+    };
+  });
+}
+
 export default function AllOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -153,6 +169,7 @@ export default function AllOrdersPage() {
   const [orders, setOrders] = useState<OrderLike[]>([]);
   const [page, setPage] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
+  const [copiedId, setCopiedId] = useState("");
   const pageSize = 10;
 
   const parseMyOrdersPayload = (response: unknown) => {
@@ -160,6 +177,7 @@ export default function AllOrdersPage() {
       data?: {
         status?: boolean;
         data?: {
+          message?: unknown[];
           data?: {
             page?: number;
             pageSize?: number;
@@ -170,7 +188,16 @@ export default function AllOrdersPage() {
         };
       };
     };
-    const bucket = typed?.data?.data?.data;
+    const innerData = typed?.data?.data;
+
+    // New API shape: { data: { data: { message: [...] } } }
+    if (Array.isArray(innerData?.message)) {
+      const rows = innerData.message;
+      return { page: 1, pageSize: rows.length, totalOrders: rows.length, rows };
+    }
+
+    // Legacy paginated shape: { data: { data: { data: { page, total_orders, data: [...] } } } }
+    const bucket = innerData?.data;
     const pageValue = Number(bucket?.page ?? 1);
     const pageSizeValue = Number(bucket?.pageSize ?? pageSize);
     const total = Number(bucket?.total_orders ?? 0);
@@ -300,6 +327,8 @@ export default function AllOrdersPage() {
               const address = pickAddress(order);
               const sv = getStatusVariant(status);
               const pv = getPaymentVariant(paymentStatus);
+              const items = normalizeOrderItems(order);
+              const isCopied = copiedId === orderId;
               return (
                 <article key={`${orderId}-${index}`} className={styles.orderCard}>
                   <div className={`${styles.cardAccent} ${accentClass[sv]}`} />
@@ -311,7 +340,31 @@ export default function AllOrdersPage() {
                           {status}
                         </span>
                         {orderId && (
-                          <p className={styles.orderId}>#{orderId}</p>
+                          <div className={styles.orderIdRow}>
+                            <p className={styles.orderId}>#{orderId}</p>
+                            <button
+                              type="button"
+                              className={`${styles.copyBtn} ${isCopied ? styles.copyBtnCopied : ""}`}
+                              aria-label="Copy order ID"
+                              onClick={() => {
+                                void navigator.clipboard.writeText(orderId).then(() => {
+                                  setCopiedId(orderId);
+                                  setTimeout(() => setCopiedId(""), 2000);
+                                });
+                              }}
+                            >
+                              {isCopied ? (
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              ) : (
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
                         )}
                       </div>
                       <div className={styles.amountBlock}>
@@ -321,6 +374,26 @@ export default function AllOrdersPage() {
                         </span>
                       </div>
                     </div>
+
+                    {items.length > 0 && (
+                      <>
+                        <hr className={styles.divider} />
+                        <div className={styles.itemsStrip}>
+                          {items.map((item, i) => (
+                            <div key={i} className={styles.itemPill}>
+                              {item.image ? (
+                                <img src={item.image} alt={item.name} className={styles.itemThumb} />
+                              ) : (
+                                <div className={styles.itemThumbPlaceholder} aria-hidden="true" />
+                              )}
+                              <span className={styles.itemPillName}>
+                                {item.name}{item.unitText ? ` · ${item.unitText}` : ""} × {item.qty}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
 
                     {address !== "-" && (
                       <>
