@@ -208,6 +208,7 @@ export function ShopItemsBrowser({
   const [maxTimeToShip, setMaxTimeToShip] = useState("");
   const [storeInfoLoaded, setStoreInfoLoaded] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [hasInternalHistory, setHasInternalHistory] = useState(false);
 
   const observerRef = useRef<HTMLDivElement | null>(null);
 
@@ -416,6 +417,15 @@ export function ShopItemsBrowser({
     }
   }, [cartTotalAmount]);
 
+  useEffect(() => {
+    try {
+      const ref = document.referrer;
+      setHasInternalHistory(!!ref && new URL(ref).origin === window.location.origin);
+    } catch {
+      setHasInternalHistory(false);
+    }
+  }, []);
+
 
   useEffect(() => {
     if (!accessToken) return;
@@ -511,9 +521,11 @@ export function ShopItemsBrowser({
 
   return (
     <section className={styles.wrapper}>
-      <header className={styles.mobileHeader}>
-        <BackButton label="Expore Other Stores" />
-      </header>
+      {hasInternalHistory && (
+        <header className={styles.mobileHeader}>
+          <BackButton label="Expore Other Stores" />
+        </header>
+      )}
 
       <div className={styles.storeCardShell}>
         {!storeInfoLoaded ? (
