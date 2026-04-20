@@ -96,22 +96,6 @@ const postSearchStoreByLocationWeb = async (data: any) => {
     throw error;
   }
 };
-const getUserProfileData = async () => {
-  try {
-    const result = await getAPIHelper(GET_USER_PROFILE_API);
-    return result;
-  } catch (error) {
-    throw error;
-  }
-};
-const editProfile = async (data: any) => {
-  try {
-    const result = await postAPIHelper(EDIT_PROFILE_API, data);
-    return result;
-  } catch (error) {
-    throw error;
-  }
-};
 const getAddress = async () => {
   try {
     const result = await getAPIHelper(GET_SAVED_ADDRESS_API);
@@ -593,7 +577,7 @@ const deleteAddress = async (data: any) => {
 };
 
 export {
-  getTermsAndConditions, getRloesIds, postGenerateOtp, getUserProfileData, postAddUpdateCart, postSearchById,
+  getTermsAndConditions, getRloesIds, postGenerateOtp, postAddUpdateCart, postSearchById,
   postSearchByIdWeb, postAccessToken, postLogin, getCategoryData, postSearchStoreByLocation, postSearchStoreByLocationWeb,
   getAddress, getCartLengthWeb, verifyCartWeb, initializeCartWeb, postConfirmOrderWeb, getUserProfileDataWeb,
   editProfileWeb, postMyOrdersApiData, postCartByIdWeb, getMultiCrtData, postGuestLogin, getAddressWeb, postSearch,
