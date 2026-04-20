@@ -1,4 +1,4 @@
-const CACHE_NAME = "msme-pwa-v1";
+const CACHE_NAME = "nearshop-pwa-v1";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE_URLS = ["/", OFFLINE_URL, "/manifest.webmanifest", "/favicon.ico"];
 

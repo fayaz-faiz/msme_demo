@@ -17,7 +17,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "MSME",
+  title: "NearShop",
   description: "Next.js 14 clean architecture starter for auth, shop, product, and cart",
   manifest: "/manifest.webmanifest",
 };

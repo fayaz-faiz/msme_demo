@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "MSME",
-    short_name: "MSME",
-    description: "MSME shopping app",
+    name: "NearShop",
+    short_name: "NearShop",
+    description: "NearShop shopping app",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
