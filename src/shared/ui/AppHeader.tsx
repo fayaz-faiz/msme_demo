@@ -17,6 +17,7 @@ export function AppHeader() {
   const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
   const apiCartCount = useAppSelector((state) => state.apiResponse.cartLength);
+  const accessToken = useAppSelector((state) => state.apiResponse.accessToken);
   const loginName = useAppSelector((state) => state.authToken.loginName);
   const user = useAppSelector((state) => state.auth.user);
   const isAuthenticated = !!user || loginName === "USER";
@@ -80,6 +81,9 @@ export function AppHeader() {
         dispatch(setCartLength(0));
         return;
       }
+      if (!accessToken) {
+        return;
+      }
       try {
         const result = (await getCartLengthWeb()) as {
           data?: { data?: unknown };
@@ -92,7 +96,7 @@ export function AppHeader() {
     };
 
     void fetchCartLength();
-  }, [isAuthenticated, dispatch]);
+  }, [isAuthenticated, accessToken, dispatch]);
 
   useEffect(() => {
     let timer: number | null = null;
