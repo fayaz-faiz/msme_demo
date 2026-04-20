@@ -164,6 +164,9 @@ export default function ProfilePage() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const isUserSession = loginName === "USER";
+  const displayName = user?.name?.trim() || user?.mobileNumber || null;
+  const avatarLabel = displayName ? displayName.charAt(0).toUpperCase() : "U";
+  const avatarImg = user?.profilePic?.trim() || "";
 
   const getGuestLoginApi = async (guestRoleId: string) => {
     const payload = { role: guestRoleId };
@@ -294,22 +297,19 @@ export default function ProfilePage() {
     try {
       const response = await getUserProfileDataWeb();
       const profile = (response as {
-        data?: { full_name?: string; mobile_number?: string };
-        full_name?: string;
-        mobile_number?: string;
-      })?.data || (response as {
-        full_name?: string;
-        mobile_number?: string;
-      });
+        data?: { full_name?: string; mobile_number?: string; profile_pic?: string };
+      })?.data;
 
       const fullName = String(profile?.full_name || "").trim();
       const mobileNumber = String(profile?.mobile_number || "").trim();
+      const profilePic = String(profile?.profile_pic || "").trim();
 
       if (fullName || mobileNumber) {
         dispatch(
           loginSuccess({
             name: fullName || userName,
             mobileNumber: mobileNumber || userMobile,
+            ...(profilePic ? { profilePic } : {}),
           }),
         );
       }
@@ -351,10 +351,10 @@ export default function ProfilePage() {
   if (!user && !isUserSession) {
     return (
       <section className={styles.page}>
-        <div className={styles.card}>
-          <p className={styles.kicker}>Profile required</p>
-          <h1>Sign in to see your profile</h1>
-          <p>Log in first so we can show your account details and order history.</p>
+        <div className={styles.loginCard}>
+          <p className={styles.kicker}>Account</p>
+          <h1>Sign in to continue</h1>
+          <p>Log in to see your profile, orders, and saved addresses.</p>
           <Link href="/auth/login?next=/profile" className={styles.primaryButton}>
             Login Now
           </Link>
@@ -366,136 +366,191 @@ export default function ProfilePage() {
   if (!user && isUserSession) {
     return (
       <section className={styles.page}>
-        <div className={styles.card}>
+        <div className={styles.loginCard}>
           <p className={styles.kicker}>Profile</p>
-          <h1>Loading your profile</h1>
+          <h1>Loading your profile…</h1>
           <p>Please wait while we fetch your account details.</p>
         </div>
       </section>
     );
   }
 
+  const chevron = (
+    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path fillRule="evenodd" d="M7.293 4.293a1 1 0 011.414 0L13.414 9l-4.707 4.707a1 1 0 01-1.414-1.414L10.586 9 7.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+    </svg>
+  );
+
   return (
     <section className={styles.page}>
-      <div className={styles.hero}>
-        <div>
-          <p className={styles.kicker}>Profile</p>
-          <h1>{userName}</h1>
-          <p>Review your profile details and past orders in one place.</p>
-        </div>
-        <div className={styles.badgeRow}>
-          <button type="button" className={styles.logoutButton} onClick={() => setShowLogoutConfirm(true)}>
-            Logout
-          </button>
-          <span>{userMobile}</span>
-        </div>
-      </div>
 
-      <div className={styles.grid}>
-        <section className={styles.card}>
-          <h2>Profile details</h2>
-          <div className={styles.detailList}>
-            <div>
-              <span>Name</span>
-              {isEditingName ? (
-                <div className={styles.inlineEditWrap}>
-                  <input
-                    type="text"
-                    className={styles.nameInput}
-                    value={nameInput}
-                    onChange={(event) => setNameInput(event.target.value)}
-                    placeholder="Enter full name"
-                  />
-                  <div className={styles.inlineActions}>
-                    <button type="button" className={styles.primaryButton} onClick={saveProfileName} disabled={isSavingName}>
-                      {isSavingName ? "Saving..." : "Save"}
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.secondaryButton}
-                      onClick={() => {
-                        setNameInput(userName);
-                        setIsEditingName(false);
-                      }}
-                      disabled={isSavingName}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className={styles.inlineStatic}>
-                  <strong>{userName}</strong>
-                  <button type="button" className={styles.editButton} onClick={() => setIsEditingName(true)}>
-                    Edit
-                  </button>
-                </div>
-              )}
-            </div>
-            <div>
-              <span>Mobile number</span>
-              <strong>{userMobile}</strong>
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.card}>
-          <div className={styles.headingRow}>
-            <h2>Past Orders</h2>
-            <Link href="/orders/all" className={styles.viewAllButton}>
-              View all orders
-            </Link>
-          </div>
-          {loadingLatest ? (
-            <p className={styles.emptyState}>Loading latest order...</p>
-          ) : latestOrder ? (
-            <div className={styles.orderList}>
-              <article className={styles.orderCard}>
-                <div className={styles.orderTop}>
-                  <div>
-                    <p className={styles.orderId}>Order Id: {latestOrderId || "-"}</p>
-                    <h3>{getStatusLabel(latestOrderStatus)}</h3>
-                  </div>
-                  <div className={styles.amountWrap}>
-                    <strong>{formatCurrency(latestOrderAmount)}</strong>
-                    <span
-                      className={`${styles.paymentTag} ${latestPaymentStatus.toLowerCase() === "paid" ? styles.paymentTagPaid : ""}`}
-                    >
-                      {formatPaymentLabel(latestPaymentStatus)}
-                    </span>
-                  </div>
-                </div>
-                <p className={styles.orderMeta}>{latestOrderAddress}</p>
-                <div className={styles.orderActions}>
-                  <span>{latestOrderDate}</span>
-                  <div className={styles.actionRight}>
-                    {latestOrderId ? (
-                      <Link href={`/orders/${latestOrderId}`} className={styles.trackButton}>
-                        Track Order
-                      </Link>
-                    ) : null}
-                  </div>
-                </div>
-              </article>
+      {/* ── User card ── */}
+      <div className={styles.userCard}>
+        <div className={styles.avatarCircle}>
+          {avatarImg ? (
+            <img src={avatarImg} alt={userName} className={styles.avatarImg} />
+          ) : (
+            avatarLabel
+          )}
+        </div>
+        <div className={styles.userInfo}>
+          {isEditingName ? (
+            <div className={styles.inlineEditWrap}>
+              <input
+                type="text"
+                className={styles.nameInput}
+                value={nameInput}
+                onChange={(event) => setNameInput(event.target.value)}
+                placeholder="Enter full name"
+                autoFocus
+              />
+              <div className={styles.inlineActions}>
+                <button type="button" className={styles.primaryButton} onClick={saveProfileName} disabled={isSavingName}>
+                  {isSavingName ? "Saving…" : "Save"}
+                </button>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => { setNameInput(userName); setIsEditingName(false); }}
+                  disabled={isSavingName}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           ) : (
-            <p className={styles.emptyState}>No orders yet. Place your first order to see it here.</p>
+            <div className={styles.nameDisplay}>
+              <span className={styles.userName}>{userName}</span>
+              <button type="button" className={styles.editChip} onClick={() => setIsEditingName(true)}>
+                Edit
+              </button>
+            </div>
           )}
-        </section>
+          <span className={styles.userMobile}>{userMobile}</span>
+        </div>
       </div>
 
-      <section className={styles.card}>
-        <h2>Help and Policies</h2>
-        <div className={styles.policyLinks}>
-          <Link href="/profile/my-complains" className={styles.policyLink}>My Complains</Link>
-          <Link href="/profile/my-addresses" className={styles.policyLink}>My Addresses</Link>
-          <Link href="/profile/content/about-us" className={styles.policyLink}>About Us</Link>
-          <Link href="/profile/content/privacy-policy" className={styles.policyLink}>Privacy Policy</Link>
-          <Link href="/profile/content/terms-and-conditions" className={styles.policyLink}>Terms and Conditions</Link>
-          <Link href="/profile/content/cancellations-and-returns" className={styles.policyLink}>Cancellations and Returns</Link>
+      {/* ── Orders ── */}
+      <div className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <span>Recent Order</span>
+          <Link href="/orders/all" className={styles.viewAllLink}>View all</Link>
         </div>
-      </section>
+        {loadingLatest ? (
+          <p className={styles.emptyState}>Loading latest order…</p>
+        ) : latestOrder ? (
+          <article className={styles.orderCard}>
+            <div className={styles.orderTop}>
+              <div>
+                <p className={styles.orderId}>#{latestOrderId || "-"}</p>
+                <p className={styles.orderStatus}>{getStatusLabel(latestOrderStatus)}</p>
+              </div>
+              <div className={styles.amountWrap}>
+                <span className={styles.orderAmount}>{formatCurrency(latestOrderAmount)}</span>
+                <span className={`${styles.paymentTag} ${latestPaymentStatus.toLowerCase() === "paid" ? styles.paymentTagPaid : ""}`}>
+                  {formatPaymentLabel(latestPaymentStatus)}
+                </span>
+              </div>
+            </div>
+            <p className={styles.orderMeta}>{latestOrderAddress}</p>
+            <div className={styles.orderFooter}>
+              <span className={styles.orderDate}>{latestOrderDate}</span>
+              {latestOrderId ? (
+                <Link href={`/orders/${latestOrderId}`} className={styles.trackButton}>
+                  Track Order →
+                </Link>
+              ) : null}
+            </div>
+          </article>
+        ) : (
+          <p className={styles.emptyState}>No orders yet. Place your first order!</p>
+        )}
+      </div>
 
+      {/* ── Help & Policies ── */}
+      <div className={styles.section}>
+        <div className={styles.sectionHeader}><span>Help &amp; Policies</span></div>
+        <div className={styles.menuList}>
+          <Link href="/profile/my-complains" className={styles.menuItem}>
+            <span className={styles.menuIcon}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg>
+            </span>
+            <span className={styles.menuLabel}>My Complains</span>
+            <span className={styles.menuChevron}>{chevron}</span>
+          </Link>
+          <Link href="/profile/my-addresses" className={styles.menuItem}>
+            <span className={styles.menuIcon}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                <circle cx="12" cy="9" r="2.5" />
+              </svg>
+            </span>
+            <span className={styles.menuLabel}>My Addresses</span>
+            <span className={styles.menuChevron}>{chevron}</span>
+          </Link>
+          <Link href="/profile/content/about-us" className={styles.menuItem}>
+            <span className={styles.menuIcon}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </span>
+            <span className={styles.menuLabel}>About Us</span>
+            <span className={styles.menuChevron}>{chevron}</span>
+          </Link>
+          <Link href="/profile/content/privacy-policy" className={styles.menuItem}>
+            <span className={styles.menuIcon}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </span>
+            <span className={styles.menuLabel}>Privacy Policy</span>
+            <span className={styles.menuChevron}>{chevron}</span>
+          </Link>
+          <Link href="/profile/content/terms-and-conditions" className={styles.menuItem}>
+            <span className={styles.menuIcon}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <line x1="10" y1="9" x2="8" y2="9" />
+              </svg>
+            </span>
+            <span className={styles.menuLabel}>Terms and Conditions</span>
+            <span className={styles.menuChevron}>{chevron}</span>
+          </Link>
+          <Link href="/profile/content/cancellations-and-returns" className={styles.menuItem}>
+            <span className={styles.menuIcon}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="1 4 1 10 7 10" />
+                <path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
+              </svg>
+            </span>
+            <span className={styles.menuLabel}>Cancellations &amp; Returns</span>
+            <span className={styles.menuChevron}>{chevron}</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* ── Logout ── */}
+      <div className={styles.logoutSection}>
+        <button type="button" className={styles.logoutButton} onClick={() => setShowLogoutConfirm(true)}>
+          <span className={styles.logoutIcon}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </span>
+          Logout
+        </button>
+      </div>
+
+      {/* ── Logout confirm modal ── */}
       {showLogoutConfirm ? (
         <div className={styles.modalBackdrop} role="presentation" onClick={() => setShowLogoutConfirm(false)}>
           <div className={styles.modalCard} role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
@@ -505,8 +560,8 @@ export default function ProfilePage() {
               <button type="button" className={styles.secondaryButton} onClick={() => setShowLogoutConfirm(false)} disabled={isLoggingOut}>
                 Cancel
               </button>
-              <button type="button" className={styles.logoutButton} onClick={handleLogout} disabled={isLoggingOut}>
-                {isLoggingOut ? "Logging out..." : "Yes, Logout"}
+              <button type="button" className={styles.primaryButton} style={{ background: "#e53935" }} onClick={handleLogout} disabled={isLoggingOut}>
+                {isLoggingOut ? "Logging out…" : "Yes, Logout"}
               </button>
             </div>
           </div>

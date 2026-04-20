@@ -6,12 +6,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { searchStoreByItems, postStoreSubcatApi } from "@/api";
+import { useDebounce } from "@/shared/lib/use-debounce";
 import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
 import { useAppSelector } from "@/features/cart/store/hooks";
 import { useLocation } from "@/features/location/context/location-context";
 import { ProductTypeBadge } from "@/features/product/components/ProductMeta";
 import { Product } from "@/features/product/domain/product";
 import { formatCurrency } from "@/shared/lib/format-currency";
+import { toOndcCategory } from "@/features/shop/domain/ondc-category";
 import styles from "./ShopItemsBrowser.module.css";
 import { BackButton } from "@/shared/ui/BackButton";
 
@@ -186,16 +188,15 @@ export function ShopItemsBrowser({
   const [addedToCartHere, setAddedToCartHere] = useState(false);
 
   const [query, setQuery] = useState("");
-  const [searchText, setSearchText] = useState("");
+  const searchText = useDebounce(query);
   const [loading, setLoading] = useState(false);
   const [productLoading, setProductLoading] = useState(false);
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [subCategoryData, setSubCategoryData] = useState<SubCategory[]>([]);
   const [selectedSubCategory, setSelectedSubCategory] = useState("All Items");
   const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null);
-  const [typeOfFood, setTypeOfFood] = useState<"ALL" | "Veg" | "Non-Veg">(
-    "ALL",
-  );
+  const [vegFilter, setVegFilter] = useState(false);
+  const [nonVegFilter, setNonVegFilter] = useState(false);
   const [sortBy, setSortBy] = useState<
     "RELEVANCE" | "PRICE_LOW_TO_HIGH" | "PRICE_HIGH_TO_LOW"
   >("RELEVANCE");
@@ -209,10 +210,12 @@ export function ShopItemsBrowser({
 
   const observerRef = useRef<HTMLDivElement | null>(null);
 
+  const mappedCategory = toOndcCategory(category);
+
   const finalProviderId = storeInfo?.provider_id || providerId;
   const finalProviderLocationId =
     storeInfo?.provider_location_id || providerLocationId;
-  const finalCategory = storeInfo?.category || category;
+  const finalCategory = storeInfo?.category || mappedCategory;
   const resolvedGpsLatitude = useMemo(() => {
     const fromQuery = parseCoordinate(storeLat);
     if (fromQuery !== null) {
@@ -246,7 +249,7 @@ export function ShopItemsBrowser({
       .filter(Boolean)
       .join(", ") || "";
   const showFoodTypeFilter = useMemo(() => {
-    const value = String(finalCategory || category || "")
+    const value = String(finalCategory || mappedCategory || "")
       .toLowerCase()
       .trim();
     if (!value) {
@@ -254,13 +257,15 @@ export function ShopItemsBrowser({
     }
     return (
       value === "grocery" ||
+      value.includes("ret10") ||
+      value.includes("ret11") ||
       value.includes("f&b") ||
       value.includes("fnb") ||
       value.includes("food & beverage")
     );
-  }, [finalCategory, category]);
+  }, [finalCategory, mappedCategory]);
   const isFoodAndBeverageCategory = useMemo(() => {
-    const rawValue = String(finalCategory || category || "")
+    const rawValue = String(finalCategory || mappedCategory || "")
       .toLowerCase()
       .trim();
     if (!rawValue) {
@@ -279,7 +284,7 @@ export function ShopItemsBrowser({
       normalizedValue.includes("foodandbeverages") ||
       normalizedValue.includes("ret11")
     );
-  }, [finalCategory, category]);
+  }, [finalCategory, mappedCategory]);
 
   const fetchStoreSubCategories = async (
     providerIdParam: string,
@@ -331,8 +336,8 @@ export function ShopItemsBrowser({
       page: pageNo,
       pageSize: PAGE_SIZE,
       category: finalCategory,
-      veg: showFoodTypeFilter && typeOfFood === "Veg" ? "yes" : "",
-      nonVeg: showFoodTypeFilter && typeOfFood === "Non-Veg" ? "yes" : "",
+      veg: showFoodTypeFilter && vegFilter ? "yes" : "",
+      nonVeg: showFoodTypeFilter && nonVegFilter ? "yes" : "",
     };
 
     try {
@@ -385,10 +390,6 @@ export function ShopItemsBrowser({
     }
   }, [cartTotalAmount]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setSearchText(query.trim()), 350);
-    return () => clearTimeout(timer);
-  }, [query]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -404,10 +405,11 @@ export function ShopItemsBrowser({
   ]);
 
   useEffect(() => {
-    if (!showFoodTypeFilter && typeOfFood !== "ALL") {
-      setTypeOfFood("ALL");
+    if (!showFoodTypeFilter) {
+      setVegFilter(false);
+      setNonVegFilter(false);
     }
-  }, [showFoodTypeFilter, typeOfFood]);
+  }, [showFoodTypeFilter]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -432,7 +434,8 @@ export function ShopItemsBrowser({
     finalProviderLocationId,
     selectedSubCategory,
     searchText,
-    typeOfFood,
+    vegFilter,
+    nonVegFilter,
     sortBy,
     category,
     finalCategory,
@@ -472,7 +475,8 @@ export function ShopItemsBrowser({
     products.length,
     selectedSubCategory,
     searchText,
-    typeOfFood,
+    vegFilter,
+    nonVegFilter,
     sortBy,
   ]);
 
@@ -482,7 +486,7 @@ export function ShopItemsBrowser({
   return (
     <section className={styles.wrapper}>
       <header className={styles.mobileHeader}>
-        <BackButton label="Expore Other Stores" href="/" />
+        <BackButton label="Expore Other Stores" />
       </header>
 
       <div className={styles.storeCardShell}>
@@ -677,16 +681,36 @@ export function ShopItemsBrowser({
 
           <div className={styles.selectors}>
             {showFoodTypeFilter ? (
-              <select
-                value={typeOfFood}
-                onChange={(event) =>
-                  setTypeOfFood(event.target.value as "ALL" | "Veg" | "Non-Veg")
-                }
-              >
-                <option value="ALL">All Food</option>
-                <option value="Veg">Veg</option>
-                <option value="Non-Veg">Non-Veg</option>
-              </select>
+              <div className={styles.foodToggleGroup}>
+                <button
+                  type="button"
+                  className={`${styles.foodToggleBtn} ${vegFilter ? styles.foodToggleBtnVegActive : ""}`}
+                  onClick={() => {
+                    setVegFilter((v) => !v);
+                    setNonVegFilter(false);
+                  }}
+                  aria-pressed={vegFilter}
+                >
+                  <span
+                    className={`${styles.foodTypeIcon} ${styles.foodTypeIconVeg}`}
+                  />
+                  Veg
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.foodToggleBtn} ${nonVegFilter ? styles.foodToggleBtnNonVegActive : ""}`}
+                  onClick={() => {
+                    setNonVegFilter((v) => !v);
+                    setVegFilter(false);
+                  }}
+                  aria-pressed={nonVegFilter}
+                >
+                  <span
+                    className={`${styles.foodTypeIcon} ${styles.foodTypeIconNonVeg}`}
+                  />
+                  Non-Veg
+                </button>
+              </div>
             ) : null}
             <select
               value={sortBy}
@@ -780,7 +804,7 @@ export function ShopItemsBrowser({
                           providerId: finalProviderId,
                           providerLocationId: finalProviderLocationId,
                           parentItemId: product.parentItemId || "",
-                          category: finalCategory || category || "",
+                          category: finalCategory || mappedCategory || "",
                           subCategoryName:
                             product.subCategoryName ||
                             selectedSubCategory ||

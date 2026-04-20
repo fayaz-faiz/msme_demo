@@ -3,13 +3,14 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDefaultReducer } from "smh-react-typescript-hooks";
 import { getCategoryData, postSearchStoreByLocationWeb } from "@/api";
 import { useAppSelector } from "@/features/cart/store/hooks";
 import { useLocation } from "@/features/location/context/location-context";
+import { toOndcCategory } from "@/features/shop/domain/ondc-category";
 import { Shop } from "@/features/shop/domain/shop";
 import styles from "./ShopBrowser.module.css";
 
@@ -108,12 +109,12 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
 
   const { location } = useLocation();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const accessToken = useAppSelector(
     (reduxState) => reduxState.apiResponse.accessToken,
   );
 
   const [query, setQuery] = useState("");
-  const [storeSearch, setStoreSearch] = useState("");
   const [stores, setStores] = useState<Shop[]>(shops);
   const [storeLoading, setStoreLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -181,7 +182,7 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
       categoryName: activeCategory,
       page: targetPage,
       pageSize: PAGE_SIZE,
-      searchText: storeSearch.trim(),
+      searchText: query.trim(),
       verified,
     };
 
@@ -242,15 +243,9 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => setStoreSearch(query), 350);
-    return () => clearTimeout(timer);
-  }, [query]);
-
-  useEffect(() => {
     const q = (searchParams.get("q") || "").trim();
     if (q) {
       setQuery(q);
-      setStoreSearch(q);
     }
   }, [searchParams]);
 
@@ -259,7 +254,6 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
       const customEvent = event as CustomEvent<{ query?: string }>;
       const incoming = String(customEvent?.detail?.query || "").trim();
       setQuery(incoming);
-      setStoreSearch(incoming);
     };
     window.addEventListener("shops-search", onHeaderSearch as EventListener);
     return () => {
@@ -284,9 +278,13 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
       !activeCategory ||
       !enabledCategories.some((item) => item.name === activeCategory)
     ) {
-      setActiveCategory(firstCategory);
+      const categoryFromUrl = searchParams.get("category") || "";
+      const urlCategoryValid = enabledCategories.some(
+        (item) => item.name === categoryFromUrl,
+      );
+      setActiveCategory(urlCategoryValid ? categoryFromUrl : firstCategory);
     }
-  }, [enabledCategories, activeCategory]);
+  }, [enabledCategories, activeCategory, searchParams]);
 
   useEffect(() => {
     if (!activeCategory) {
@@ -296,7 +294,7 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
     setHasMore(true);
     setPage(1);
     void fetchStoresData(1, true);
-  }, [activeCategory, storeSearch, location?.lat, location?.lng, accessToken]);
+  }, [activeCategory, query, location?.lat, location?.lng, accessToken]);
 
   useEffect(() => {
     const node = observerRef.current;
@@ -330,7 +328,7 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
     storeLoading,
     page,
     activeCategory,
-    storeSearch,
+    query,
     location?.lat,
     location?.lng,
     accessToken,
@@ -398,6 +396,9 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
                 onClick={() => {
                   if (!category.enabled) return;
                   setActiveCategory(category.name);
+                  const params = new URLSearchParams(searchParams.toString());
+                  params.set("category", category.name);
+                  router.replace(`?${params.toString()}`, { scroll: false });
                 }}
                 disabled={!category.enabled}
                 aria-disabled={!category.enabled}
@@ -516,7 +517,7 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
                     shop.providerId || "",
                   )}&providerLocationId=${encodeURIComponent(
                     shop.providerLocationId || "",
-                  )}&category=${encodeURIComponent(activeCategory)}&shopName=${encodeURIComponent(
+                  )}&category=${encodeURIComponent(toOndcCategory(activeCategory))}&shopName=${encodeURIComponent(
                     shop.name,
                   )}&shopImage=${encodeURIComponent(shop.image)}&distance=${encodeURIComponent(
                     shop.deliveryTime,

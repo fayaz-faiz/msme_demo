@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useDebounce } from "@/shared/lib/use-debounce";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getCartLengthWeb } from "@/api";
 import { AppNoticeType } from "@/shared/lib/notify";
 import { useAppDispatch, useAppSelector } from "@/features/cart/store/hooks";
 import { useLocation } from "@/features/location/context/location-context";
-import {
-  setCartLength,
-} from "@/redux/slices";
+import { setCartLength } from "@/redux/slices";
 import { LocationPickerModal } from "@/features/location/components/LocationPickerModal";
 
 export function AppHeader() {
@@ -26,7 +25,13 @@ export function AppHeader() {
   const [navSearch, setNavSearch] = useState("");
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  const [notice, setNotice] = useState<{ open: boolean; message: string; type: AppNoticeType }>({
+  const debouncedNavSearch = useDebounce(navSearch);
+  const isFirstAutoSearch = useRef(true);
+  const [notice, setNotice] = useState<{
+    open: boolean;
+    message: string;
+    type: AppNoticeType;
+  }>({
     open: false,
     message: "",
     type: "error",
@@ -36,15 +41,21 @@ export function AppHeader() {
   const nextPath = currentQuery ? `${pathname}?${currentQuery}` : pathname;
   const isDashboard = pathname === "/";
   const shouldHideOnShopPage =
-    pathname === "/store" || pathname === "/shops" || (pathname ? pathname.startsWith("/shops/") : false) ||
-    pathname === "/cart" || (pathname ? pathname.startsWith("/cart/") : false);
+    pathname === "/store" ||
+    pathname === "/shops" ||
+    (pathname ? pathname.startsWith("/shops/") : false) ||
+    pathname === "/cart" ||
+    (pathname ? pathname.startsWith("/cart/") : false);
 
   const locationLabel = location
     ? `${location.city}, ${location.pincode}`
     : isResolving
       ? "Detecting location..."
       : "Choose location";
-  const displayName = user?.name?.trim() || user?.mobileNumber || (loginName === "USER" ? "User" : null);
+  const displayName =
+    user?.name?.trim() ||
+    user?.mobileNumber ||
+    (loginName === "USER" ? "User" : null);
   const avatarLabel = displayName ? displayName.charAt(0).toUpperCase() : "U";
   const avatarImg = user?.profilePic?.trim() || "";
 
@@ -54,7 +65,9 @@ export function AppHeader() {
     }
 
     event.preventDefault();
-    const allowRedirect = window.confirm("Please login first to view cart. Go to login now?");
+    const allowRedirect = window.confirm(
+      "Please login first to view cart. Go to login now?",
+    );
     if (allowRedirect) {
       router.push(`/auth/login?next=${encodeURIComponent(nextPath)}`);
     }
@@ -67,7 +80,9 @@ export function AppHeader() {
         return;
       }
       try {
-        const result = await getCartLengthWeb() as { data?: { data?: unknown } };
+        const result = (await getCartLengthWeb()) as {
+          data?: { data?: unknown };
+        };
         const length = Number(result?.data?.data ?? 0);
         dispatch(setCartLength(length));
       } catch (error) {
@@ -82,7 +97,10 @@ export function AppHeader() {
     let timer: number | null = null;
 
     const onNotice = (event: Event) => {
-      const customEvent = event as CustomEvent<{ message?: string; type?: AppNoticeType }>;
+      const customEvent = event as CustomEvent<{
+        message?: string;
+        type?: AppNoticeType;
+      }>;
       const message = String(customEvent?.detail?.message || "").trim();
       if (!message) {
         return;
@@ -122,10 +140,25 @@ export function AppHeader() {
     };
   }, []);
 
+  useEffect(() => {
+    if (isFirstAutoSearch.current) {
+      isFirstAutoSearch.current = false;
+      return;
+    }
+    if (!isDashboard) return;
+    window.dispatchEvent(
+      new CustomEvent("shops-search", {
+        detail: { query: debouncedNavSearch },
+      }),
+    );
+  }, [debouncedNavSearch]);
+
   const handleNavSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const searchText = navSearch.trim();
-    const target = searchText ? `/?q=${encodeURIComponent(searchText)}#shops` : "/#shops";
+    const target = searchText
+      ? `/?q=${encodeURIComponent(searchText)}#shops`
+      : "/#shops";
     router.push(target);
 
     if (pathname === "/") {
@@ -141,25 +174,10 @@ export function AppHeader() {
         }
       });
     }
-
-    if (isMobileViewport) {
-      setIsMobileSearchOpen(false);
-    }
   };
 
   const handleNavSearchChange = (value: string) => {
     setNavSearch(value);
-    if (value.trim() !== "") {
-      return;
-    }
-
-    const target = "/#shops";
-    router.push(target);
-    window.dispatchEvent(
-      new CustomEvent("shops-search", {
-        detail: { query: "" },
-      }),
-    );
   };
 
   const handleClearNavSearch = () => {
@@ -178,7 +196,23 @@ export function AppHeader() {
   };
 
   if (shouldHideOnShopPage) {
-    return null;
+    return notice.open ? (
+      <div
+        className={`global-notice ${
+          notice.type === "success"
+            ? "global-notice-success"
+            : notice.type === "warning"
+              ? "global-notice-warning"
+              : notice.type === "info"
+                ? "global-notice-info"
+                : "global-notice-error"
+        }`}
+        role="status"
+        aria-live="polite"
+      >
+        {notice.message}
+      </div>
+    ) : null;
   }
 
   return (
@@ -187,7 +221,11 @@ export function AppHeader() {
         <div className="topbar-inner">
           <div className="brand-location">
             <Link href="/" className="brand">
-              <img src="/images/NearshopLogoNew.png" alt="Nearshop" className="brand-logo" />
+              <img
+                src="/images/NearshopLogoNew.png"
+                alt="Nearshop"
+                className="brand-logo"
+              />
             </Link>
             <button
               type="button"
@@ -199,10 +237,34 @@ export function AppHeader() {
               }}
               disabled={!isDashboard}
               aria-disabled={!isDashboard}
-              title={isDashboard ? "Change delivery location" : "Address selection is available only on dashboard"}
+              title={
+                isDashboard
+                  ? "Change delivery location"
+                  : "Address selection is available only on dashboard"
+              }
             >
-              <span className="location-dot" aria-hidden="true" />
-              <span className="location-copy">Deliver to {locationLabel}</span>
+              <svg
+                className="location-pin-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                <circle cx="12" cy="9" r="2.5" />
+              </svg>
+              <span className="location-copy">{locationLabel}</span>
+              <svg
+                className="location-chevron-icon"
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+                fill="currentColor"
+              >
+                <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+              </svg>
             </button>
           </div>
 
@@ -221,13 +283,22 @@ export function AppHeader() {
                 aria-label="Search shops by name"
               />
               {navSearch.trim() ? (
-                <button type="button" className="nav-search-icon-btn" onClick={handleClearNavSearch} aria-label="Clear search">
+                <button
+                  type="button"
+                  className="nav-search-icon-btn"
+                  onClick={handleClearNavSearch}
+                  aria-label="Clear search"
+                >
                   <svg viewBox="0 0 20 20" aria-hidden="true">
                     <path d="M5.2 5.2 14.8 14.8M14.8 5.2 5.2 14.8" />
                   </svg>
                 </button>
               ) : (
-                <button type="submit" className="nav-search-icon-btn" aria-label="Search shops">
+                <button
+                  type="submit"
+                  className="nav-search-icon-btn"
+                  aria-label="Search shops"
+                >
                   <svg viewBox="0 0 20 20" aria-hidden="true">
                     <circle cx="8.5" cy="8.5" r="5.6" />
                     <path d="M12.6 12.6 17 17" />
@@ -259,7 +330,12 @@ export function AppHeader() {
                 className="nav-cart"
                 aria-label={`Cart with ${cartCount} items`}
               >
-                <svg className="cart-icon" aria-hidden="true" viewBox="0 0 24 24" role="img">
+                <svg
+                  className="cart-icon"
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  role="img"
+                >
                   <path
                     d="M4 5h2l2.2 9.1a2 2 0 0 0 2 1.5h6.9a2 2 0 0 0 2-1.5L21 8H7.3"
                     fill="none"
@@ -277,21 +353,29 @@ export function AppHeader() {
             ) : null}
 
             {isAuthenticated ? (
-                <div className="user-chip">
-                  <Link href="/profile" className="user-avatar-link" aria-label="Go to profile">
-                    <span className="user-avatar" aria-hidden="true">
-                      {avatarImg ? (
-                        <img src={avatarImg} alt={displayName || "User avatar"} className="user-avatar-image" />
-                      ) : (
-                        avatarLabel
-                      )}
-                    </span>
-                  </Link>
-                  <span className="user-name">{displayName}</span>
-                  <Link href="/profile" className="logout-button">
-                    Profile
-                  </Link>
-                </div>
+              <div className="user-chip">
+                <Link
+                  href="/profile"
+                  className="user-avatar-link"
+                  aria-label="Go to profile"
+                >
+                  <span className="user-avatar" aria-hidden="true">
+                    {avatarImg ? (
+                      <img
+                        src={avatarImg}
+                        alt={displayName || "User avatar"}
+                        className="user-avatar-image"
+                      />
+                    ) : (
+                      avatarLabel
+                    )}
+                  </span>
+                </Link>
+                <span className="user-name">{displayName}</span>
+                <Link href="/profile" className="logout-button">
+                  Profile
+                </Link>
+              </div>
             ) : (
               <Link href="/auth/login" className="nav-login">
                 Login
@@ -299,7 +383,12 @@ export function AppHeader() {
             )}
           </div>
           {isMobileViewport && isMobileSearchOpen ? (
-            <form className="nav-search mobile-search-panel" onSubmit={handleNavSearchSubmit} role="search" aria-label="Search shops">
+            <form
+              className="nav-search mobile-search-panel"
+              onSubmit={handleNavSearchSubmit}
+              role="search"
+              aria-label="Search shops"
+            >
               <input
                 type="search"
                 value={navSearch}
@@ -309,13 +398,22 @@ export function AppHeader() {
                 autoFocus
               />
               {navSearch.trim() ? (
-                <button type="button" className="nav-search-icon-btn" onClick={handleClearNavSearch} aria-label="Clear search">
+                <button
+                  type="button"
+                  className="nav-search-icon-btn"
+                  onClick={handleClearNavSearch}
+                  aria-label="Clear search"
+                >
                   <svg viewBox="0 0 20 20" aria-hidden="true">
                     <path d="M5.2 5.2 14.8 14.8M14.8 5.2 5.2 14.8" />
                   </svg>
                 </button>
               ) : (
-                <button type="submit" className="nav-search-icon-btn" aria-label="Search shops">
+                <button
+                  type="submit"
+                  className="nav-search-icon-btn"
+                  aria-label="Search shops"
+                >
                   <svg viewBox="0 0 20 20" aria-hidden="true">
                     <circle cx="8.5" cy="8.5" r="5.6" />
                     <path d="M12.6 12.6 17 17" />
@@ -326,7 +424,10 @@ export function AppHeader() {
           ) : null}
         </div>
       </header>
-      <LocationPickerModal open={locationPickerOpen} onClose={() => setLocationPickerOpen(false)} />
+      <LocationPickerModal
+        open={locationPickerOpen}
+        onClose={() => setLocationPickerOpen(false)}
+      />
       {notice.open ? (
         <div
           className={`global-notice ${
