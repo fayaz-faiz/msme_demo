@@ -323,12 +323,12 @@ export function AppHeader() {
                 )}
               </svg>
             </button>
-            {cartCount > 0 ? (
+            {isAuthenticated ? (
               <Link
                 href="/cart"
                 onClick={handleCartClick}
                 className="nav-cart"
-                aria-label={`Cart with ${cartCount} items`}
+                aria-label={cartCount > 0 ? `Cart with ${cartCount} items` : "Cart"}
               >
                 <svg
                   className="cart-icon"
@@ -348,7 +348,9 @@ export function AppHeader() {
                   <circle cx="18" cy="20" r="1.25" fill="currentColor" />
                 </svg>
                 <span>Cart</span>
-                <span className="cart-count">{cartCount}</span>
+                {cartCount > 0 ? (
+                  <span className="cart-count">{cartCount}</span>
+                ) : null}
               </Link>
             ) : null}
 

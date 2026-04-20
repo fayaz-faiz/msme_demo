@@ -120,6 +120,13 @@ export function AddToCartButton({
   const [isClient, setIsClient] = useState(false);
   const currentQuery = searchParams?.toString();
   const nextPath = currentQuery ? `${pathname}?${currentQuery}` : pathname;
+  const formatGpsCoord = (value: number | string | undefined | null): string => {
+    if (value == null || value === "") return "";
+    const num = Number(value);
+    if (!Number.isFinite(num)) return String(value);
+    return num.toFixed(6);
+  };
+
   const getApiErrorMessage = (error: unknown, fallback: string) => {
     if (typeof error === "object" && error !== null) {
       const maybeError = error as {
@@ -169,7 +176,7 @@ export function AddToCartButton({
         ce_item_id: product.id,
         count: nextCount,
         paymentType: "ON-ORDER",
-        gps: `${location?.lat ?? ""},${location?.lng ?? ""}`,
+        gps: `${formatGpsCoord(location?.lat)},${formatGpsCoord(location?.lng)}`,
         area_code: location?.pincode ?? "",
         dest_location: "SEARCH",
         customization: customizationPayload,

@@ -154,11 +154,87 @@
 .chipDefault   { background: #f4f4f4; color: #686b78; }
 .chipDefault .statusDot { background: #93959f; }
 
+.orderIdRow {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .orderId {
   font-size: 0.78rem;
   color: #93959f;
   word-break: break-all;
   line-height: 1.3;
+  margin: 0;
+}
+
+.copyBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid #d4d5d9;
+  border-radius: 6px;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: #93959f;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  line-height: 1;
+}
+
+.copyBtn:hover {
+  color: #fc8019;
+  border-color: #fc8019;
+  background: #fff3ea;
+}
+
+.copyBtnCopied {
+  color: #60b246;
+  border-color: #60b246;
+  background: #eaf6e4;
+}
+
+/* ── Items Strip ─────────────────────────── */
+.itemsStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.itemPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #f4f4f4;
+  border-radius: 20px;
+  padding: 0.25rem 0.6rem 0.25rem 0.25rem;
+  max-width: 100%;
+}
+
+.itemThumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.itemThumbPlaceholder {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #d4d5d9;
+  flex-shrink: 0;
+}
+
+.itemPillName {
+  font-size: 0.75rem;
+  color: #282c3f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
 }
 
 /* amount area */
