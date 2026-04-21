@@ -465,9 +465,9 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
                 />
                 <div className={styles.overlay} />
                 <div className={styles.badge}>{shop.category}</div>
-                <span className={styles.ratingBadge}>
+                {/* <span className={styles.ratingBadge}>
                   {shop.rating.toFixed(1)} / 5
-                </span>
+                </span> */}
               </div>
               <div className={styles.body}>
                 <div className={styles.cardHeading}>
