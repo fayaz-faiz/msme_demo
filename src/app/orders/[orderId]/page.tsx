@@ -265,6 +265,9 @@ export default function OrderDetailsPage() {
     const disallowed = ["Order-delivered", "Cancelled", "Failed", "Return_Initiated", "Return_Approved", "Return_Picked", "Return_Delivered"];
     return !disallowed.includes(status);
   }, [status]);
+  const canRaiseQuery = useMemo(() => {
+    return String(status || "").toUpperCase() !== "FAILED";
+  }, [status]);
   const canCancel = useMemo(() => {
     const allowedStatuses = ["Pending", "Packed"];
     if (!allowedStatuses.includes(status)) {
@@ -435,10 +438,55 @@ export default function OrderDetailsPage() {
   return (
     <section className={styles.page}>
       <div className={styles.hero}>
-        <div>
+        <div className={styles.heroContent}>
           <p className={styles.kicker}>Order details</p>
-          <h1>Order ID :  {normalizedOrderId}</h1>
-          <p>Placed on {placedAt}. See full status, items, charges, and payment details below.</p>
+          <h1>Order ID: {normalizedOrderId}</h1>
+          <p>
+            Placed on {placedAt}. See full status, items, charges, and payment
+            details below.
+          </p>
+          <div className={styles.heroMeta}>
+            <span className={styles.metaPill}>Status: {statusLabel}</span>
+            <span className={styles.metaPill}>Payment: {paymentStatus}</span>
+          </div>
+          <div className={styles.heroActions}>
+            {canRaiseQuery ? (
+              <Link href="/profile/my-complains" className={styles.secondaryButton}>
+                Raise Query
+              </Link>
+            ) : null}
+            {canTrack ? (
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={() => void handleTrackOrder()}
+                disabled={actionLoading}
+              >
+                {actionLoading ? "Please wait..." : "Track Order"}
+              </button>
+            ) : null}
+            {canCancel ? (
+              <button
+                type="button"
+                className={styles.dangerButton}
+                onClick={() => void handleCancelOrder()}
+                disabled={actionLoading}
+              >
+                {actionLoading ? "Please wait..." : "Cancel Order"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={handleDownloadInvoice}
+              disabled={actionLoading}
+            >
+              Download Invoice
+            </button>
+            <Link href="/orders/all" className={styles.secondaryButton}>
+              Back to All Orders
+            </Link>
+          </div>
         </div>
         <div className={styles.badgeRow}>
           <span>{statusLabel}</span>
@@ -470,49 +518,48 @@ export default function OrderDetailsPage() {
         </ol>
       </section>
 
-      <div className={styles.grid}>
-        <section className={styles.card}>
-          <h2>Provider details</h2>
-          <div className={styles.detailList}>
-            <div>
-              <span>Name</span>
-              <strong>{providerName}</strong>
-            </div>
-            <div>
-              <span>Address</span>
-              <strong>{providerAddress}</strong>
-            </div>
+      <section className={styles.card}>
+        <h2>Provider details</h2>
+        <div className={styles.detailList}>
+          <div>
+            <span>Name</span>
+            <strong>{providerName}</strong>
           </div>
-        </section>
+          <div>
+            <span>Address</span>
+            <strong>{providerAddress}</strong>
+          </div>
+        </div>
+      </section>
 
-        <section className={styles.card}>
-          <h2>Payment details</h2>
-          <div className={styles.detailList}>
-            <div>
-              <span>Type</span>
-              <strong>{String(paymentDetails?.type || "-")}</strong>
-            </div>
-            <div>
-              <span>Status</span>
-              <strong>{paymentStatus}</strong>
-            </div>
-            <div>
-              <span>Transaction ID</span>
-              <strong>{String(paymentParams?.transaction_id || "-")}</strong>
-            </div>
-            <div>
-              <span>Amount paid</span>
-              <strong>
-                {String(paymentParams?.currency || "INR")} {String(paymentParams?.amount || totalAmount)}
-              </strong>
-            </div>
-            <div>
-              <span>Payment method</span>
-              <strong>{String(summary?.payment_method || "-")}</strong>
-            </div>
+      <section className={styles.card}>
+        <h2>Payment details</h2>
+        <div className={styles.detailList}>
+          <div>
+            <span>Type</span>
+            <strong>{String(paymentDetails?.type || "-")}</strong>
           </div>
-        </section>
-      </div>
+          <div>
+            <span>Status</span>
+            <strong>{paymentStatus}</strong>
+          </div>
+          <div>
+            <span>Transaction ID</span>
+            <strong>{String(paymentParams?.transaction_id || "-")}</strong>
+          </div>
+          <div>
+            <span>Amount paid</span>
+            <strong>
+              {String(paymentParams?.currency || "INR")}{" "}
+              {String(paymentParams?.amount || totalAmount)}
+            </strong>
+          </div>
+          <div>
+            <span>Payment method</span>
+            <strong>{String(summary?.payment_method || "-")}</strong>
+          </div>
+        </div>
+      </section>
 
       <section className={styles.card}>
         <h2>Ordered items</h2>
@@ -575,26 +622,6 @@ export default function OrderDetailsPage() {
         </section>
       </div>
 
-      <section className={styles.card}>
-        <div className={styles.actions}>
-          {canTrack ? (
-            <button type="button" className={styles.primaryButton} onClick={() => void handleTrackOrder()} disabled={actionLoading}>
-              {actionLoading ? "Please wait..." : "Track Order"}
-            </button>
-          ) : null}
-          {canCancel ? (
-            <button type="button" className={styles.dangerButton} onClick={() => void handleCancelOrder()} disabled={actionLoading}>
-              {actionLoading ? "Please wait..." : "Cancel Order"}
-            </button>
-          ) : null}
-          <button type="button" className={styles.secondaryButton} onClick={handleDownloadInvoice} disabled={actionLoading}>
-            Download Invoice
-          </button>
-          <Link href="/orders/all" className={styles.secondaryButton}>
-            Back to All Orders
-          </Link>
-        </div>
-      </section>
     </section>
   );
 }

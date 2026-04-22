@@ -23,6 +23,7 @@ export function AppHeader() {
   const isAuthenticated = !!user || loginName === "USER";
   const { location, isResolving } = useLocation();
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
+  const [cartLoginPromptOpen, setCartLoginPromptOpen] = useState(false);
   const [navSearch, setNavSearch] = useState("");
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -67,12 +68,7 @@ export function AppHeader() {
     }
 
     event.preventDefault();
-    const allowRedirect = window.confirm(
-      "Please login first to view cart. Go to login now?",
-    );
-    if (allowRedirect) {
-      router.push(`/auth/login?next=${encodeURIComponent(nextPath)}`);
-    }
+    setCartLoginPromptOpen(true);
   }
 
   useEffect(() => {
@@ -332,36 +328,34 @@ export function AppHeader() {
                 </button>
               </>
             ) : null}
-            {isAuthenticated ? (
-              <Link
-                href="/cart"
-                onClick={handleCartClick}
-                className="nav-cart"
-                aria-label={cartCount > 0 ? `Cart with ${cartCount} items` : "Cart"}
+            <Link
+              href="/cart"
+              onClick={handleCartClick}
+              className="nav-cart"
+              aria-label={cartCount > 0 ? `Cart with ${cartCount} items` : "Cart"}
+            >
+              <svg
+                className="cart-icon"
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                role="img"
               >
-                <svg
-                  className="cart-icon"
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  role="img"
-                >
-                  <path
-                    d="M4 5h2l2.2 9.1a2 2 0 0 0 2 1.5h6.9a2 2 0 0 0 2-1.5L21 8H7.3"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <circle cx="10" cy="20" r="1.25" fill="currentColor" />
-                  <circle cx="18" cy="20" r="1.25" fill="currentColor" />
-                </svg>
-                <span>Cart</span>
-                {cartCount > 0 ? (
-                  <span className="cart-count">{cartCount}</span>
-                ) : null}
-              </Link>
-            ) : null}
+                <path
+                  d="M4 5h2l2.2 9.1a2 2 0 0 0 2 1.5h6.9a2 2 0 0 0 2-1.5L21 8H7.3"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <circle cx="10" cy="20" r="1.25" fill="currentColor" />
+                <circle cx="18" cy="20" r="1.25" fill="currentColor" />
+              </svg>
+              <span>Cart</span>
+              {isAuthenticated && cartCount > 0 ? (
+                <span className="cart-count">{cartCount}</span>
+              ) : null}
+            </Link>
 
             {isAuthenticated ? (
               <div className="user-chip">
@@ -439,6 +433,43 @@ export function AppHeader() {
         open={locationPickerOpen}
         onClose={() => setLocationPickerOpen(false)}
       />
+      {cartLoginPromptOpen ? (
+        <div
+          className="header-modal-backdrop"
+          role="presentation"
+          onClick={() => setCartLoginPromptOpen(false)}
+        >
+          <div
+            className="header-modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cart-login-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 id="cart-login-modal-title">Login required</h3>
+            <p>Please login first to view your cart and continue checkout.</p>
+            <div className="header-modal-actions">
+              <button
+                type="button"
+                className="header-modal-secondary-btn"
+                onClick={() => setCartLoginPromptOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="header-modal-primary-btn"
+                onClick={() => {
+                  setCartLoginPromptOpen(false);
+                  router.push(`/auth/login?next=${encodeURIComponent(nextPath)}`);
+                }}
+              >
+                Login Now
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {notice.open ? (
         <div
           className={`global-notice ${

@@ -518,7 +518,7 @@ export function ShopItemsBrowser({
     <section className={styles.wrapper}>
       {hasInternalHistory && (
         <header className={styles.mobileHeader}>
-          <BackButton label="Expore Other Stores" />
+          <BackButton label="Explore Other Stores" />
         </header>
       )}
 

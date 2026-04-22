@@ -55,8 +55,9 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin: 0 auto;
-  max-width: 1200px;
+  width: 100%;
+  margin: 0;
+  max-width: none;
   padding: 0.35rem 1rem;
 }
 
@@ -368,11 +369,11 @@ a {
 }
 
 .app-shell {
-  margin: 0 auto;
-  width: min(1200px, 100%);
-  max-width: 1200px;
+  margin: 0;
+  width: 100%;
+  max-width: none;
   min-width: 0;
-  padding: 1.25rem 0.9rem 3rem;
+  padding: 1.25rem clamp(0.9rem, 2vw, 1.6rem) 3rem;
   overflow-x: visible;
 }
 
@@ -539,6 +540,73 @@ input[type="text"] {
 
 .global-notice-info {
   background: #2563eb;
+}
+
+.header-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 6, 23, 0.52);
+  padding: 1rem;
+  backdrop-filter: blur(2px);
+}
+
+.header-modal-card {
+  width: min(100%, 360px);
+  border-radius: 16px;
+  background: #ffffff;
+  color: #1f2937;
+  box-shadow: 0 22px 44px rgba(2, 6, 23, 0.25);
+  padding: 1.1rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.header-modal-card h3 {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.header-modal-card p {
+  color: #5a6657;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.header-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.header-modal-primary-btn,
+.header-modal-secondary-btn {
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.52rem 0.9rem;
+}
+
+.header-modal-primary-btn {
+  background: #155e63;
+  color: #ffffff;
+}
+
+.header-modal-primary-btn:hover {
+  background: #114a4e;
+}
+
+.header-modal-secondary-btn {
+  background: #eef2f7;
+  color: #1f2937;
+}
+
+.header-modal-secondary-btn:hover {
+  background: #e5eaf0;
 }
 
 @media (max-width: 640px) {

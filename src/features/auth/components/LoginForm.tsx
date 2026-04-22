@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getRloesIds, postGenerateOtp, postLogin } from "@/api";
+import { getRloesIds, getUserProfileDataWeb, postGenerateOtp, postLogin } from "@/api";
 import { loginSuccess } from "@/features/auth/store/authSlice";
 import { useAppDispatch, useAppSelector } from "@/features/cart/store/hooks";
 import { notifyOrAlert } from "@/shared/lib/notify";
@@ -60,6 +60,14 @@ type LoginResponse = {
     statusCode?: number;
     message?: string;
     data?: { accessToken?: string; refreshToken?: string; message?: string } | string;
+  };
+};
+
+type ProfileResponse = {
+  data?: {
+    full_name?: string;
+    mobile_number?: string;
+    profile_pic?: string;
   };
 };
 
@@ -270,11 +278,25 @@ export function LoginForm() {
       }
 
       const fallbackName = `User ${normalizeMobileNumber(mobileNumber).slice(-4)}`;
+      let resolvedName = fallbackName;
+      let resolvedMobile = mobileNumber;
+      let resolvedProfilePic = "";
+
+      try {
+        const profileResponse = await getUserProfileDataWeb() as ProfileResponse;
+        const profile = profileResponse?.data;
+        resolvedName = String(profile?.full_name || "").trim() || fallbackName;
+        resolvedMobile = String(profile?.mobile_number || "").trim() || mobileNumber;
+        resolvedProfilePic = String(profile?.profile_pic || "").trim();
+      } catch (profileError) {
+        console.error("Profile fetch after login failed:", profileError);
+      }
 
       dispatch(
         loginSuccess({
-          name: fallbackName,
-          mobileNumber,
+          name: resolvedName,
+          mobileNumber: resolvedMobile,
+          ...(resolvedProfilePic ? { profilePic: resolvedProfilePic } : {}),
         }),
       );
 
