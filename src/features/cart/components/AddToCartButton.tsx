@@ -29,7 +29,7 @@ type AddToCartButtonProps = {
   product: Product;
   useServerCart?: boolean;
   storeDisabled?: boolean;
-  onCartUpdated?: () => void | Promise<void>;
+  onCartUpdated?: any;
 };
 
 type CustomizationOption = {
