@@ -27,6 +27,14 @@ export default function DirectStorePage({ searchParams }: DirectStorePageProps) 
   const shopName = searchParams?.shopName || "Store";
   const slugSeed = searchParams?.shopName || providerId || providerLocationId || "store";
 
+  const serviceableParam = searchParams?.serviceable;
+  const serviceable =
+    serviceableParam === "true"
+      ? true
+      : serviceableParam === "false"
+        ? false
+        : undefined;
+
   return (
     <section className="page">
       <ShopItemsBrowser
@@ -37,7 +45,7 @@ export default function DirectStorePage({ searchParams }: DirectStorePageProps) 
         shopName={shopName}
         shopImage={searchParams?.shopImage || ""}
         distance={searchParams?.distance || ""}
-        serviceable={searchParams?.serviceable === "true"}
+        serviceable={serviceable}
         storeLat={searchParams?.storeLat || ""}
         storeLong={searchParams?.storeLong || ""}
         storeLng={searchParams?.storeLng || ""}

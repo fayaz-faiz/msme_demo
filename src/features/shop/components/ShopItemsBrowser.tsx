@@ -25,7 +25,7 @@ type ShopItemsBrowserProps = {
   shopName: string;
   shopImage: string;
   distance: string;
-  serviceable: boolean;
+  serviceable?: boolean;
   storeLat?: string;
   storeLong?: string;
   storeLng?: string;
@@ -60,6 +60,7 @@ type StoreInfo = {
 
 type ApiItem = {
   _id?: string;
+  ce_item_id?: string;
   item_id?: string;
   parent_item_id?: string;
   sub_category?: string;
@@ -73,6 +74,8 @@ type ApiItem = {
     non_veg?: string | null;
   };
   customizable?: boolean;
+  isAvailableInCart?: boolean;
+  cartCount?: number | string;
 };
 
 type ShopProduct = Product & {
@@ -128,6 +131,7 @@ const parseCoordinate = (value?: string | number | null) => {
 
 const mapApiItemToProduct = (item: ApiItem, shopSlug: string): ShopProduct => {
   const id =
+    item.ce_item_id ||
     item._id ||
     item.item_id ||
     `${shopSlug}-${Math.random().toString(36).slice(2)}`;
@@ -144,6 +148,8 @@ const mapApiItemToProduct = (item: ApiItem, shopSlug: string): ShopProduct => {
     description,
     foodType: isVeg ? "veg" : isNonVeg ? "non-veg" : undefined,
     hasVariants: !!item.customizable,
+    isAvailableInCart: !!item.isAvailableInCart,
+    cartCount: Math.max(0, Number(item.cartCount ?? 0) || 0),
     price: Number(item.item_selling_price || 0),
     stock: Number(item.item_available_count || 0),
     image: item.item_symbol || DEFAULT_IMAGE,
@@ -662,15 +668,17 @@ export function ShopItemsBrowser({
                 {isStoreOpen ? "Open" : "Closed"}
               </span>
               <span className={styles.footerDot}>•</span>
-              <span
-                className={
-                  serviceable ? styles.deliverable : styles.notDelivering
-                }
-              >
-                {serviceable
-                  ? `Delivery in ${deliveryLabel} mins`
-                  : "Not serviceable"}
-              </span>
+              {typeof serviceable === "boolean" ? (
+                <span
+                  className={
+                    serviceable ? styles.deliverable : styles.notDelivering
+                  }
+                >
+                  {serviceable
+                    ? `Delivery in ${deliveryLabel} mins`
+                    : "Not serviceable"}
+                </span>
+              ) : null}
             </div>
           </div>
         )}
@@ -864,7 +872,10 @@ export function ShopItemsBrowser({
                           shopName: resolvedShopName,
                           shopImage: resolvedShopImage,
                           distance: resolvedDistance,
-                          serviceable: String(serviceable),
+                          serviceable:
+                            typeof serviceable === "boolean"
+                              ? String(serviceable)
+                              : undefined,
                         },
                       }}
                     >

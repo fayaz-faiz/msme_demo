@@ -29,7 +29,7 @@ type AddToCartButtonProps = {
   product: Product;
   useServerCart?: boolean;
   storeDisabled?: boolean;
-  onCartUpdated?: any;
+  onCartUpdated?: () => void | Promise<void>;
 };
 
 type CustomizationOption = {
@@ -87,6 +87,14 @@ type CartByIdResponse = {
   };
 };
 
+const normalizeServerQuantity = (value: unknown): number => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+  return Math.max(0, Math.floor(parsed));
+};
+
 export function AddToCartButton({
   product,
   useServerCart = false,
@@ -100,11 +108,15 @@ export function AddToCartButton({
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const loginName = useAppSelector((state) => state.authToken.loginName);
-  const quantity = useAppSelector(
+  const reduxQuantity = useAppSelector(
     (state) =>
       state.cart.items.find((item) => item.productId === product.id)
         ?.quantity ?? 0,
   );
+  const [serverQuantity, setServerQuantity] = useState<number>(() =>
+    normalizeServerQuantity(product.cartCount),
+  );
+  const quantity = useServerCart ? serverQuantity : reduxQuantity;
   const [isUpdating, setIsUpdating] = useState(false);
   const [showCustomizationModal, setShowCustomizationModal] = useState(false);
   const [isLoadingCustomizations, setIsLoadingCustomizations] = useState(false);
@@ -353,6 +365,10 @@ export function AddToCartButton({
   }, []);
 
   useEffect(() => {
+    setServerQuantity(normalizeServerQuantity(product.cartCount));
+  }, [product.id, product.cartCount]);
+
+  useEffect(() => {
     if (!showCustomizationModal || !isClient) {
       return;
     }
@@ -437,6 +453,7 @@ export function AddToCartButton({
                       return;
                     }
                     setShowCustomizationModal(false);
+                    setServerQuantity(1);
                     dispatch(
                       setItemQuantity({
                         product,
@@ -489,6 +506,7 @@ export function AddToCartButton({
                     const response = await updateServerCart(1);
                     setIsUpdating(false);
                     if (response.ok) {
+                      setServerQuantity(1);
                       dispatch(
                         setItemQuantity({
                           product,
@@ -515,6 +533,7 @@ export function AddToCartButton({
               if (!response.ok) {
                 return;
               }
+              setServerQuantity(1);
               dispatch(
                 setItemQuantity({ product, quantity: response.itemCount }),
               );
@@ -553,6 +572,7 @@ export function AddToCartButton({
           if (useServerCart) {
             if (nextCount === 0) {
               // Switch back to "Add To Cart" immediately when user decrements from 1.
+              setServerQuantity(0);
               dispatch(removeItem({ productId: product.id }));
               void updateServerCart(0).then(() => onCartUpdated?.());
               return;
@@ -564,6 +584,7 @@ export function AddToCartButton({
             if (!response.ok) {
               return;
             }
+            setServerQuantity(nextCount);
             dispatch(
               setItemQuantity({ product, quantity: response.itemCount }),
             );
@@ -599,6 +620,7 @@ export function AddToCartButton({
             if (!response.ok) {
               return;
             }
+            setServerQuantity(nextCount);
             dispatch(
               setItemQuantity({ product, quantity: response.itemCount }),
             );

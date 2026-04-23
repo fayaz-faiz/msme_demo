@@ -6,6 +6,8 @@ export type Product = {
   description: string;
   foodType?: "veg" | "non-veg";
   hasVariants?: boolean;
+  isAvailableInCart?: boolean;
+  cartCount?: number;
   price: number;
   stock: number;
   image: string;
