@@ -356,7 +356,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
           response?.data?.data?.message ||
           response?.data?.message ||
           "Cart verification failed.";
-        if (statusCode === 406) {
+        if (statusCode === 406 || statusCode === 504) {
           setStoreErrorMessage(message);
           setShowStoreError(true);
           return false;
@@ -364,10 +364,6 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
         if (statusCode === 501) {
           notifyOrAlert("Cart updated successfully.", "success");
           router.back();
-          return false;
-        }
-        if (statusCode === 504) {
-          notifyOrAlert(message, "error");
           return false;
         }
         const isLocationError =

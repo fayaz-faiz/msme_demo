@@ -706,7 +706,7 @@ export function ShopItemsBrowser({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search products..."
+            placeholder="search products..."
             aria-label="Search store items"
           />
         </div>
@@ -715,28 +715,28 @@ export function ShopItemsBrowser({
           <div className={styles.chips}>
             {!storeInfoLoaded
               ? [72, 96, 64, 88, 76].map((w, i) => (
-                  <div
-                    key={i}
-                    className={styles.skeletonChip}
-                    style={{ width: w }}
-                  />
-                ))
+                <div
+                  key={i}
+                  className={styles.skeletonChip}
+                  style={{ width: w }}
+                />
+              ))
               : subCategoryData.map((subCat) => (
-                  <button
-                    key={subCat.subCategoryName}
-                    type="button"
-                    className={
-                      selectedSubCategory === subCat.subCategoryName
-                        ? styles.activeChip
-                        : styles.chip
-                    }
-                    onClick={() =>
-                      setSelectedSubCategory(subCat.subCategoryName)
-                    }
-                  >
-                    {subCat.subCategoryName}
-                  </button>
-                ))}
+                <button
+                  key={subCat.subCategoryName}
+                  type="button"
+                  className={
+                    selectedSubCategory === subCat.subCategoryName
+                      ? styles.activeChip
+                      : styles.chip
+                  }
+                  onClick={() =>
+                    setSelectedSubCategory(subCat.subCategoryName)
+                  }
+                >
+                  {subCat.subCategoryName}
+                </button>
+              ))}
           </div>
 
           <div className={styles.selectors}>
@@ -777,9 +777,9 @@ export function ShopItemsBrowser({
               onChange={(event) =>
                 setSortBy(
                   event.target.value as
-                    | "RELEVANCE"
-                    | "PRICE_LOW_TO_HIGH"
-                    | "PRICE_HIGH_TO_LOW",
+                  | "RELEVANCE"
+                  | "PRICE_LOW_TO_HIGH"
+                  | "PRICE_HIGH_TO_LOW",
                 )
               }
             >
@@ -883,14 +883,14 @@ export function ShopItemsBrowser({
                     </Link>
                   </div>
                 ) : null}
+                {product.hasVariants ? (
+                  <span className={styles.variantHint}>Customisable</span>
+                ) : null}
                 <div className={styles.priceRow}>
                   <div className={styles.priceStack}>
                     <span className={styles.price}>
                       {formatCurrency(product.price)}
                     </span>
-                    {product.hasVariants ? (
-                      <span className={styles.variantHint}>Customisable</span>
-                    ) : null}
                   </div>
                   <AddToCartButton
                     product={product}
