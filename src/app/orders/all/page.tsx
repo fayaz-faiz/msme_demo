@@ -328,6 +328,8 @@ export default function AllOrdersPage() {
               const sv = getStatusVariant(status);
               const pv = getPaymentVariant(paymentStatus);
               const items = normalizeOrderItems(order);
+              const visibleItems = items.slice(0, 2);
+              const remainingItemsCount = Math.max(items.length - visibleItems.length, 0);
               const isCopied = copiedId === orderId;
               return (
                 <article key={`${orderId}-${index}`} className={styles.orderCard}>
@@ -379,7 +381,7 @@ export default function AllOrdersPage() {
                       <>
                         <hr className={styles.divider} />
                         <div className={styles.itemsStrip}>
-                          {items.map((item, i) => (
+                          {visibleItems.map((item, i) => (
                             <div key={i} className={styles.itemPill}>
                               {item.image ? (
                                 <img src={item.image} alt={item.name} className={styles.itemThumb} />
@@ -391,6 +393,9 @@ export default function AllOrdersPage() {
                               </span>
                             </div>
                           ))}
+                          {remainingItemsCount > 0 ? (
+                            <span className={styles.moreItemsPill}>+{remainingItemsCount} more</span>
+                          ) : null}
                         </div>
                       </>
                     )}
@@ -438,3 +443,5 @@ export default function AllOrdersPage() {
     </div>
   );
 }
+
+

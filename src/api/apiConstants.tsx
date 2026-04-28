@@ -29,7 +29,8 @@ const SEARCH_ITEM_BY_NAME_AND_CATEGORY = '/search/searchByItemNameAndCategoryId'
 const POST_DELETE_CART = '/cart/deleteCart';
 const SEARCH_BY_IMAGE = '/search/searchByItemImage';
 const SEARCH_STORE_BY_ITEMS_API = '/search/searchStoreByItems';
-const POST_STORENAME_WITH_SUBCATEOGORY = '/search/searchProvider';
+// const POST_STORENAME_WITH_SUBCATEOGORY = '/search/searchProvider';
+const POST_STORENAME_WITH_SUBCATEOGORY = '/search/searchProviderById';
 
 const POST_ORDER_DETAILS_API = '/orders/orderById';
 const POST_TRACK_ORDER = '/orders/trackOrder';
