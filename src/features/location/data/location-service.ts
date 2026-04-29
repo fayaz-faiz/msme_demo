@@ -1,6 +1,8 @@
 import type { Location, LocationSuggestion } from "@/features/location/domain/location";
 
 const GOOGLE_GEOCODE = "https://maps.googleapis.com/maps/api/geocode/json";
+const GOOGLE_PLACE_AUTOCOMPLETE =
+  "https://maps.googleapis.com/maps/api/place/autocomplete/json";
 
 type GoogleAddressComponent = {
   long_name: string;
@@ -18,6 +20,11 @@ type GoogleGeocodeResult = {
       lng?: number;
     };
   };
+};
+
+type GooglePlacePrediction = {
+  description: string;
+  place_id: string;
 };
 
 function getGoogleApiKey(): string {
@@ -53,7 +60,7 @@ function buildLocalityHint(localities?: string[]): string {
   return localities.slice(0, 2).join(", ");
 }
 
-function getBestPincodeFromResults(results: any): string | undefined {
+function getBestPincodeFromResults(results: GoogleGeocodeResult[]): string | undefined {
   for (const result of results) {
     const pincode = getAddressComponentValue(result.address_components ?? [], ["postal_code"]);
     if (pincode) {
@@ -138,60 +145,99 @@ export async function searchLocations(query: string): Promise<LocationSuggestion
     return [];
   }
 
-  const url = new URL(GOOGLE_GEOCODE);
-  url.searchParams.set("address", query);
+  const url = new URL(GOOGLE_PLACE_AUTOCOMPLETE);
+  url.searchParams.set("input", query);
+  url.searchParams.set("types", "geocode");
   url.searchParams.set("key", apiKey);
 
-  const response = await fetch(url.toString(), {
+  const autoResponse = await fetch(url.toString(), {
     headers: {
       Accept: "application/json",
     },
   });
 
-  if (!response.ok) {
+  if (!autoResponse.ok) {
     return [];
   }
 
-  const data = (await response.json()) as {
-    results?: GoogleGeocodeResult[];
+  const data = (await autoResponse.json()) as {
+    predictions?: GooglePlacePrediction[];
     status?: string;
     error_message?: string;
   };
 
-  if (data.status !== "OK" || !data.results?.length) {
+  if (data.status !== "OK" || !data.predictions?.length) {
     if (data.status === "REQUEST_DENIED") {
-      console.error("Google search geocoding denied:", data.error_message ?? "Unknown error");
+      console.error(
+        "Google place autocomplete denied:",
+        data.error_message ?? "Unknown error",
+      );
     }
     return [];
   }
 
-  return data.results.slice(0, 6).map((entry) => {
-    const components = entry.address_components ?? [];
-    const city =
-      getAddressComponentValue(components, [
-        "locality",
-        "administrative_area_level_2",
-        "sublocality",
-      ]) || "City";
-    const state =
-      getAddressComponentValue(components, [
-        "administrative_area_level_1",
-        "administrative_area_level_2",
-      ]) || "";
-    const pincode =
-      getAddressComponentValue(components, ["postal_code"]) || getBestPincodeFromResults(data.results) || "";
-    const lat = entry.geometry?.location?.lat;
-    const lng = entry.geometry?.location?.lng;
-    const localityHint = buildLocalityHint(entry.postcode_localities);
+  const topPredictions = data.predictions.slice(0, 6);
 
-    return {
-      city,
-      state,
-      pincode,
-      label: buildLocationLabel(city, pincode, localityHint),
-      lat: typeof lat === "number" ? lat : 0,
-      lng: typeof lng === "number" ? lng : 0,
-      rawLabel: localityHint ? `${entry.formatted_address} - ${localityHint}` : entry.formatted_address,
-    };
-  }).filter((entry) => entry.lat !== 0 || entry.lng !== 0);
+  const resolved = await Promise.all(
+    topPredictions.map(async (prediction) => {
+      const geocodeUrl = new URL(GOOGLE_GEOCODE);
+      geocodeUrl.searchParams.set("place_id", prediction.place_id);
+      geocodeUrl.searchParams.set("key", apiKey);
+
+      const geocodeResponse = await fetch(geocodeUrl.toString(), {
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (!geocodeResponse.ok) {
+        return null;
+      }
+
+      const geocodeData = (await geocodeResponse.json()) as {
+        results?: GoogleGeocodeResult[];
+        status?: string;
+      };
+
+      if (geocodeData.status !== "OK" || !geocodeData.results?.length) {
+        return null;
+      }
+
+      const entry = geocodeData.results[0];
+      const components = entry.address_components ?? [];
+      const city =
+        getAddressComponentValue(components, [
+          "locality",
+          "administrative_area_level_2",
+          "sublocality",
+        ]) || "City";
+      const state =
+        getAddressComponentValue(components, [
+          "administrative_area_level_1",
+          "administrative_area_level_2",
+        ]) || "";
+      const pincode =
+        getAddressComponentValue(components, ["postal_code"]) ||
+        getBestPincodeFromResults(geocodeData.results) ||
+        "";
+      const lat = entry.geometry?.location?.lat;
+      const lng = entry.geometry?.location?.lng;
+      const localityHint = buildLocalityHint(entry.postcode_localities);
+
+      return {
+        city,
+        state,
+        pincode,
+        label: buildLocationLabel(city, pincode, localityHint),
+        lat: typeof lat === "number" ? lat : 0,
+        lng: typeof lng === "number" ? lng : 0,
+        rawLabel: prediction.description,
+      } as LocationSuggestion;
+    }),
+  );
+
+  return resolved.filter(
+    (entry): entry is LocationSuggestion =>
+      !!entry && (entry.lat !== 0 || entry.lng !== 0),
+  );
 }

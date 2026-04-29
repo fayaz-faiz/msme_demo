@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { searchStoreByItems, postStoreSubcatApi } from "@/api";
 import { useDebounce } from "@/shared/lib/use-debounce";
@@ -182,6 +182,8 @@ export function ShopItemsBrowser({
   storeLng,
 }: ShopItemsBrowserProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { location } = useLocation();
   const accessToken = useAppSelector((state) => state.apiResponse.accessToken);
   const cartLength = useAppSelector((state) => state.apiResponse.cartLength);
@@ -219,6 +221,19 @@ export function ShopItemsBrowser({
   const observerRef = useRef<HTMLDivElement | null>(null);
 
   const mappedCategory = toOndcCategory(category);
+  const isMinimalSharedStoreUrl = useMemo(() => {
+    if (pathname !== "/store") {
+      return false;
+    }
+
+    const keys = Array.from(searchParams.keys());
+    const uniqueKeys = Array.from(new Set(keys));
+    return (
+      uniqueKeys.length === 2 &&
+      uniqueKeys.includes("providerId") &&
+      uniqueKeys.includes("category")
+    );
+  }, [pathname, searchParams]);
 
   const finalProviderId = storeInfo?.provider_id || providerId;
   const finalProviderLocationId =
@@ -298,12 +313,19 @@ export function ShopItemsBrowser({
     providerIdParam: string,
     providerLocationIdParam: string,
   ) => {
-    const data = {
-      gpsLatitude: resolvedGpsLatitude,
-      gpsLongitude: resolvedGpsLongitude,
+    const data: {
+      provider_id: string;
+      location_id: string;
+      gpsLatitude?: number;
+      gpsLongitude?: number;
+    } = {
       provider_id: providerIdParam,
       location_id: providerLocationIdParam,
     };
+    if (!isMinimalSharedStoreUrl) {
+      data.gpsLatitude = resolvedGpsLatitude;
+      data.gpsLongitude = resolvedGpsLongitude;
+    }
 
     setLoading(true);
     try {
@@ -397,10 +419,7 @@ export function ShopItemsBrowser({
       process.env.NEXT_PUBLIC_BUYER_WEB_URL || "https://retail-buyer-web.nearshop.in";
     const params = new URLSearchParams({
       providerId: finalProviderId,
-      providerLocationId: finalProviderLocationId,
       category: finalCategory || mappedCategory || category,
-      storeLat: String(resolvedGpsLatitude),
-      storeLong: String(resolvedGpsLongitude),
     });
     const shareUrl = `${buyerWebUrl}/store?${params.toString()}`;
 
@@ -438,6 +457,7 @@ export function ShopItemsBrowser({
     providerLocationId,
     resolvedGpsLatitude,
     resolvedGpsLongitude,
+    isMinimalSharedStoreUrl,
     accessToken,
   ]);
 

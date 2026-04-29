@@ -23,7 +23,8 @@ const toSlug = (value: string) =>
 
 export default function DirectStorePage({ searchParams }: DirectStorePageProps) {
   const providerId = searchParams?.providerId || "";
-  const providerLocationId = searchParams?.providerLocationId || "";
+  const providerLocationId =
+    searchParams?.providerLocationId || (providerId ? `${providerId}_location` : "");
   const shopName = searchParams?.shopName || "Store";
   const slugSeed = searchParams?.shopName || providerId || providerLocationId || "store";
 

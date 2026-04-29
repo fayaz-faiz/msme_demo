@@ -2,11 +2,10 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useCallback, useDeferredValue, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useJsApiLoader } from "@react-google-maps/api";
 import { deleteAddressDataWeb, getAddressWeb } from "@/api";
-import { searchLocations } from "@/features/location/data/location-service";
-import { LocationSuggestion } from "@/features/location/domain/location";
 import { useLocation } from "@/features/location/context/location-context";
 import { useAppDispatch, useAppSelector } from "@/features/cart/store/hooks";
 import {
@@ -226,22 +225,6 @@ function IconPlus() {
   );
 }
 
-function IconChevron() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
-
 export function LocationPickerModal({
   open,
   onClose,
@@ -258,56 +241,104 @@ export function LocationPickerModal({
     (state) => state.location.selectAddress as AddressItem | null,
   );
   const { location, setLocation, resolveCurrentLocation } = useLocation();
+  const { isLoaded: mapsLoaded } = useJsApiLoader({
+    id: "location-picker-places",
+    googleMapsApiKey:
+      process.env.NEXT_PUBLIC_GOOGE_API_KEY ||
+      process.env.NEXT_PUBLIC_GOOGLE_API_KEY ||
+      process.env.REACT_APP_GOOGLE_API_KEY ||
+      "",
+    libraries: ["places"],
+  });
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<LocationSuggestion[]>([]);
-  const [loadingResults, setLoadingResults] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [deletingAddressId, setDeletingAddressId] = useState("");
-  const deferredQuery = useDeferredValue(query);
-
-  useEffect(() => {
-    if (!open) return;
-    const trimmed = deferredQuery.trim();
-    if (trimmed.length < 3) {
-      setResults([]);
-      setSearchError(null);
-      setLoadingResults(false);
-      return;
-    }
-    let active = true;
-    setLoadingResults(true);
-    setSearchError(null);
-    const timer = window.setTimeout(() => {
-      void searchLocations(trimmed)
-        .then((items) => {
-          if (active) setResults(items);
-        })
-        .catch(() => {
-          if (active) setSearchError("Unable to search locations right now.");
-        })
-        .finally(() => {
-          if (active) setLoadingResults(false);
-        });
-    }, 250);
-    return () => {
-      active = false;
-      window.clearTimeout(timer);
-    };
-  }, [deferredQuery, open]);
 
   useEffect(() => {
     if (!open) {
       setQuery("");
-      setResults([]);
-      setSearchError(null);
-      setLoadingResults(false);
       return;
     }
     if (selectedAddressState?._id) {
       setSelectedAddressId(selectedAddressState._id);
     }
   }, [open, selectedAddressState?._id]);
+
+  useEffect(() => {
+    if (
+      !open ||
+      !mapsLoaded ||
+      !searchInputRef.current ||
+      typeof window === "undefined"
+    ) {
+      return;
+    }
+
+    const inputElement = searchInputRef.current;
+    const places = window.google?.maps?.places;
+    if (!places?.Autocomplete) {
+      return;
+    }
+
+    const autocomplete = new places.Autocomplete(inputElement, {
+      types: ["geocode"],
+      componentRestrictions: { country: ["us", "in"] },
+      fields: ["formatted_address", "geometry", "name", "address_components"],
+    });
+
+    const getComponent = (
+      components: google.maps.GeocoderAddressComponent[] | undefined,
+      types: string[],
+    ) => {
+      const found = components?.find((component) =>
+        types.some((type) => component.types.includes(type)),
+      );
+      return found?.long_name || "";
+    };
+
+    const listener = autocomplete.addListener("place_changed", () => {
+      const selectedPlace = autocomplete.getPlace();
+      const lat = selectedPlace.geometry?.location?.lat();
+      const lng = selectedPlace.geometry?.location?.lng();
+      if (typeof lat !== "number" || typeof lng !== "number") {
+        return;
+      }
+      const city =
+        getComponent(selectedPlace.address_components, [
+          "locality",
+          "administrative_area_level_2",
+          "sublocality",
+        ]) || selectedPlace.name || "Selected area";
+      const pincode = getComponent(selectedPlace.address_components, [
+        "postal_code",
+      ]);
+      const label = selectedPlace.formatted_address || selectedPlace.name || city;
+      setQuery(label);
+
+      setLocation({
+        city,
+        pincode,
+        label,
+        lat,
+        lng,
+      });
+      dispatch(setselectedGps(`${lat},${lng}`));
+      dispatch(
+        setCurrentLoc({
+          city,
+          pincode,
+          latitude: lat,
+          longitude: lng,
+        }),
+      );
+      onClose();
+    });
+
+    return () => {
+      window.google.maps.event.removeListener(listener);
+    };
+  }, [dispatch, mapsLoaded, onClose, open, setLocation]);
 
   const getAllAddress = useCallback(async () => {
     try {
@@ -408,8 +439,6 @@ export function LocationPickerModal({
 
   if (!open) return null;
 
-  const showDropdown = query.trim().length >= 3;
-
   return (
     <div className={styles.backdrop} role="presentation" onClick={onClose}>
       <div
@@ -449,65 +478,15 @@ export function LocationPickerModal({
               <IconSearch />
             </span>
             <input
+              ref={searchInputRef}
               className={styles.searchInput}
               type="search"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(event) => setQuery(event.target.value)}
               placeholder="Search city, locality or pincode…"
               autoComplete="off"
             />
           </div>
-
-          {showDropdown && (
-            <div className={styles.searchDropdown}>
-              {loadingResults && (
-                <p className={styles.dropdownMsg}>Searching…</p>
-              )}
-              {searchError && (
-                <p className={styles.dropdownError}>{searchError}</p>
-              )}
-              {!loadingResults && !searchError && results.length === 0 && (
-                <p className={styles.dropdownMsg}>
-                  No matching locations found.
-                </p>
-              )}
-              {!loadingResults &&
-                !searchError &&
-                results.map((item) => (
-                  <button
-                    key={`${item.lat}-${item.lng}`}
-                    type="button"
-                    className={styles.resultItem}
-                    onClick={() => {
-                      setLocation(item);
-                      dispatch(setselectedGps(`${item.lat},${item.lng}`));
-                      dispatch(
-                        setCurrentLoc({
-                          city: item.city,
-                          pincode: item.pincode,
-                          latitude: item.lat,
-                          longitude: item.lng,
-                        }),
-                      );
-                      setQuery(item.rawLabel);
-                      setResults([]);
-                      onClose();
-                    }}
-                  >
-                    <span className={styles.resultPin}>
-                      <IconPin />
-                    </span>
-                    <span className={styles.resultText}>
-                      <span className={styles.resultLabel}>{item.label}</span>
-                      <span className={styles.resultSub}>{item.rawLabel}</span>
-                    </span>
-                    <span className={styles.resultArrow}>
-                      <IconChevron />
-                    </span>
-                  </button>
-                ))}
-            </div>
-          )}
         </div>
 
         {/* Body */}
