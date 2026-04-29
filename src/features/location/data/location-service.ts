@@ -1,33 +1,107 @@
 import type { Location, LocationSuggestion } from "@/features/location/domain/location";
 
-const NOMINATIM_SEARCH = "https://nominatim.openstreetmap.org/search";
-const NOMINATIM_REVERSE = "https://nominatim.openstreetmap.org/reverse";
+const GOOGLE_GEOCODE = "https://maps.googleapis.com/maps/api/geocode/json";
+
+type GoogleAddressComponent = {
+  long_name: string;
+  short_name: string;
+  types: string[];
+};
+
+type GoogleGeocodeResult = {
+  formatted_address: string;
+  address_components: GoogleAddressComponent[];
+  postcode_localities?: string[];
+  geometry?: {
+    location?: {
+      lat?: number;
+      lng?: number;
+    };
+  };
+};
+
+function getGoogleApiKey(): string {
+  const rawKey =
+    process.env.NEXT_PUBLIC_GOOGE_API_KEY ??
+    process.env.NEXT_PUBLIC_GOOGLE_API_KEY ??
+    process.env.REACT_APP_GOOGLE_API_KEY ??
+    "";
+
+  // Protect against accidental wrapping quotes/spaces in .env values.
+  return rawKey.trim().replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1");
+}
+
+function getAddressComponentValue(
+  components: GoogleAddressComponent[],
+  componentTypes: string[],
+): string | undefined {
+  const component = components.find((item) =>
+    componentTypes.some((type) => item.types.includes(type)),
+  );
+  return component?.long_name;
+}
+
+function buildLocationLabel(city: string, pincode?: string, localityHint?: string): string {
+  const base = pincode ? `${city}, ${pincode}` : city;
+  return localityHint ? `${base} - ${localityHint}` : base;
+}
+
+function buildLocalityHint(localities?: string[]): string {
+  if (!localities?.length) {
+    return "";
+  }
+  return localities.slice(0, 2).join(", ");
+}
+
+function getBestPincodeFromResults(results: GoogleGeocodeResult[]): string | undefined {
+  for (const result of results) {
+    const pincode = getAddressComponentValue(result.address_components ?? [], ["postal_code"]);
+    if (pincode) {
+      return pincode;
+    }
+  }
+  return undefined;
+}
 
 function buildLocationFromAddress(
   lat: number,
   lng: number,
-  address: Record<string, string | undefined>,
+  components: GoogleAddressComponent[],
+  fallbackPincode?: string,
+  localityHint?: string,
 ): Location {
-  const city = address.city || address.town || address.village || address.county || "Current area";
-  const state = address.state || address.state_district || "";
-  const pincode = address.postcode || "000000";
+  const city =
+    getAddressComponentValue(components, [
+      "locality",
+      "administrative_area_level_2",
+      "sublocality",
+    ]) || "Current area";
+  const state =
+    getAddressComponentValue(components, [
+      "administrative_area_level_1",
+      "administrative_area_level_2",
+    ]) || "";
+  const pincode = getAddressComponentValue(components, ["postal_code"]) || fallbackPincode || "";
 
   return {
     city,
     state,
     pincode,
-    label: `${city}, ${pincode}`,
+    label: buildLocationLabel(city, pincode, localityHint),
     lat,
     lng,
   };
 }
 
 export async function reverseGeocode(lat: number, lng: number): Promise<Location | null> {
-  const url = new URL(NOMINATIM_REVERSE);
-  url.searchParams.set("format", "jsonv2");
-  url.searchParams.set("lat", String(lat));
-  url.searchParams.set("lon", String(lng));
-  url.searchParams.set("addressdetails", "1");
+  const apiKey = getGoogleApiKey();
+  if (!apiKey) {
+    return null;
+  }
+
+  const url = new URL(GOOGLE_GEOCODE);
+  url.searchParams.set("latlng", `${lat},${lng}`);
+  url.searchParams.set("key", apiKey);
 
   const response = await fetch(url.toString(), {
     headers: {
@@ -40,25 +114,33 @@ export async function reverseGeocode(lat: number, lng: number): Promise<Location
   }
 
   const data = (await response.json()) as {
-    display_name?: string;
-    address?: Record<string, string | undefined>;
-    lat?: string;
-    lon?: string;
+    results?: GoogleGeocodeResult[];
+    status?: string;
+    error_message?: string;
   };
 
-  if (!data.address || !data.lat || !data.lon) {
+  if (data.status !== "OK" || !data.results?.length) {
+    if (data.status === "REQUEST_DENIED") {
+      console.error("Google reverse geocoding denied:", data.error_message ?? "Unknown error");
+    }
     return null;
   }
 
-  return buildLocationFromAddress(Number(data.lat), Number(data.lon), data.address);
+  const first = data.results[0];
+  const bestPincode = getBestPincodeFromResults(data.results);
+  const localityHint = buildLocalityHint(first.postcode_localities);
+  return buildLocationFromAddress(lat, lng, first.address_components ?? [], bestPincode, localityHint);
 }
 
 export async function searchLocations(query: string): Promise<LocationSuggestion[]> {
-  const url = new URL(NOMINATIM_SEARCH);
-  url.searchParams.set("format", "jsonv2");
-  url.searchParams.set("addressdetails", "1");
-  url.searchParams.set("limit", "6");
-  url.searchParams.set("q", query);
+  const apiKey = getGoogleApiKey();
+  if (!apiKey) {
+    return [];
+  }
+
+  const url = new URL(GOOGLE_GEOCODE);
+  url.searchParams.set("address", query);
+  url.searchParams.set("key", apiKey);
 
   const response = await fetch(url.toString(), {
     headers: {
@@ -70,27 +152,46 @@ export async function searchLocations(query: string): Promise<LocationSuggestion
     return [];
   }
 
-  const data = (await response.json()) as Array<{
-    display_name: string;
-    address?: Record<string, string | undefined>;
-    lat: string;
-    lon: string;
-  }>;
+  const data = (await response.json()) as {
+    results?: GoogleGeocodeResult[];
+    status?: string;
+    error_message?: string;
+  };
 
-  return data.map((entry) => {
-    const address = entry.address ?? {};
-    const city = address.city || address.town || address.village || address.county || "City";
-    const state = address.state || address.state_district || "";
-    const pincode = address.postcode || "000000";
+  if (data.status !== "OK" || !data.results?.length) {
+    if (data.status === "REQUEST_DENIED") {
+      console.error("Google search geocoding denied:", data.error_message ?? "Unknown error");
+    }
+    return [];
+  }
+
+  return data.results.slice(0, 6).map((entry) => {
+    const components = entry.address_components ?? [];
+    const city =
+      getAddressComponentValue(components, [
+        "locality",
+        "administrative_area_level_2",
+        "sublocality",
+      ]) || "City";
+    const state =
+      getAddressComponentValue(components, [
+        "administrative_area_level_1",
+        "administrative_area_level_2",
+      ]) || "";
+    const pincode =
+      getAddressComponentValue(components, ["postal_code"]) || getBestPincodeFromResults(data.results) || "";
+    const lat = entry.geometry?.location?.lat;
+    const lng = entry.geometry?.location?.lng;
+    const localityHint = buildLocalityHint(entry.postcode_localities);
 
     return {
       city,
       state,
       pincode,
-      label: `${city}, ${pincode}`,
-      lat: Number(entry.lat),
-      lng: Number(entry.lon),
-      rawLabel: entry.display_name,
+      label: buildLocationLabel(city, pincode, localityHint),
+      lat: typeof lat === "number" ? lat : 0,
+      lng: typeof lng === "number" ? lng : 0,
+      rawLabel: localityHint ? `${entry.formatted_address} - ${localityHint}` : entry.formatted_address,
     };
-  });
+  }).filter((entry) => entry.lat !== 0 || entry.lng !== 0);
 }
