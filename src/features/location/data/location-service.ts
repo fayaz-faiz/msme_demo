@@ -53,7 +53,7 @@ function buildLocalityHint(localities?: string[]): string {
   return localities.slice(0, 2).join(", ");
 }
 
-function getBestPincodeFromResults(results: GoogleGeocodeResult[]): string | undefined {
+function getBestPincodeFromResults(results: any): string | undefined {
   for (const result of results) {
     const pincode = getAddressComponentValue(result.address_components ?? [], ["postal_code"]);
     if (pincode) {
