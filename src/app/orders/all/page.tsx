@@ -25,7 +25,11 @@ function toReadableMessage(value: unknown): string {
     return value.trim();
   }
   if (Array.isArray(value)) {
-    return value.map((entry) => toReadableMessage(entry)).filter(Boolean).join(" ").trim();
+    return value
+      .map((entry) => toReadableMessage(entry))
+      .filter(Boolean)
+      .join(" ")
+      .trim();
   }
   if (typeof value === "object") {
     const obj = value as Record<string, unknown>;
@@ -56,11 +60,13 @@ function getErrorMessage(value: unknown, fallback = "Unable to load orders.") {
 }
 
 function pickOrderId(order: OrderLike) {
-  return String(order?._id || order?.id || order?.order_id || order?.orderId || "").trim();
+  return String(
+    order?._id || order?.id || order?.order_id || order?.orderId || "",
+  ).trim();
 }
 
 function pickOrderStatus(order: OrderLike) {
-  return String(order?.state || order?.status || "Placed");
+  return String(order?.status || order?.state || "Placed");
 }
 
 function pickPaymentStatus(order: OrderLike) {
@@ -69,29 +75,44 @@ function pickPaymentStatus(order: OrderLike) {
 }
 
 function pickOrderTotal(order: OrderLike) {
-  const raw = order?.grand_total ?? order?.total_amount ?? order?.order_value ?? order?.amount ?? 0;
+  const raw =
+    order?.grand_total ??
+    order?.total_amount ??
+    order?.order_value ??
+    order?.amount ??
+    0;
   const amount = Number(raw);
   return Number.isFinite(amount) ? amount : 0;
 }
 
 function pickOrderDate(order: OrderLike) {
-  const raw = order?.order_placed_timestamp || order?.created_at || order?.createdAt;
+  const raw =
+    order?.order_placed_timestamp || order?.created_at || order?.createdAt;
   if (!raw) {
     return "-";
   }
-  if (!(typeof raw === "string" || typeof raw === "number" || raw instanceof Date)) {
+  if (
+    !(typeof raw === "string" || typeof raw === "number" || raw instanceof Date)
+  ) {
     return String(raw);
   }
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) {
     return String(raw);
   }
-  return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(date);
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function pickAddress(order: OrderLike) {
   const billing = asRecord(order?.billings);
-  const address = billing?.address || order?.shipping_address || order?.delivery_address || order?.address;
+  const address =
+    billing?.address ||
+    order?.shipping_address ||
+    order?.delivery_address ||
+    order?.address;
   if (!address) {
     return "-";
   }
@@ -102,19 +123,36 @@ function pickAddress(order: OrderLike) {
   if (!addressData) {
     return "-";
   }
-  const parts = [addressData.building, addressData.locality, addressData.city, addressData.state, addressData.area_code || addressData.pincode].filter(Boolean);
+  const parts = [
+    addressData.building,
+    addressData.locality,
+    addressData.city,
+    addressData.state,
+    addressData.area_code || addressData.pincode,
+  ].filter(Boolean);
   return parts.join(", ");
 }
 
 function formatPaymentLabel(status: string) {
-  return status.replace(/-/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
+  return status
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
-function getStatusVariant(status: string): "placed" | "delivered" | "cancelled" | "default" {
+function getStatusVariant(
+  status: string,
+): "placed" | "delivered" | "cancelled" | "default" {
   const s = status.toLowerCase();
   if (s.includes("deliver") || s.includes("complet")) return "delivered";
   if (s.includes("cancel")) return "cancelled";
-  if (s.includes("place") || s.includes("process") || s.includes("accept") || s.includes("dispatch") || s.includes("pending")) return "placed";
+  if (
+    s.includes("place") ||
+    s.includes("process") ||
+    s.includes("accept") ||
+    s.includes("dispatch") ||
+    s.includes("pending")
+  )
+    return "placed";
   return "default";
 }
 
@@ -131,15 +169,36 @@ function SkeletonCard() {
       <div className={styles.skeletonAccent} />
       <div className={styles.skeletonBody}>
         <div className={styles.skeletonRow}>
-          <div className={styles.skeletonLine} style={{ height: 18, width: "38%" }} />
-          <div className={styles.skeletonLine} style={{ height: 18, width: "22%" }} />
+          <div
+            className={styles.skeletonLine}
+            style={{ height: 18, width: "38%" }}
+          />
+          <div
+            className={styles.skeletonLine}
+            style={{ height: 18, width: "22%" }}
+          />
         </div>
-        <div className={styles.skeletonLine} style={{ height: 13, width: "60%" }} />
-        <div className={styles.skeletonLine} style={{ height: 1, width: "100%", opacity: 0.4 }} />
-        <div className={styles.skeletonLine} style={{ height: 13, width: "80%" }} />
+        <div
+          className={styles.skeletonLine}
+          style={{ height: 13, width: "60%" }}
+        />
+        <div
+          className={styles.skeletonLine}
+          style={{ height: 1, width: "100%", opacity: 0.4 }}
+        />
+        <div
+          className={styles.skeletonLine}
+          style={{ height: 13, width: "80%" }}
+        />
         <div className={styles.skeletonRow}>
-          <div className={styles.skeletonLine} style={{ height: 26, width: "32%", borderRadius: 20 }} />
-          <div className={styles.skeletonLine} style={{ height: 32, width: "26%", borderRadius: 20 }} />
+          <div
+            className={styles.skeletonLine}
+            style={{ height: 26, width: "32%", borderRadius: 20 }}
+          />
+          <div
+            className={styles.skeletonLine}
+            style={{ height: 32, width: "26%", borderRadius: 20 }}
+          />
         </div>
       </div>
     </div>
@@ -154,7 +213,9 @@ function normalizeOrderItems(order: OrderLike): OrderItem[] {
     const item = asRecord(raw) || {};
     const qty = Number(item.count ?? item.quantity ?? 1);
     return {
-      name: String(item.item_name || item.name || item.title || `Item ${index + 1}`),
+      name: String(
+        item.item_name || item.name || item.title || `Item ${index + 1}`,
+      ),
       image: String(item.item_symbol || ""),
       qty: Number.isFinite(qty) && qty > 0 ? qty : 1,
       unitText: String(item.item_quantity || ""),
@@ -223,41 +284,52 @@ export default function AllOrdersPage() {
       .filter(Boolean);
   };
 
-  const fetchOrders = useCallback(async (targetPage: number, append: boolean) => {
-    if (append) {
-      setLoadingMore(true);
-    } else {
-      setLoading(true);
-      setError("");
-    }
-    try {
-      const response = await postMyOrdersApiData({ page: targetPage, pageSize });
-      const parsed = parseMyOrdersPayload(response);
-      const incoming = normalizePagedRows(parsed.rows);
-      setOrders((previous) => (append ? [...previous, ...incoming] : incoming));
-      setTotalOrders(parsed.totalOrders);
-      setPage(parsed.page + 1);
-    } catch (err: unknown) {
-      const message = getErrorMessage(err);
-      setError(message);
-      notifyOrAlert(message, "error");
-      if (!append) {
-        setOrders([]);
-      }
-    } finally {
+  const fetchOrders = useCallback(
+    async (targetPage: number, append: boolean) => {
       if (append) {
-        setLoadingMore(false);
+        setLoadingMore(true);
       } else {
-        setLoading(false);
+        setLoading(true);
+        setError("");
       }
-    }
-  }, []);
+      try {
+        const response = await postMyOrdersApiData({
+          page: targetPage,
+          pageSize,
+        });
+        const parsed = parseMyOrdersPayload(response);
+        const incoming = normalizePagedRows(parsed.rows);
+        setOrders((previous) =>
+          append ? [...previous, ...incoming] : incoming,
+        );
+        setTotalOrders(parsed.totalOrders);
+        setPage(parsed.page + 1);
+      } catch (err: unknown) {
+        const message = getErrorMessage(err);
+        setError(message);
+        notifyOrAlert(message, "error");
+        if (!append) {
+          setOrders([]);
+        }
+      } finally {
+        if (append) {
+          setLoadingMore(false);
+        } else {
+          setLoading(false);
+        }
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     void fetchOrders(1, false);
   }, [fetchOrders]);
 
-  const hasMore = useMemo(() => orders.length < totalOrders, [orders.length, totalOrders]);
+  const hasMore = useMemo(
+    () => orders.length < totalOrders,
+    [orders.length, totalOrders],
+  );
 
   const statusChipClass: Record<string, string> = {
     placed: styles.chipPlaced,
@@ -284,28 +356,44 @@ export default function AllOrdersPage() {
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <Link href="/profile" className={styles.backBtn} aria-label="Back to profile">←</Link>
+          <Link
+            href="/profile"
+            className={styles.backBtn}
+            aria-label="Back to profile"
+          >
+            ←
+          </Link>
           <div>
             <p className={styles.headerTitle}>My Orders</p>
-            <p className={styles.headerSubtitle}>Track &amp; review your purchases</p>
+            <p className={styles.headerSubtitle}>
+              Track &amp; review your purchases
+            </p>
           </div>
         </div>
         {(totalOrders > 0 || orders.length > 0) && (
-          <span className={styles.orderCountBadge}>{totalOrders || orders.length} orders</span>
+          <span className={styles.orderCountBadge}>
+            {totalOrders || orders.length} orders
+          </span>
         )}
       </div>
 
       {/* Content */}
       {loading ? (
         <div className={styles.skeletonList}>
-          {[1, 2, 3].map((n) => <SkeletonCard key={n} />)}
+          {[1, 2, 3].map((n) => (
+            <SkeletonCard key={n} />
+          ))}
         </div>
       ) : error ? (
         <div className={styles.emptyState}>
           <span className={styles.emptyIcon}>⚠️</span>
           <p className={styles.emptyTitle}>Something went wrong</p>
           <p className={styles.emptySubtitle}>{error}</p>
-          <button type="button" className={styles.retryBtn} onClick={() => void fetchOrders(1, false)}>
+          <button
+            type="button"
+            className={styles.retryBtn}
+            onClick={() => void fetchOrders(1, false)}
+          >
             Try again
           </button>
         </div>
@@ -313,7 +401,9 @@ export default function AllOrdersPage() {
         <div className={styles.emptyState}>
           <span className={styles.emptyIcon}>🛍️</span>
           <p className={styles.emptyTitle}>No orders yet</p>
-          <p className={styles.emptySubtitle}>Your past orders will appear here once you place one.</p>
+          <p className={styles.emptySubtitle}>
+            Your past orders will appear here once you place one.
+          </p>
         </div>
       ) : (
         <>
@@ -329,15 +419,23 @@ export default function AllOrdersPage() {
               const pv = getPaymentVariant(paymentStatus);
               const items = normalizeOrderItems(order);
               const visibleItems = items.slice(0, 2);
-              const remainingItemsCount = Math.max(items.length - visibleItems.length, 0);
+              const remainingItemsCount = Math.max(
+                items.length - visibleItems.length,
+                0,
+              );
               const isCopied = copiedId === orderId;
               return (
-                <article key={`${orderId}-${index}`} className={styles.orderCard}>
+                <article
+                  key={`${orderId}-${index}`}
+                  className={styles.orderCard}
+                >
                   <div className={`${styles.cardAccent} ${accentClass[sv]}`} />
                   <div className={styles.cardBody}>
                     <div className={styles.cardTop}>
                       <div className={styles.cardTopLeft}>
-                        <span className={`${styles.statusChip} ${statusChipClass[sv]}`}>
+                        <span
+                          className={`${styles.statusChip} ${statusChipClass[sv]}`}
+                        >
                           <span className={styles.statusDot} />
                           {status}
                         </span>
@@ -349,19 +447,46 @@ export default function AllOrdersPage() {
                               className={`${styles.copyBtn} ${isCopied ? styles.copyBtnCopied : ""}`}
                               aria-label="Copy order ID"
                               onClick={() => {
-                                void navigator.clipboard.writeText(orderId).then(() => {
-                                  setCopiedId(orderId);
-                                  setTimeout(() => setCopiedId(""), 2000);
-                                });
+                                void navigator.clipboard
+                                  .writeText(orderId)
+                                  .then(() => {
+                                    setCopiedId(orderId);
+                                    setTimeout(() => setCopiedId(""), 2000);
+                                  });
                               }}
                             >
                               {isCopied ? (
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
                                   <polyline points="20 6 9 17 4 12" />
                                 </svg>
                               ) : (
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <rect
+                                    x="9"
+                                    y="9"
+                                    width="13"
+                                    height="13"
+                                    rx="2"
+                                    ry="2"
+                                  />
                                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                                 </svg>
                               )}
@@ -370,8 +495,12 @@ export default function AllOrdersPage() {
                         )}
                       </div>
                       <div className={styles.amountBlock}>
-                        <span className={styles.amount}>{formatCurrency(amount)}</span>
-                        <span className={`${styles.paymentChip} ${paymentChipClass[pv]}`}>
+                        <span className={styles.amount}>
+                          {formatCurrency(amount)}
+                        </span>
+                        <span
+                          className={`${styles.paymentChip} ${paymentChipClass[pv]}`}
+                        >
                           {formatPaymentLabel(paymentStatus)}
                         </span>
                       </div>
@@ -384,17 +513,29 @@ export default function AllOrdersPage() {
                           {visibleItems.map((item, i) => (
                             <div key={i} className={styles.itemPill}>
                               {item.image ? (
-                                <img src={item.image} alt={item.name} className={styles.itemThumb} />
+                                <img
+                                  src={item.image}
+                                  alt={item.name}
+                                  className={styles.itemThumb}
+                                />
                               ) : (
-                                <div className={styles.itemThumbPlaceholder} aria-hidden="true" />
+                                <div
+                                  className={styles.itemThumbPlaceholder}
+                                  aria-hidden="true"
+                                />
                               )}
                               <span className={styles.itemPillName}>
-                                {item.name}{item.unitText ? ` · ${item.unitText}` : ""} × {item.qty}
+                                {item.name}
+                                {item.unitText
+                                  ? ` · ${item.unitText}`
+                                  : ""} × {item.qty}
                               </span>
                             </div>
                           ))}
                           {remainingItemsCount > 0 ? (
-                            <span className={styles.moreItemsPill}>+{remainingItemsCount} more</span>
+                            <span className={styles.moreItemsPill}>
+                              +{remainingItemsCount} more
+                            </span>
                           ) : null}
                         </div>
                       </>
@@ -413,8 +554,12 @@ export default function AllOrdersPage() {
                     <div className={styles.cardBottom}>
                       <span className={styles.dateChip}>🕐 {date}</span>
                       {orderId && (
-                        <Link href={`/orders/${orderId}`} className={styles.viewBtn}>
-                          View details <span className={styles.viewArrow}>→</span>
+                        <Link
+                          href={`/orders/${orderId}`}
+                          className={styles.viewBtn}
+                        >
+                          View details{" "}
+                          <span className={styles.viewArrow}>→</span>
                         </Link>
                       )}
                     </div>
@@ -443,5 +588,3 @@ export default function AllOrdersPage() {
     </div>
   );
 }
-
-
