@@ -336,8 +336,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
       const activeAddress = getActiveAddress();
       const lat = formatGpsCoord(location?.lat);
       const lng = formatGpsCoord(location?.lng);
-      const gps =
-        activeAddress?.gps || (lat && lng ? `${lat},${lng}` : "");
+      const gps = activeAddress?.gps || (lat && lng ? `${lat},${lng}` : "");
       const payload = {
         cart_id: cartId,
         gps,
@@ -613,6 +612,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
         .filter(Boolean)
         .join(", ")
     : "";
+  const needsAddress = isCartVerified && !addrText;
 
   return (
     <>
@@ -702,19 +702,52 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
         {/* ── Right panel ── */}
         <aside className={styles.summaryPanel}>
           {/* Delivery address */}
-          <div className={styles.addressCard}>
+          <div
+            className={`${styles.addressCard} ${needsAddress ? styles.addressCardAttention : ""}`}
+          >
             <div className={styles.addressHead}>
               <span className={styles.addressLabel}>Delivery address</span>
-              <button
-                type="button"
-                className={styles.changeAddressButton}
-                onClick={() => setShowLocationPicker(true)}
-              >
-                Change
-              </button>
+              {addrText && (
+                <button
+                  type="button"
+                  className={styles.changeAddressButton}
+                  onClick={() => setShowLocationPicker(true)}
+                >
+                  Change
+                </button>
+              )}
             </div>
             {addrText ? (
               <p className={styles.addressText}>{addrText}</p>
+            ) : needsAddress ? (
+              <div className={styles.noAddressPrompt}>
+                <div className={styles.noAddressPinWrap}>
+                  <span className={styles.noAddressPinRing} />
+                  <span
+                    className={`${styles.noAddressPinRing} ${styles.noAddressPinRing2}`}
+                  />
+                  <svg
+                    className={styles.noAddressPinIcon}
+                    viewBox="0 0 24 24"
+                    width="22"
+                    height="22"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                  </svg>
+                </div>
+                <p className={styles.noAddressHint}>
+                  Select an address to place your order
+                </p>
+                <button
+                  type="button"
+                  className={styles.noAddressCta}
+                  onClick={() => setShowLocationPicker(true)}
+                >
+                  Select delivery address
+                </button>
+              </div>
             ) : (
               <button
                 type="button"
@@ -774,7 +807,9 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
                 <>
                   Verifying cart&nbsp;
                   <span className={styles.verifyingDots}>
-                    <span /><span /><span />
+                    <span />
+                    <span />
+                    <span />
                   </span>
                 </>
               ) : isInitializing ? (

@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector } from "@/features/cart/store/hooks";
 import { useLocation } from "@/features/location/context/location-context";
 import { setCartLength } from "@/redux/slices";
 import { LocationPickerModal } from "@/features/location/components/LocationPickerModal";
+import { LocationPermissionModal } from "@/features/location/components/LocationPermissionModal";
 
 export function AppHeader() {
   const router = useRouter();
@@ -21,8 +22,9 @@ export function AppHeader() {
   const loginName = useAppSelector((state) => state.authToken.loginName);
   const user = useAppSelector((state) => state.auth.user);
   const isAuthenticated = !!user || loginName === "USER";
-  const { location, isResolving } = useLocation();
+  const { location, isResolving, permissionDenied, resolveCurrentLocation } = useLocation();
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
+  const [locationPermissionOpen, setLocationPermissionOpen] = useState(false);
   const [cartLoginPromptOpen, setCartLoginPromptOpen] = useState(false);
   const [navSearch, setNavSearch] = useState("");
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -49,6 +51,12 @@ export function AppHeader() {
     (pathname ? pathname.startsWith("/shops/") : false) ||
     pathname === "/cart" ||
     (pathname ? pathname.startsWith("/cart/") : false);
+
+  useEffect(() => {
+    if (permissionDenied && !location) {
+      setLocationPermissionOpen(true);
+    }
+  }, [permissionDenied, location]);
 
   const locationLabel = location
     ? `${location.city}, ${location.pincode}`
@@ -432,6 +440,11 @@ export function AppHeader() {
       <LocationPickerModal
         open={locationPickerOpen}
         onClose={() => setLocationPickerOpen(false)}
+      />
+      <LocationPermissionModal
+        open={locationPermissionOpen}
+        onClose={() => setLocationPermissionOpen(false)}
+        onGranted={resolveCurrentLocation}
       />
       {cartLoginPromptOpen ? (
         <div

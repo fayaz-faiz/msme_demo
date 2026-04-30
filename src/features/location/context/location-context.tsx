@@ -18,6 +18,7 @@ type LocationContextValue = {
   location: Location | null;
   isResolving: boolean;
   error: string | null;
+  permissionDenied: boolean;
   setLocation: (location: Location) => void;
   resolveCurrentLocation: () => Promise<void>;
 };
@@ -32,16 +33,19 @@ export function LocationProvider({ children }: LocationProviderProps) {
   const [location, setLocationState] = useState<Location | null>(null);
   const [isResolving, setIsResolving] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [permissionDenied, setPermissionDenied] = useState(false);
 
   const setLocation = useCallback((nextLocation: Location) => {
     setLocationState(nextLocation);
     setError(null);
+    setPermissionDenied(false);
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextLocation));
   }, []);
 
   const resolveCurrentLocation = useCallback(async () => {
     setIsResolving(true);
     setError(null);
+    setPermissionDenied(false);
 
     if (!navigator.geolocation) {
       setError("Geolocation is not supported in this browser.");
@@ -61,8 +65,13 @@ export function LocationProvider({ children }: LocationProviderProps) {
 
         setIsResolving(false);
       },
-      () => {
-        setError("Location access was denied. Search your address instead.");
+      (err) => {
+        if (err.code === 1 /* PERMISSION_DENIED */) {
+          setPermissionDenied(true);
+          setError("Location access was denied. Search your address instead.");
+        } else {
+          setError("Unable to get your location.");
+        }
         setIsResolving(false);
       },
       {
@@ -94,10 +103,11 @@ export function LocationProvider({ children }: LocationProviderProps) {
       location,
       isResolving,
       error,
+      permissionDenied,
       setLocation,
       resolveCurrentLocation,
     }),
-    [error, isResolving, location, resolveCurrentLocation, setLocation],
+    [error, isResolving, location, permissionDenied, resolveCurrentLocation, setLocation],
   );
 
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>;

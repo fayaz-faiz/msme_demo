@@ -16,6 +16,7 @@ import { formatCurrency } from "@/shared/lib/format-currency";
 import { toOndcCategory } from "@/features/shop/domain/ondc-category";
 import styles from "./ShopItemsBrowser.module.css";
 import { BackButton } from "@/shared/ui/BackButton";
+import { LocationPermissionModal } from "@/features/location/components/LocationPermissionModal";
 
 type ShopItemsBrowserProps = {
   slug: string;
@@ -184,7 +185,7 @@ export function ShopItemsBrowser({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { location } = useLocation();
+  const { location, isResolving: locationResolving, resolveCurrentLocation } = useLocation();
   const accessToken = useAppSelector((state) => state.apiResponse.accessToken);
   const cartLength = useAppSelector((state) => state.apiResponse.cartLength);
   const cartTotalAmount = useAppSelector(
@@ -217,6 +218,8 @@ export function ShopItemsBrowser({
   const [storeInfoLoaded, setStoreInfoLoaded] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [hasInternalHistory, setHasInternalHistory] = useState(false);
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const hasPromptedLocationRef = useRef(false);
 
   const observerRef = useRef<HTMLDivElement | null>(null);
 
@@ -445,6 +448,12 @@ export function ShopItemsBrowser({
   useEffect(() => {
     setHasInternalHistory(window.history.length > 1);
   }, []);
+
+  useEffect(() => {
+    if (!storeInfoLoaded || locationResolving || location || hasPromptedLocationRef.current) return;
+    hasPromptedLocationRef.current = true;
+    setLocationModalOpen(true);
+  }, [storeInfoLoaded, locationResolving, location]);
 
 
   useEffect(() => {
@@ -950,6 +959,12 @@ export function ShopItemsBrowser({
           <span>This provider is currently unavailable.</span>
         </div>
       ) : null}
+
+      <LocationPermissionModal
+        open={locationModalOpen}
+        onClose={() => setLocationModalOpen(false)}
+        onGranted={resolveCurrentLocation}
+      />
 
       {addedToCartHere && cartTotalAmount > 0 ? (
         <div className={styles.viewCartBar}>
