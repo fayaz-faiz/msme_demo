@@ -53,14 +53,14 @@ type IssueDetails = {
 };
 
 function toReadableMessage(value: unknown): string {
-  if (!value) {
-    return "";
-  }
-  if (typeof value === "string") {
-    return value.trim();
-  }
+  if (!value) return "";
+  if (typeof value === "string") return value.trim();
   if (Array.isArray(value)) {
-    return value.map((entry) => toReadableMessage(entry)).filter(Boolean).join(" ").trim();
+    return value
+      .map((entry) => toReadableMessage(entry))
+      .filter(Boolean)
+      .join(" ")
+      .trim();
   }
   if (typeof value === "object") {
     const obj = value as Record<string, unknown>;
@@ -92,28 +92,53 @@ function getErrorMessage(value: unknown, fallback: string) {
 }
 
 function formatDateTime(value?: string) {
-  if (!value) {
-    return "-";
-  }
+  if (!value) return "-";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return String(value);
-  }
-  return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(date);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function statusClass(status: string) {
-  const normalized = status.toUpperCase();
-  if (normalized === "PROCESSED" || normalized === "COMPLETED") {
-    return styles.statusProcessed;
-  }
-  if (normalized === "OPEN" || normalized === "PROCESSING") {
-    return styles.statusOpen;
-  }
-  if (normalized === "CLOSED") {
-    return styles.statusClosed;
-  }
+  const s = status.toUpperCase();
+  if (s === "PROCESSED" || s === "COMPLETED") return styles.statusProcessed;
+  if (s === "OPEN" || s === "PROCESSING") return styles.statusOpen;
+  if (s === "CLOSED") return styles.statusClosed;
   return styles.statusDefault;
+}
+
+function InfoRow({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | number | null;
+}) {
+  return (
+    <div className={styles.infoRow}>
+      <span className={styles.infoLabel}>{label}</span>
+      <span className={styles.infoValue}>{value ?? "-"}</span>
+    </div>
+  );
+}
+
+function SkeletonLoading() {
+  return (
+    <div className={styles.skeleton}>
+      <div className={styles.skeletonHero} />
+      {[90, 110, 140].map((h) => (
+        <div key={h} className={styles.skeletonCard}>
+          <div className={styles.skeletonCardInner}>
+            <div className={`${styles.skeletonLine} ${styles.lineShort}`} />
+            <div className={`${styles.skeletonLine} ${styles.lineFull}`} />
+            <div className={`${styles.skeletonLine} ${styles.lineMed}`} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function ComplaintDetailsPage() {
@@ -130,39 +155,44 @@ export default function ComplaintDetailsPage() {
   const fetchIssue = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await postIssueById({ issue_id: issueId }) as { data?: { status?: boolean; data?: IssueDetails } };
+      const result = (await postIssueById({ issue_id: issueId })) as {
+        data?: { status?: boolean; data?: IssueDetails };
+      };
       if (result?.data?.status && result?.data?.data) {
         setIssue(result.data.data);
       } else {
         notifyOrAlert("Issue not found.", "warning");
       }
     } catch (error: unknown) {
-      notifyOrAlert(getErrorMessage(error, "Unable to load complaint details."), "error");
+      notifyOrAlert(
+        getErrorMessage(error, "Unable to load complaint details."),
+        "error",
+      );
     } finally {
       setLoading(false);
     }
   }, [issueId]);
 
   useEffect(() => {
-    if (!issueId || didInitialFetch.current) {
-      return;
-    }
+    if (!issueId || didInitialFetch.current) return;
     didInitialFetch.current = true;
     void fetchIssue();
   }, [issueId, fetchIssue]);
 
   const onCloseIssue = async (rating: "THUMBS-UP" | "THUMBS-DOWN") => {
-    if (!issue?._id || closing) {
-      return;
-    }
+    if (!issue?._id || closing) return;
     setClosing(true);
     try {
-      const resp = await postIssueCloseById({
+      const resp = (await postIssueCloseById({
         issueId: issue._id,
         status: "CLOSED",
         rating,
-      }) as { data?: { data?: { message?: unknown } } };
-      notifyOrAlert(toReadableMessage(resp?.data?.data?.message) || "Issue closed successfully.", "success");
+      })) as { data?: { data?: { message?: unknown } } };
+      notifyOrAlert(
+        toReadableMessage(resp?.data?.data?.message) ||
+          "Issue closed successfully.",
+        "success",
+      );
       setShowRating(false);
       router.push("/profile/my-complains");
     } catch (error: unknown) {
@@ -173,144 +203,283 @@ export default function ComplaintDetailsPage() {
   };
 
   const steps = useMemo(() => {
-    const openAt = formatDateTime(issue?.complainant_actions?.[0]?.updated_at || issue?.created_at);
-    const processingAt = formatDateTime(issue?.respondent_actions?.[0]?.updated_at);
-    const resolvedAt = formatDateTime(issue?.respondent_actions?.[1]?.updated_at);
+    const openAt = formatDateTime(
+      issue?.complainant_actions?.[0]?.updated_at || issue?.created_at,
+    );
+    const processingAt = formatDateTime(
+      issue?.respondent_actions?.[0]?.updated_at,
+    );
+    const resolvedAt = formatDateTime(
+      issue?.respondent_actions?.[1]?.updated_at,
+    );
     const base = [
-      { label: "Open", desc: `Complaint created • ${openAt}` },
-      { label: "Processing", desc: `Complaint is being processed • ${processingAt}` },
+      { label: "Opened", desc: `Complaint submitted · ${openAt}` },
+      { label: "Processing", desc: `Under review · ${processingAt}` },
     ];
-    if ((issue?.respondent_actions?.length || 0) > 1 || String(issue?.status || "").toUpperCase() === "CLOSED") {
-      base.push({ label: "Resolved", desc: `Complaint resolved • ${resolvedAt}` });
+    if (
+      (issue?.respondent_actions?.length || 0) > 1 ||
+      String(issue?.status || "").toUpperCase() === "CLOSED"
+    ) {
+      base.push({
+        label: "Resolved",
+        desc: `Complaint resolved · ${resolvedAt}`,
+      });
     }
     return base;
   }, [issue]);
 
   const activeStep = useMemo(() => {
     const status = String(issue?.status || "").toUpperCase();
-    if (status === "CLOSED") {
-      return Math.max(steps.length - 1, 0);
-    }
-    if (status === "OPEN" || status === "PROCESSING" || status === "PROCESSED") {
+    if (status === "CLOSED") return Math.max(steps.length - 1, 0);
+    if (
+      status === "OPEN" ||
+      status === "PROCESSING" ||
+      status === "PROCESSED"
+    ) {
       return Math.min(1, Math.max(steps.length - 1, 0));
     }
     return 0;
   }, [issue?.status, steps.length]);
 
-  if (loading) {
-    return (
-      <section className={styles.page}>
-        <article className={styles.card}><p>Loading complaint details...</p></article>
-      </section>
-    );
-  }
+  if (loading) return <SkeletonLoading />;
 
   if (!issue) {
     return (
-      <section className={styles.page}>
-        <article className={styles.card}>
-          <h1>Complaint not found</h1>
-          <Link href="/profile/my-complains" className={styles.backButton}>Back to Complaints</Link>
-        </article>
-      </section>
+      <div className={styles.notFound}>
+        <p className={styles.notFoundTitle}>Complaint not found</p>
+        <p className={styles.notFoundSub}>
+          This complaint may have been removed or the ID is invalid.
+        </p>
+        <Link href="/profile/my-complains" className={styles.backButton}>
+          ← Back to Complaints
+        </Link>
+      </div>
     );
   }
 
   const items = Array.isArray(issue.item_ids) ? issue.item_ids : [];
   const status = String(issue.status || "OPEN");
+  const isClosed = status.toUpperCase() === "CLOSED";
 
   return (
-    <section className={styles.page}>
+    <div className={styles.page}>
+      {/* Hero */}
       <header className={styles.hero}>
-        <div>
-          <p className={styles.kicker}>Complaint</p>
-          <h1>Complaint Details</h1>
-          <p>Issue ID: {issue._id || "-"}</p>
+        <div className={styles.heroLeft}>
+          <span className={styles.kicker}>Complaint</span>
+          <h1 className={styles.heroTitle}>Complaint Details</h1>
+          <p className={styles.heroId}>{issue._id || "-"}</p>
         </div>
-        <div className={styles.heroActions}>
-          <span className={`${styles.statusChip} ${statusClass(status)}`}>{status}</span>
-          <Link href="/profile/my-complains" className={styles.backButton}>Back to Complaints</Link>
+        <div className={styles.heroRight}>
+          <Link href="/profile/my-complains" className={styles.backButton}>
+            ← Back
+          </Link>
+          <span className={`${styles.statusChip} ${statusClass(status)}`}>
+            {status}
+          </span>
         </div>
       </header>
 
-      <article className={styles.card}>
-        <h2>Summary</h2>
-        <div className={styles.twoCol}>
-          <p><strong>Order ID:</strong> {issue.order_id || "-"}</p>
-          <p><strong>Raised:</strong> {formatDateTime(issue.created_at)}</p>
-          <p><strong>Provider:</strong> {issue.provider_name || "-"}</p>
-          <p><strong>Provider status:</strong> {issue.respondent_actions?.[0]?.short_desc || "-"}</p>
+      {/* Summary */}
+      <section className={styles.card}>
+        <div className={styles.cardHeader}>
+          <h2 className={styles.cardTitle}>Summary</h2>
         </div>
-      </article>
+        <div className={styles.cardBody}>
+          <div className={styles.infoGrid}>
+            <InfoRow label="Order ID" value={issue.order_id} />
+            <InfoRow
+              label="Raised on"
+              value={formatDateTime(issue.created_at)}
+            />
+            <InfoRow label="Provider" value={issue.provider_name} />
+            <InfoRow
+              label="Provider status"
+              value={issue.respondent_actions?.[0]?.short_desc}
+            />
+            <InfoRow
+              label="Expected response"
+              value={formatDateTime(issue.expected_response_time)}
+            />
+            <InfoRow
+              label="Expected resolution"
+              value={formatDateTime(issue.expected_resolution_time)}
+            />
+          </div>
+        </div>
+      </section>
 
-      <article className={styles.card}>
-        <h2>Items</h2>
-        <div className={styles.itemList}>
-          {items.map((item, index) => (
-            <div key={`${item.id || item.name}-${index}`} className={styles.itemCard}>
-              <img src={item.itemImageUrl || "https://via.placeholder.com/70x70?text=Item"} alt={item.name || "Item"} />
-              <div>
-                <h3>{item.name || "Item"}</h3>
-                <p><strong>Qty:</strong> {item.quantity || 0}</p>
-                <p><strong>Units:</strong> {item.quantityInUnits || "-"}</p>
-              </div>
+      {/* Items */}
+      <section className={styles.card}>
+        <div className={styles.cardHeader}>
+          <h2 className={styles.cardTitle}>Items</h2>
+        </div>
+        <div className={styles.cardBody}>
+          {items.length > 0 && (
+            <div className={styles.itemList}>
+              {items.map((item, index) => (
+                <div
+                  key={`${item.id || item.name}-${index}`}
+                  className={styles.itemCard}
+                >
+                  <img
+                    src={
+                      item.itemImageUrl ||
+                      "https://via.placeholder.com/64x64?text=Item"
+                    }
+                    alt={item.name || "Item"}
+                    className={styles.itemImg}
+                  />
+                  <div className={styles.itemInfo}>
+                    <p className={styles.itemName}>{item.name || "Item"}</p>
+                    <div className={styles.itemMeta}>
+                      <span className={styles.itemMetaItem}>
+                        Qty: {item.quantity || 0}
+                      </span>
+                      <span className={styles.itemMetaItem}>
+                        {item.quantityInUnits || "-"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+          <hr
+            className={styles.divider}
+            style={{ margin: items.length > 0 ? "1rem 0" : "0 0 0.5rem" }}
+          />
+          <div className={styles.infoGrid}>
+            <InfoRow
+              label="Short description"
+              value={issue.short_description}
+            />
+            <InfoRow label="Long description" value={issue.long_description} />
+          </div>
         </div>
-        <p><strong>Short Description:</strong> {issue.short_description || "-"}</p>
-        <p><strong>Long Description:</strong> {issue.long_description || "-"}</p>
-        <p><strong>Expected Response Time:</strong> {formatDateTime(issue.expected_response_time)}</p>
-        <p><strong>Expected Resolution Time:</strong> {formatDateTime(issue.expected_resolution_time)}</p>
-      </article>
+      </section>
 
-      <article className={styles.card}>
-        <div className={styles.sectionTop}>
-          <h2>Complaint Progress</h2>
-          {status.toUpperCase() !== "CLOSED" ? (
-            <button type="button" className={styles.closeIssueButton} onClick={() => setShowConfirmClose(true)}>
-              Close Issue
+      {/* Progress */}
+      <section className={styles.card}>
+        <div className={styles.cardHeader}>
+          <h2 className={styles.cardTitle}>Progress</h2>
+          {!isClosed && (
+            <button
+              type="button"
+              className={styles.closeIssueButton}
+              onClick={() => setShowConfirmClose(true)}
+            >
+              Close issue
             </button>
-          ) : null}
+          )}
         </div>
-        <ol className={styles.stepper}>
-          {steps.map((step, index) => (
-            <li key={step.label} className={styles.stepItem}>
-              <span className={`${styles.stepDot} ${index <= activeStep ? styles.stepDone : ""}`}>{index + 1}</span>
-              <div>
-                <h3>{step.label}</h3>
-                <p>{step.desc}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </article>
+        <div className={styles.cardBody}>
+          <ol className={styles.stepper}>
+            {steps.map((step, index) => {
+              const done = index <= activeStep;
+              const isLast = index === steps.length - 1;
+              return (
+                <li key={step.label} className={styles.stepItem}>
+                  <div className={styles.stepLeft}>
+                    <span
+                      className={`${styles.stepDot} ${done ? styles.stepDone : ""}`}
+                    >
+                      {index + 1}
+                    </span>
+                    {!isLast && (
+                      <div
+                        className={`${styles.stepConnector} ${done ? styles.stepConnectorDone : ""}`}
+                      />
+                    )}
+                  </div>
+                  <div className={styles.stepContent}>
+                    <p className={styles.stepLabel}>{step.label}</p>
+                    <p className={styles.stepDesc}>{step.desc}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </section>
 
-      {issue.resolutions ? (
-        <article className={styles.card}>
-          <h2>Resolution Details</h2>
-          <div className={styles.twoCol}>
-            <p><strong>Short Description:</strong> {issue.resolutions.short_desc || "-"}</p>
-            <p><strong>Long Description:</strong> {issue.resolutions.long_desc || "-"}</p>
-            <p><strong>Action Triggered:</strong> {issue.resolutions.action_triggered || "-"}</p>
-            <p><strong>Refund Amount:</strong> {issue.resolutions.refund_amount ?? "-"}</p>
+      {/* Resolution */}
+      {issue.resolutions && (
+        <section className={styles.card}>
+          <div className={styles.cardHeader}>
+            <h2 className={styles.cardTitle}>Resolution</h2>
           </div>
-          <h3 className={styles.subTitle}>Resolution Provider</h3>
-          <div className={styles.twoCol}>
-            <p><strong>Contact:</strong> {issue.resolutions_providers?.contact_phone || "-"}</p>
-            <p><strong>Email:</strong> {issue.resolutions_providers?.contact_email || "-"}</p>
-            <p><strong>Name:</strong> {issue.resolutions_providers?.contact_person || "-"}</p>
-            <p><strong>Organization:</strong> {issue.resolutions_providers?.organization_name || "-"}</p>
+          <div className={styles.cardBody}>
+            <div className={styles.infoGrid}>
+              <InfoRow
+                label="Short description"
+                value={issue.resolutions.short_desc}
+              />
+              <InfoRow
+                label="Long description"
+                value={issue.resolutions.long_desc}
+              />
+              <InfoRow
+                label="Action triggered"
+                value={issue.resolutions.action_triggered}
+              />
+              <InfoRow
+                label="Refund amount"
+                value={issue.resolutions.refund_amount}
+              />
+            </div>
+            <hr className={styles.divider} style={{ margin: "1.25rem 0" }} />
+            <p className={styles.infoLabel} style={{ marginBottom: "0.75rem" }}>
+              Resolution provider
+            </p>
+            <div className={styles.infoGrid}>
+              <InfoRow
+                label="Name"
+                value={issue.resolutions_providers?.contact_person}
+              />
+              <InfoRow
+                label="Organization"
+                value={issue.resolutions_providers?.organization_name}
+              />
+              <InfoRow
+                label="Phone"
+                value={issue.resolutions_providers?.contact_phone}
+              />
+              <InfoRow
+                label="Email"
+                value={issue.resolutions_providers?.contact_email}
+              />
+            </div>
           </div>
-        </article>
-      ) : null}
+        </section>
+      )}
 
-      {showConfirmClose ? (
-        <div className={styles.modalBackdrop} role="presentation" onClick={() => setShowConfirmClose(false)}>
-          <div className={styles.modalCard} role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
-            <h3>Close this issue?</h3>
-            <p>Are you sure you want to close this complaint?</p>
+      {/* Confirm close modal */}
+      {showConfirmClose && (
+        <div
+          className={styles.modalBackdrop}
+          role="presentation"
+          onClick={() => setShowConfirmClose(false)}
+        >
+          <div
+            className={styles.modalCard}
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className={styles.modalTitle}>Close this complaint?</p>
+            <p className={styles.modalSub}>
+              This action cannot be undone. The complaint will be marked as
+              closed.
+            </p>
             <div className={styles.modalActions}>
-              <button type="button" className={styles.secondaryButton} onClick={() => setShowConfirmClose(false)}>No</button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setShowConfirmClose(false)}
+              >
+                Cancel
+              </button>
               <button
                 type="button"
                 className={styles.primaryButton}
@@ -319,29 +488,53 @@ export default function ComplaintDetailsPage() {
                   setShowRating(true);
                 }}
               >
-                Yes
+                Yes, close it
               </button>
             </div>
           </div>
         </div>
-      ) : null}
+      )}
 
-      {showRating ? (
-        <div className={styles.modalBackdrop} role="presentation" onClick={() => setShowRating(false)}>
-          <div className={styles.modalCard} role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
-            <h3>Did you like the resolution?</h3>
-            <p>Your feedback helps improve complaint handling.</p>
-            <div className={styles.modalActions}>
-              <button type="button" className={styles.secondaryButton} disabled={closing} onClick={() => void onCloseIssue("THUMBS-DOWN")}>
-                {closing ? "Submitting..." : "No"}
+      {/* Rating modal */}
+      {showRating && (
+        <div
+          className={styles.modalBackdrop}
+          role="presentation"
+          onClick={() => !closing && setShowRating(false)}
+        >
+          <div
+            className={styles.modalCard}
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className={styles.modalTitle}>How was the resolution?</p>
+            <p className={styles.modalSub}>
+              Your feedback helps improve the support experience.
+            </p>
+            <div className={styles.ratingButtons}>
+              <button
+                type="button"
+                className={styles.ratingNo}
+                disabled={closing}
+                onClick={() => void onCloseIssue("THUMBS-DOWN")}
+              >
+                <span className={styles.ratingIcon}>👎</span>
+                {closing ? "Submitting..." : "Not satisfied"}
               </button>
-              <button type="button" className={styles.primaryButton} disabled={closing} onClick={() => void onCloseIssue("THUMBS-UP")}>
-                {closing ? "Submitting..." : "Yes"}
+              <button
+                type="button"
+                className={styles.ratingYes}
+                disabled={closing}
+                onClick={() => void onCloseIssue("THUMBS-UP")}
+              >
+                <span className={styles.ratingIcon}>👍</span>
+                {closing ? "Submitting..." : "Satisfied"}
               </button>
             </div>
           </div>
         </div>
-      ) : null}
-    </section>
+      )}
+    </div>
   );
 }

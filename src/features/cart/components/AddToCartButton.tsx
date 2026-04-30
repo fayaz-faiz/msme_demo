@@ -24,6 +24,7 @@ import { notifyOrAlert } from "@/shared/lib/notify";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import styles from "./AddToCartButton.module.css";
+import { LoginPromptModal } from "./LoginPromptModal";
 
 type AddToCartButtonProps = {
   product: Product;
@@ -130,6 +131,7 @@ export function AddToCartButton({
     Record<string, string | string[]>
   >({});
   const [isClient, setIsClient] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const currentQuery = searchParams?.toString();
   const nextPath = currentQuery ? `${pathname}?${currentQuery}` : pathname;
   const formatGpsCoord = (value: number | string | undefined | null): string => {
@@ -166,13 +168,7 @@ export function AddToCartButton({
     if (user || loginName === "USER") {
       return true;
     }
-
-    const allowRedirect = window.confirm(
-      "Please login first to add items and view cart. Go to login now?",
-    );
-    if (allowRedirect) {
-      router.push(`/auth/login?next=${encodeURIComponent(nextPath)}`);
-    }
+    setShowLoginModal(true);
     return false;
   };
 
@@ -472,6 +468,17 @@ export function AddToCartButton({
         )
       : null;
 
+  const loginModal = (
+    <LoginPromptModal
+      open={showLoginModal}
+      onClose={() => setShowLoginModal(false)}
+      onLogin={() => {
+        setShowLoginModal(false);
+        router.push(`/auth/login?next=${encodeURIComponent(nextPath)}`);
+      }}
+    />
+  );
+
   if (storeDisabled) {
     return (
       <button type="button" className={styles.closedButton} disabled>
@@ -483,6 +490,7 @@ export function AddToCartButton({
   if (!quantity) {
     return (
       <>
+        {loginModal}
         <button
           type="button"
           className={styles.addButton}
@@ -556,6 +564,8 @@ export function AddToCartButton({
   }
 
   return (
+    <>
+    {loginModal}
     <div
       className={styles.stepper}
       aria-label={`${product.name} quantity controls`}
@@ -634,5 +644,6 @@ export function AddToCartButton({
         +
       </button>
     </div>
+    </>
   );
 }

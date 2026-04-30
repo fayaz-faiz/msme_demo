@@ -120,6 +120,19 @@ function statusClass(status: string) {
   return styles.statusDefault;
 }
 
+function SkeletonCard() {
+  return (
+    <div className={styles.skeletonCard}>
+      <div className={styles.skeletonImg} />
+      <div className={styles.skeletonBody}>
+        <div className={`${styles.skeletonLine} ${styles.lineShort}`} />
+        <div className={`${styles.skeletonLine} ${styles.lineFull}`} />
+        <div className={`${styles.skeletonLine} ${styles.lineMed}`} />
+      </div>
+    </div>
+  );
+}
+
 export default function MyComplainsPage() {
   const [complaints, setComplaints] = useState<ComplaintRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,31 +184,55 @@ export default function MyComplainsPage() {
   const hasMore = useMemo(() => page <= totalPages, [page, totalPages]);
 
   return (
-    <section className={styles.page}>
+    <div className={styles.page}>
       <header className={styles.hero}>
         <div>
-          <p className={styles.kicker}>Profile</p>
-          <h1>My Complaints</h1>
-          <p>Track your raised issues and check the latest complaint status updates.</p>
+          <span className={styles.kicker}>Profile</span>
+          <h1 className={styles.heroTitle}>My Complaints</h1>
+          <p className={styles.heroSub}>Track your raised issues and monitor resolution status.</p>
         </div>
         <div className={styles.heroActions}>
-          <span className={styles.totalBadge}>Total: {totalComplaints || complaints.length}</span>
-          <Link href="/profile" className={styles.backButton}>Back to Profile</Link>
+          <Link href="/profile" className={styles.backButton}>
+            ← Back
+          </Link>
+          <div className={styles.statBox}>
+            <span className={styles.statNum}>{totalComplaints || complaints.length}</span>
+            <span className={styles.statLabel}>Total</span>
+          </div>
         </div>
       </header>
 
-      <section className={styles.card}>
+      <main className={styles.content}>
         {loading ? (
-          <p className={styles.emptyState}>Loading complaints...</p>
+          <div className={styles.list}>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
         ) : error ? (
-          <div className={styles.errorWrap}>
-            <p className={styles.emptyState}>{error}</p>
-            <button type="button" className={styles.primaryButton} onClick={() => void fetchComplaints(1, false)}>
-              Retry
+          <div className={styles.errorState}>
+            <div className={styles.errorIconWrap}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M10 4v7M10 14.5v.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </div>
+            <p className={styles.errorTitle}>Something went wrong</p>
+            <p className={styles.errorMsg}>{error}</p>
+            <button type="button" className={styles.retryBtn} onClick={() => void fetchComplaints(1, false)}>
+              Try again
             </button>
           </div>
         ) : complaints.length === 0 ? (
-          <p className={styles.emptyState}>No complaints found yet.</p>
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIconWrap}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M8 7h8M8 11h8M8 15h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </div>
+            <p className={styles.emptyTitle}>No complaints yet</p>
+            <p className={styles.emptySub}>Any issues you raise will appear here.</p>
+          </div>
         ) : (
           <div className={styles.list}>
             {complaints.map((complaint, index) => {
@@ -205,29 +242,34 @@ export default function MyComplainsPage() {
               const primaryItem = items?.[0];
               const extraCount = Math.max(0, (items?.length || 0) - 1);
               return (
-                <article key={`${issueId}-${index}`} className={styles.issueCard}>
-                  <div className={styles.cardTop}>
-                    <div>
-                      <p className={styles.issueId}>Issue ID: {issueId}</p>
-                      <h3>{primaryItem?.name || "Complaint item"}</h3>
-                    </div>
-                    <span className={`${styles.statusChip} ${statusClass(status)}`}>{status}</span>
-                  </div>
-
-                  <div className={styles.itemRow}>
+                <article key={`${issueId}-${index}`} className={styles.card}>
+                  <div className={styles.cardBody}>
                     <img
+                      className={styles.itemImg}
                       src={primaryItem?.itemImageUrl || "https://via.placeholder.com/96x96?text=Item"}
                       alt={primaryItem?.name || "Item"}
                     />
-                    <div className={styles.metaWrap}>
-                      <p><strong>Seller:</strong> {complaint?.summary?.provider_name || "-"}</p>
-                      <p><strong>Raised:</strong> {formatDateTime(complaint?.createdAt)}</p>
-                      {extraCount > 0 ? <p><strong>Items:</strong> +{extraCount} more</p> : null}
+                    <div className={styles.cardInfo}>
+                      <div className={styles.cardMeta}>
+                        <span className={styles.issueId}>#{issueId.slice(-8)}</span>
+                        <span className={`${styles.statusChip} ${statusClass(status)}`}>{status}</span>
+                      </div>
+                      <h3 className={styles.itemName}>{primaryItem?.name || "Complaint item"}</h3>
+                      <div className={styles.metaList}>
+                        {complaint?.summary?.provider_name && (
+                          <span className={styles.metaItem}>{complaint.summary.provider_name}</span>
+                        )}
+                        <span className={styles.metaItem}>{formatDateTime(complaint?.createdAt)}</span>
+                        {extraCount > 0 && <span className={styles.metaItem}>+{extraCount} more</span>}
+                      </div>
                     </div>
                   </div>
-                  <div className={styles.actionRow}>
-                    <Link href={`/profile/my-complains/${issueId}`} className={styles.detailsButton}>
+                  <div className={styles.cardFooter}>
+                    <Link href={`/profile/my-complains/${issueId}`} className={styles.detailsLink}>
                       View Details
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                        <path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                     </Link>
                   </div>
                 </article>
@@ -236,18 +278,23 @@ export default function MyComplainsPage() {
           </div>
         )}
 
-        {!loading && !error && complaints.length > 0 ? (
-          <div className={styles.loadWrap}>
+        {!loading && !error && complaints.length > 0 && (
+          <div className={styles.loadMore}>
             {hasMore ? (
-              <button type="button" className={styles.primaryButton} disabled={loadingMore} onClick={() => void fetchComplaints(page, true)}>
-                {loadingMore ? "Loading..." : "Load more complaints"}
+              <button
+                type="button"
+                className={styles.loadMoreBtn}
+                disabled={loadingMore}
+                onClick={() => void fetchComplaints(page, true)}
+              >
+                {loadingMore ? "Loading…" : "Load more"}
               </button>
             ) : (
-              <p className={styles.endText}>You have reached the end of complaint history.</p>
+              <span className={styles.endText}>You&apos;ve seen all complaints</span>
             )}
           </div>
-        ) : null}
-      </section>
-    </section>
+        )}
+      </main>
+    </div>
   );
 }
