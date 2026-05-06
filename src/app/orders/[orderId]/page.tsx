@@ -827,7 +827,7 @@ export default function OrderDetailsPage() {
             ) : null}
             {canRaiseQuery ? (
               <Link
-                href="/profile/my-complains"
+                href={`/profile/complaints?orderId=${encodeURIComponent(orderId)}`}
                 className={styles.secondaryButton}
               >
                 Raise Query

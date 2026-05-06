@@ -443,6 +443,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     shopSlug: storeData?.provider_name || "",
     name: item.item_name || "Item",
     description: item.item_quantity || "",
+    cartCount: item.count,
     price: Number(item.total_amount || item.original_amount || 0),
     stock: 999,
     image: item.item_symbol || "",
