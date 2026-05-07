@@ -482,7 +482,7 @@ export function AddToCartButton({
   if (storeDisabled) {
     return (
       <button type="button" className={styles.closedButton} disabled>
-        Unavailable
+        Add
       </button>
     );
   }

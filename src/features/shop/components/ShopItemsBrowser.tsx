@@ -269,7 +269,7 @@ export function ShopItemsBrowser({
   const resolvedShopImage =
     storeInfo?.bpp_provider_symbol || shopImage || DEFAULT_IMAGE;
   const resolvedDistance = storeInfo?.distance || distance || "-";
-  const isStoreOpen = storeInfo?.provider_status !== "disable";
+  const isStoreOpen = providerStatus;
   const resolvedDescription =
     [storeInfo?.provider_street, storeInfo?.provider_city]
       .filter(Boolean)

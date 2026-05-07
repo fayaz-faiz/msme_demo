@@ -450,85 +450,102 @@ export function ShopBrowser({ shops = [] }: ShopBrowserProps) {
         </div>
       ) : (
         <div className={styles.grid}>
-          {filteredShops.map((shop) => (
-            <article key={shop.id} className={styles.card}>
-              <div
-                className={styles.imageWrap}
-                style={{ "--accent": shop.accent } as CSSProperties}
+          {filteredShops.map((shop) => {
+            const storeLink = `/store?providerId=${encodeURIComponent(
+              shop.providerId || "",
+            )}&providerLocationId=${encodeURIComponent(
+              shop.providerLocationId || "",
+            )}&category=${encodeURIComponent(toOndcCategory(activeCategory))}&shopName=${encodeURIComponent(
+              shop.name,
+            )}&shopImage=${encodeURIComponent(shop.image)}&distance=${encodeURIComponent(
+              shop.deliveryTime,
+            )}&serviceable=${encodeURIComponent(String(!!shop.serviceable))}`;
+            
+            return (
+              <Link
+                key={shop.id}
+                href={storeLink}
+                className={styles.cardLink}
               >
-                <img
-                  src={shop.image}
-                  alt={shop.name}
-                  className={styles.image}
-                  loading="lazy"
-                  decoding="async"
-                />
-                <div className={styles.overlay} />
-                <div className={styles.badge}>{shop.category}</div>
-                {/* <span className={styles.ratingBadge}>
-                  {shop.rating.toFixed(1)} / 5
-                </span> */}
-              </div>
-              <div className={styles.body}>
-                <div className={styles.cardHeading}>
-                  <h2 className={styles.cardTitle}>{shop.name}</h2>
-                  {shop.verified ? (
-                    <span
-                      className={styles.verifiedBadge}
-                      aria-label="Verified store"
-                      title="Verified store"
-                    >
-                      Verified
-                    </span>
-                  ) : null}
-                </div>
-                <p className={styles.cardDesc}>
-                  {shop.providerStreet || shop.description}
-                </p>
-                <div className={styles.meta}>
-                  <span className={styles.deliveryTime}>
-                    📍 {shop.deliveryTime}
-                  </span>
-                  <span
-                    className={
-                      String(shop.providerStatus || "").toLowerCase() ===
-                      "enable"
-                        ? styles.openStatus
-                        : styles.closedStatus
-                    }
+                <article className={styles.card}>
+                  <div
+                    className={styles.imageWrap}
+                    style={{ "--accent": shop.accent } as CSSProperties}
                   >
-                    {String(shop.providerStatus || "").toLowerCase() ===
-                    "enable"
-                      ? "Open"
-                      : "Closed"}
-                  </span>
-                  <span
-                    className={
-                      shop.serviceable
-                        ? styles.deliverable
-                        : styles.notDelivering
-                    }
-                  >
-                    {shop.serviceable ? "Deliverable" : "Not Deliverable"}
-                  </span>
-                </div>
-                <Link
-                  href={`/store?providerId=${encodeURIComponent(
-                    shop.providerId || "",
-                  )}&providerLocationId=${encodeURIComponent(
-                    shop.providerLocationId || "",
-                  )}&category=${encodeURIComponent(toOndcCategory(activeCategory))}&shopName=${encodeURIComponent(
-                    shop.name,
-                  )}&shopImage=${encodeURIComponent(shop.image)}&distance=${encodeURIComponent(
-                    shop.deliveryTime,
-                  )}&serviceable=${encodeURIComponent(String(!!shop.serviceable))}`}
-                  className={styles.openButton}
-                >
-                  Visit Store
-                </Link>
-              </div>
-            </article>
-          ))}
+                    <img
+                      src={shop.image}
+                      alt={shop.name}
+                      className={styles.image}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <div className={styles.overlay} />
+                    <div className={styles.badge}>{shop.category}</div>
+                    {/* <span className={styles.ratingBadge}>
+                      {shop.rating.toFixed(1)} / 5
+                    </span> */}
+                  </div>
+                  <div className={styles.body}>
+                    <div className={styles.cardHeading}>
+                      <h2 className={styles.cardTitle}>{shop.name}</h2>
+                      {shop.verified ? (
+                        <span
+                          className={styles.verifiedBadge}
+                          aria-label="Verified store"
+                          title="Verified store"
+                        >
+                          Verified
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className={styles.cardDesc}>
+                      {shop.providerStreet || shop.description}
+                    </p>
+                    <div className={styles.meta}>
+                      <span className={styles.deliveryTime}>
+                        📍 {shop.deliveryTime}
+                      </span>
+                      {/* <span
+                        className={
+                          String(shop.providerStatus || "").toLowerCase() ===
+                          "enable"
+                            ? styles.openStatus
+                            : styles.closedStatus
+                        }
+                      >
+                        {String(shop.providerStatus || "").toLowerCase() ===
+                        "enable"
+                          ? "Open"
+                          : "Closed"}
+                      </span> */}
+                      <span
+                        className={
+                          shop.serviceable
+                            ? styles.deliverable
+                            : styles.notDelivering
+                        }
+                      >
+                        {shop.serviceable ? "Deliverable" : "Not Deliverable"}
+                      </span>
+                    </div>
+                    {/* <div className={styles.buttonWrapper}>
+                      <button 
+                        type="button"
+                        className={styles.openButton}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          // The Link parent will handle navigation
+                        }}
+                      >
+                        <span>Visit Store</span>
+                        <span className={styles.buttonArrow}></span>
+                      </button>
+                    </div> */}
+                  </div>
+                </article>
+              </Link>
+            );
+          })}
         </div>
       )}
 

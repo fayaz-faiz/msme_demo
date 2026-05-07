@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start --port ${PORT-3000}",
     "start:2300": "next start -p 2300",
+    "start:5000": "next start -p 5000",
     "lint": "next lint"
   },
   "dependencies": {

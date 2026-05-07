@@ -191,6 +191,13 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.cardLink {
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+
 .card,
 .skeletonCard {
   width: 100%;
@@ -206,12 +213,13 @@
   display: flex;
   flex-direction: column;
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  height: 100%;
 }
 
-.card:hover {
-  transform: translateY(-3px);
-  border-color: #d8ddd7;
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.11);
+.cardLink:hover .card {
+  transform: translateY(-6px);
+  border-color: var(--brand);
+  box-shadow: 0 16px 32px rgba(255, 92, 27, 0.15);
 }
 
 .imageWrap {
@@ -396,41 +404,56 @@
   background: #b54747;
 }
 
-.openButton {
+.buttonWrapper {
   margin-top: auto;
-  align-self: flex-start;
-  display: inline-flex;
+  width: 100%;
+  display: flex;
+  padding-top: 0.6rem;
+}
+
+.openButton {
+  width: 100%;
+  display: flex;
   align-items: center;
-  gap: 0.38rem;
-  border: 1px solid color-mix(in srgb, var(--success) 45%, #ffffff);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--success);
+  justify-content: center;
+  gap: 0.52rem;
+  border: 2px solid var(--brand);
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
+  color: #ffffff;
   text-decoration: none;
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  padding: 0.34rem 0.54rem 0.34rem 0.72rem;
-  transition: transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 0.68rem 1.2rem;
+  transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(255, 92, 27, 0.25);
 }
 
 .openButton:hover {
-  transform: translateY(-1px);
-  border-color: var(--success);
-  background: #ffffff;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(255, 92, 27, 0.4);
+  border-color: var(--brand-strong);
 }
 
-.openButton::after {
-  content: ">";
-  display: inline-grid;
-  place-items: center;
-  width: 1rem;
-  height: 1rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--success) 14%, #ffffff);
-  color: var(--success);
-  font-size: 0.72rem;
-  line-height: 1;
+.openButton:active {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(255, 92, 27, 0.3);
+}
+
+.buttonArrow {
+  display: inline-block;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg);
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.openButton:hover .buttonArrow {
+  transform: translateX(4px);
 }
 
 .skeletonCard {
@@ -577,6 +600,7 @@
 }
 
 @media (max-width: 1024px) {
+
   .grid,
   .skeletonGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -785,6 +809,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .card,
   .image,
   .filterButton,
