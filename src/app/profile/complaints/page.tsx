@@ -448,9 +448,9 @@ export default function ComplaintsPage() {
 
     const handleSubmit = async () => {
         if (!validateForm()) {
+            notifyOrAlert("Please fill in all required fields and select at least one item before submitting your complaint.", "warning");
             return;
         }
-
         setSaving(true);
         try {
             const formattedItems = selectedItems.map((item) => ({
@@ -631,18 +631,18 @@ export default function ComplaintsPage() {
                     </label>
 
                     <label className={styles.fieldGroup}>
-                        <span className={styles.fieldLabel}>Short summary</span>
+                        <span className={styles.fieldLabel}>Short description</span>
                         <input
                             className={styles.input}
                             type="text"
                             value={complaint.shortDescription}
                             onChange={(event) => handleInputChange("shortDescription", event.target.value)}
-                            placeholder="Enter a brief summary"
+                            placeholder="Enter a brief description"
                         />
                     </label>
 
                     <label className={styles.fieldGroup}>
-                        <span className={styles.fieldLabel}>Detailed description</span>
+                        <span className={styles.fieldLabel}>Long description</span>
                         <textarea
                             className={styles.textarea}
                             value={complaint.longDescription}

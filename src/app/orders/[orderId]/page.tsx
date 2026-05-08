@@ -825,14 +825,14 @@ export default function OrderDetailsPage() {
                 {actionLoading ? "Please wait..." : "Track Order"}
               </button>
             ) : null}
-            {/* {canRaiseQuery ? (
+            {canRaiseQuery ? (
               <Link
                 href={`/profile/complaints?orderId=${encodeURIComponent(orderId)}`}
                 className={styles.secondaryButton}
               >
                 Raise Query
               </Link>
-            ) : null} */}
+            ) : null}
           </div>
         ) : null}
       </div>

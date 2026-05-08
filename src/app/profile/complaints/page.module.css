@@ -329,14 +329,14 @@
   padding: 0.95rem 1.2rem;
   border-radius: 16px;
   border: none;
-  background: #2563eb;
+  background: #eb9f25;
   color: #ffffff;
   font-weight: 700;
   cursor: pointer;
 }
 
 .uploadButton:disabled {
-  background: #93c5fd;
+  background: #fdd393;
   cursor: not-allowed;
 }
 
@@ -359,12 +359,12 @@
 }
 
 .primaryButton {
-  background: #2563eb;
+  background: #eb7425;
   color: #ffffff;
 }
 
 .primaryButton:disabled {
-  background: #93c5fd;
+  background: #d7a047;
   cursor: not-allowed;
 }
 
