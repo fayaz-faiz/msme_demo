@@ -129,6 +129,14 @@ function extractFromComponents(components: google.maps.GeocoderAddressComponent[
   };
 }
 
+function getBestPincode(results: google.maps.GeocoderResult[]): string {
+  for (const result of results) {
+    const pin = result.address_components.find((c) => c.types.includes("postal_code"))?.long_name;
+    if (pin) return pin;
+  }
+  return "";
+}
+
 export function AddressEditor({ mode, addressId }: AddressEditorProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -175,9 +183,8 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
       const geocoder = new google.maps.Geocoder();
       geocoder.geocode({ location: { lat: nextLat, lng: nextLng } }, (results, status) => {
         if (status !== "OK" || !results?.[0]) return;
-        const { city: c, state: s, pincode: p } = extractFromComponents(
-          results[0].address_components,
-        );
+        const { city: c, state: s } = extractFromComponents(results[0].address_components);
+        const p = getBestPincode(results);
         const label = results[0].formatted_address;
         setFullAddress(label);
         setCity(c);
@@ -186,7 +193,7 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
         setLocation({
           city: c || "City",
           state: s,
-          pincode: p || "000000",
+          pincode: p,
           label,
           lat: nextLat,
           lng: nextLng,
@@ -302,17 +309,28 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
     setMapZoom(15);
     setFullAddress(label);
     setCity(c);
-    setPincode(p);
     setStateName(s);
     dispatch(setselectedGps(formatGps(newLat, newLng)));
-    setLocation({
-      city: c || "City",
-      state: s,
-      pincode: p || "000000",
-      label,
-      lat: newLat,
-      lng: newLng,
-    });
+
+    if (p) {
+      setPincode(p);
+      setLocation({ city: c || "City", state: s, pincode: p, label, lat: newLat, lng: newLng });
+    } else {
+      // Place details didn't include a postal code — geocode the coordinates to find one
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ location: { lat: newLat, lng: newLng } }, (results, status) => {
+        const resolvedPin = status === "OK" && results ? getBestPincode(results) : "";
+        setPincode(resolvedPin);
+        setLocation({
+          city: c || "City",
+          state: s,
+          pincode: resolvedPin,
+          label,
+          lat: newLat,
+          lng: newLng,
+        });
+      });
+    }
   };
 
   const handleMapClick = useCallback(
@@ -443,8 +461,8 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
       setLocation({
         city: city.trim() || "City",
         state: stateName.trim(),
-        pincode: pincode.trim() || "000000",
-        label: `${city.trim() || "City"}, ${pincode.trim() || "000000"}`,
+        pincode: pincode.trim(),
+        label: [city.trim() || "City", pincode.trim()].filter(Boolean).join(", "),
         lat,
         lng,
       });
