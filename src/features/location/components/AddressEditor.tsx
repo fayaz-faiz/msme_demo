@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Autocomplete, GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
+import type { Libraries } from "@react-google-maps/api";
 import { getAddressWeb, postAddAddress, updateAddress } from "@/api";
 import { useAppDispatch } from "@/features/cart/store/hooks";
-import { reverseGeocode, searchLocations } from "@/features/location/data/location-service";
-import type { LocationSuggestion } from "@/features/location/domain/location";
 import { useLocation } from "@/features/location/context/location-context";
 import { selectedAddress, setCurrentLoc, setselectedGps } from "@/redux/slices";
 import { notifyOrAlert } from "@/shared/lib/notify";
@@ -53,7 +53,9 @@ type AddressPayload = {
   id?: string;
 };
 
-const MAP_DELTA = 0.01;
+const MAP_LIBRARIES: Libraries = ["places"];
+const MAP_CONTAINER_STYLE = { width: "100%", height: "320px", borderRadius: "12px" };
+const DEFAULT_MAP_CENTER: google.maps.LatLngLiteral = { lat: 20.5937, lng: 78.9629 };
 
 function parseGps(gps?: string) {
   const [latStr, lngStr] = String(gps || "").split(",");
@@ -111,12 +113,20 @@ function resolveAddressPhone(address?: AddressItem) {
   if (!address) {
     return "";
   }
-
   const candidate = String(
     address.mobileNumber || address.mobile_number || address.phone || address.mobile || "",
   );
-
   return candidate.replace(/\D/g, "").slice(0, 10);
+}
+
+function extractFromComponents(components: google.maps.GeocoderAddressComponent[]) {
+  const find = (types: string[]) =>
+    components.find((c) => types.some((t) => c.types.includes(t)))?.long_name || "";
+  return {
+    city: find(["locality", "administrative_area_level_2", "sublocality"]),
+    state: find(["administrative_area_level_1"]),
+    pincode: find(["postal_code"]),
+  };
 }
 
 export function AddressEditor({ mode, addressId }: AddressEditorProps) {
@@ -124,15 +134,27 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
   const dispatch = useAppDispatch();
   const { location, resolveCurrentLocation, setLocation } = useLocation();
 
-  const [query, setQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<LocationSuggestion[]>([]);
-  const [searching, setSearching] = useState(false);
+  const { isLoaded, loadError } = useJsApiLoader({
+    id: "location-picker-places",
+    googleMapsApiKey:
+      process.env.NEXT_PUBLIC_GOOGE_API_KEY ||
+      process.env.NEXT_PUBLIC_GOOGLE_API_KEY ||
+      process.env.REACT_APP_GOOGLE_API_KEY ||
+      "",
+    libraries: MAP_LIBRARIES,
+  });
+
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+
   const [isSaving, setIsSaving] = useState(false);
   const [loadingCurrent, setLoadingCurrent] = useState(false);
   const [loadingAddress, setLoadingAddress] = useState(mode === "edit");
 
   const [lat, setLat] = useState(0);
   const [lng, setLng] = useState(0);
+  const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral>(DEFAULT_MAP_CENTER);
+  const [mapZoom, setMapZoom] = useState(5);
   const [fullAddress, setFullAddress] = useState("");
   const [pincode, setPincode] = useState("");
   const [city, setCity] = useState("");
@@ -147,47 +169,44 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
   const [locality, setLocality] = useState("");
   const [saveAs, setSaveAs] = useState("Home");
 
-  const mapEmbedUrl = useMemo(() => {
-    const delta = MAP_DELTA;
-    const left = lng - delta;
-    const right = lng + delta;
-    const top = lat + delta;
-    const bottom = lat - delta;
-    return `https://www.openstreetmap.org/export/embed.html?bbox=${left}%2C${bottom}%2C${right}%2C${top}&layer=mapnik&marker=${lat}%2C${lng}`;
-  }, [lat, lng]);
-  const mapBounds = useMemo(() => {
-    const left = lng - MAP_DELTA;
-    const right = lng + MAP_DELTA;
-    const top = lat + MAP_DELTA;
-    const bottom = lat - MAP_DELTA;
-    return { left, right, top, bottom };
-  }, [lat, lng]);
-  const mapMarkerStyle = useMemo(() => {
-    const width = mapBounds.right - mapBounds.left;
-    const height = mapBounds.top - mapBounds.bottom;
-    const x = width ? ((lng - mapBounds.left) / width) * 100 : 50;
-    const y = height ? ((mapBounds.top - lat) / height) * 100 : 50;
-    const safeX = Math.min(100, Math.max(0, x));
-    const safeY = Math.min(100, Math.max(0, y));
-    return {
-      left: `${safeX}%`,
-      top: `${safeY}%`,
-    };
-  }, [lat, lng, mapBounds]);
+  const geocodeAndApply = useCallback(
+    (nextLat: number, nextLng: number) => {
+      if (!isLoaded) return;
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ location: { lat: nextLat, lng: nextLng } }, (results, status) => {
+        if (status !== "OK" || !results?.[0]) return;
+        const { city: c, state: s, pincode: p } = extractFromComponents(
+          results[0].address_components,
+        );
+        const label = results[0].formatted_address;
+        setFullAddress(label);
+        setCity(c);
+        setPincode(p);
+        setStateName(s);
+        setLocation({
+          city: c || "City",
+          state: s,
+          pincode: p || "000000",
+          label,
+          lat: nextLat,
+          lng: nextLng,
+        });
+      });
+    },
+    [isLoaded, setLocation],
+  );
 
-  const updatePosition = async (nextLat: number, nextLng: number) => {
-    setLat(nextLat);
-    setLng(nextLng);
-    dispatch(setselectedGps(formatGps(nextLat, nextLng)));
-    const resolved = await reverseGeocode(nextLat, nextLng);
-    if (resolved) {
-      setFullAddress(resolved.label);
-      setCity(resolved.city);
-      setPincode(resolved.pincode);
-      setStateName(String(resolved.state || ""));
-      setLocation(resolved);
-    }
-  };
+  const updatePosition = useCallback(
+    (nextLat: number, nextLng: number) => {
+      setLat(nextLat);
+      setLng(nextLng);
+      setMapCenter({ lat: nextLat, lng: nextLng });
+      setMapZoom(15);
+      dispatch(setselectedGps(formatGps(nextLat, nextLng)));
+      geocodeAndApply(nextLat, nextLng);
+    },
+    [dispatch, geocodeAndApply],
+  );
 
   useEffect(() => {
     const initialize = async () => {
@@ -204,8 +223,14 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
           const coords = parseGps(current.gps);
           setLat(coords.lat);
           setLng(coords.lng);
+          if (coords.lat && coords.lng) {
+            setMapCenter({ lat: coords.lat, lng: coords.lng });
+            setMapZoom(15);
+          }
           setFullAddress(
-            [current.building, current.locality, current.city, current.state, current.area_code].filter(Boolean).join(", "),
+            [current.building, current.locality, current.city, current.state, current.area_code]
+              .filter(Boolean)
+              .join(", "),
           );
           setPincode(String(current.area_code || ""));
           setCity(String(current.city || ""));
@@ -229,6 +254,8 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
       if (location) {
         setLat(location.lat);
         setLng(location.lng);
+        setMapCenter({ lat: location.lat, lng: location.lng });
+        setMapZoom(15);
         setFullAddress(location.label);
         setPincode(location.pincode);
         setCity(location.city);
@@ -249,59 +276,60 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
     void initialize();
   }, [addressId, location, mode, resolveCurrentLocation, router]);
 
-  useEffect(() => {
-    if (!query.trim() || query.trim().length < 3) {
-      setSearchResults([]);
-      return;
-    }
-    let active = true;
-    const timer = window.setTimeout(() => {
-      setSearching(true);
-      void searchLocations(query.trim())
-        .then((items) => {
-          if (active) {
-            setSearchResults(items);
-          }
-        })
-        .catch(() => {
-          if (active) {
-            setSearchResults([]);
-          }
-        })
-        .finally(() => {
-          if (active) {
-            setSearching(false);
-          }
-        });
-    }, 250);
-
-    return () => {
-      active = false;
-      window.clearTimeout(timer);
-    };
-  }, [query]);
-
   const handleUseCurrentLocation = async () => {
     setLoadingCurrent(true);
     await resolveCurrentLocation();
     if (location) {
-      await updatePosition(location.lat, location.lng);
+      updatePosition(location.lat, location.lng);
     }
     setLoadingCurrent(false);
   };
 
-  const handleMapPick = async (event: React.MouseEvent<HTMLButtonElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const xRatio = (event.clientX - rect.left) / rect.width;
-    const yRatio = (event.clientY - rect.top) / rect.height;
+  const handlePlaceChanged = () => {
+    if (!autocompleteRef.current) return;
+    const place = autocompleteRef.current.getPlace();
+    if (!place.geometry?.location) return;
 
-    const nextLng = mapBounds.left + (mapBounds.right - mapBounds.left) * Math.min(1, Math.max(0, xRatio));
-    const nextLat = mapBounds.top - (mapBounds.top - mapBounds.bottom) * Math.min(1, Math.max(0, yRatio));
+    const newLat = place.geometry.location.lat();
+    const newLng = place.geometry.location.lng();
+    const components = place.address_components || [];
+    const { city: c, state: s, pincode: p } = extractFromComponents(components);
+    const label = place.formatted_address || "";
 
-    await updatePosition(nextLat, nextLng);
-    setSearchResults([]);
-    setQuery("");
+    setLat(newLat);
+    setLng(newLng);
+    setMapCenter({ lat: newLat, lng: newLng });
+    setMapZoom(15);
+    setFullAddress(label);
+    setCity(c);
+    setPincode(p);
+    setStateName(s);
+    dispatch(setselectedGps(formatGps(newLat, newLng)));
+    setLocation({
+      city: c || "City",
+      state: s,
+      pincode: p || "000000",
+      label,
+      lat: newLat,
+      lng: newLng,
+    });
   };
+
+  const handleMapClick = useCallback(
+    (event: google.maps.MapMouseEvent) => {
+      if (!event.latLng) return;
+      updatePosition(event.latLng.lat(), event.latLng.lng());
+    },
+    [updatePosition],
+  );
+
+  const handleMarkerDragEnd = useCallback(
+    (event: google.maps.MapMouseEvent) => {
+      if (!event.latLng) return;
+      updatePosition(event.latLng.lat(), event.latLng.lng());
+    },
+    [updatePosition],
+  );
 
   const handleConfirmLocation = () => {
     if (!lat || !lng) {
@@ -369,7 +397,7 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
     try {
       let resolvedAddressId = addressId || "";
       if (mode === "add") {
-        const response = await postAddAddress(payload) as {
+        const response = (await postAddAddress(payload)) as {
           data?: { status?: boolean; data?: { data?: unknown; message?: unknown } };
         };
         const success = response?.data?.status === true;
@@ -378,9 +406,12 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
           return;
         }
         resolvedAddressId = String(response?.data?.data?.data || "");
-        notifyOrAlert(String(response?.data?.data?.message || "Address Added successfully"), "success");
+        notifyOrAlert(
+          String(response?.data?.data?.message || "Address Added successfully"),
+          "success",
+        );
       } else {
-        const response = await updateAddress(payload) as {
+        const response = (await updateAddress(payload)) as {
           data?: { status?: boolean; data?: { message?: unknown } };
         };
         const success = response?.data?.status === true;
@@ -388,7 +419,10 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
           notifyOrAlert("Unable to update address.", "error");
           return;
         }
-        notifyOrAlert(String(response?.data?.data?.message || "Address updated successfully"), "success");
+        notifyOrAlert(
+          String(response?.data?.data?.message || "Address updated successfully"),
+          "success",
+        );
       }
 
       const selected = {
@@ -403,7 +437,9 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
       };
       dispatch(selectedAddress(selected));
       dispatch(setselectedGps(formatGps(lat, lng)));
-      dispatch(setCurrentLoc({ city: city.trim(), pincode: pincode.trim(), latitude: lat, longitude: lng }));
+      dispatch(
+        setCurrentLoc({ city: city.trim(), pincode: pincode.trim(), latitude: lat, longitude: lng }),
+      );
       setLocation({
         city: city.trim() || "City",
         state: stateName.trim(),
@@ -430,6 +466,8 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
     );
   }
 
+  const markerPosition = lat && lng ? { lat, lng } : null;
+
   return (
     <section className={styles.page}>
       <article className={styles.card}>
@@ -438,7 +476,11 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
             <p className={styles.kicker}>Profile</p>
             <h1>{mode === "add" ? "Add New Address" : "Edit Address"}</h1>
           </div>
-          <button type="button" className={styles.secondaryButton} onClick={() => router.push("/profile/my-addresses")}>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            onClick={() => router.push("/profile/my-addresses")}
+          >
             Back
           </button>
         </div>
@@ -447,53 +489,61 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
           <div className={styles.locationPanel}>
             <div className={styles.locationTools}>
               <div className={styles.searchField}>
-                <input
-                  type="search"
-                  placeholder="Search location, area, or pincode"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                />
-                {searching ? <p className={styles.helpText}>Searching locations...</p> : null}
-                {searchResults.length > 0 ? (
-                  <div className={styles.searchResults}>
-                    {searchResults.map((result) => (
-                      <button
-                        key={`${result.lat}-${result.lng}`}
-                        type="button"
-                        className={styles.resultButton}
-                        onClick={() => {
-                          void updatePosition(result.lat, result.lng);
-                          setFullAddress(result.rawLabel);
-                          setCity(result.city);
-                          setPincode(result.pincode);
-                          setStateName(String(result.state || ""));
-                          setQuery(result.rawLabel);
-                          setSearchResults([]);
-                        }}
-                      >
-                        <strong>{result.label}</strong>
-                        <span>{result.rawLabel}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
+                {isLoaded ? (
+                  <Autocomplete
+                    onLoad={(ref) => {
+                      autocompleteRef.current = ref;
+                    }}
+                    onPlaceChanged={handlePlaceChanged}
+                    options={{ componentRestrictions: { country: "in" } }}
+                  >
+                    <input type="search" placeholder="Search location, area, or pincode" />
+                  </Autocomplete>
+                ) : (
+                  <input type="search" placeholder="Loading search..." disabled />
+                )}
               </div>
-              <button type="button" className={styles.secondaryButton} onClick={handleUseCurrentLocation} disabled={loadingCurrent}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={handleUseCurrentLocation}
+                disabled={loadingCurrent}
+              >
                 {loadingCurrent ? "Locating..." : "Use Current Location"}
               </button>
             </div>
 
             <div className={styles.mapFrameWrap}>
-              <iframe title="Selected map location" src={mapEmbedUrl} className={styles.mapFrame} loading="lazy" />
-              <button
-                type="button"
-                className={styles.mapClickLayer}
-                onClick={handleMapPick}
-                aria-label="Pick location from map"
-              />
-              <span className={styles.mapMarker} style={mapMarkerStyle} aria-hidden="true" />
+              {loadError ? (
+                <p className={styles.helpText}>Failed to load Google Maps. Check your API key.</p>
+              ) : isLoaded ? (
+                <GoogleMap
+                  mapContainerStyle={MAP_CONTAINER_STYLE}
+                  center={mapCenter}
+                  zoom={mapZoom}
+                  onClick={handleMapClick}
+                  onLoad={(map) => {
+                    mapRef.current = map;
+                  }}
+                  options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: false }}
+                >
+                  {markerPosition && (
+                    <Marker
+                      position={markerPosition}
+                      draggable
+                      onDragEnd={handleMarkerDragEnd}
+                    />
+                  )}
+                </GoogleMap>
+              ) : (
+                <div className={styles.mapPlaceholder}>
+                  <p>Loading map...</p>
+                </div>
+              )}
             </div>
-            <p className={styles.helpText}>Tap anywhere on the map to move the pointer, then confirm location.</p>
+            <p className={styles.helpText}>
+              Search an address, click on the map, or drag the marker to set your location.
+            </p>
             <div className={styles.coordinates}>
               <span>Latitude: {lat}</span>
               <span>Longitude: {lng}</span>
@@ -528,7 +578,10 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
             </div>
             <div className={styles.field}>
               <label>Name</label>
-              <input value={name} onChange={(event) => setName(event.target.value.replace(/[^a-zA-Z\s]/g, ""))} />
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value.replace(/[^a-zA-Z\s]/g, ""))}
+              />
             </div>
             <div className={styles.field}>
               <label>Phone Number</label>
@@ -569,7 +622,12 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
                 ))}
               </div>
             </div>
-            <button type="button" className={styles.primaryButton} onClick={handleSubmit} disabled={isSaving}>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={handleSubmit}
+              disabled={isSaving}
+            >
               {isSaving ? "Saving..." : mode === "add" ? "Add Address" : "Update Address"}
             </button>
           </div>

@@ -51,13 +51,20 @@
 
 .searchField {
   position: relative;
+  width: 100%;
+}
+
+.searchField > div {
+  width: 100%;
 }
 
 .locationTools input {
+  width: 100%;
   border: 1px solid #dfe4d8;
   border-radius: 10px;
   font: inherit;
   padding: 0.6rem 0.7rem;
+  box-sizing: border-box;
 }
 
 .searchResults {
@@ -100,36 +107,19 @@
 }
 
 .mapFrameWrap {
-  position: relative;
   width: min(560px, 100%);
-}
-
-.mapFrame {
-  width: 100%;
-  height: 320px;
+  border-radius: 12px;
+  overflow: hidden;
   border: 1px solid #dce4d5;
-  border-radius: 12px;
 }
 
-.mapClickLayer {
-  position: absolute;
-  inset: 0;
-  border: none;
-  background: transparent;
-  cursor: crosshair;
-  border-radius: 12px;
-}
-
-.mapMarker {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  border: 3px solid #ffffff;
-  background: #ff4d22;
-  box-shadow: 0 6px 18px rgba(19, 29, 16, 0.28);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
+.mapPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 320px;
+  background: #f3f7ee;
+  color: #5f695b;
 }
 
 .coordinates {
