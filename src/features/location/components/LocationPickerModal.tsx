@@ -297,6 +297,14 @@ export function LocationPickerModal({
       return found?.long_name || "";
     };
 
+    const applyPlace = (city: string, pincode: string, label: string, lat: number, lng: number) => {
+      setQuery(label);
+      setLocation({ city, pincode, label, lat, lng });
+      dispatch(setselectedGps(`${lat},${lng}`));
+      dispatch(setCurrentLoc({ city, pincode, latitude: lat, longitude: lng }));
+      onClose();
+    };
+
     const listener = autocomplete.addListener("place_changed", () => {
       const selectedPlace = autocomplete.getPlace();
       const lat = selectedPlace.geometry?.location?.lat();
@@ -310,29 +318,26 @@ export function LocationPickerModal({
           "administrative_area_level_2",
           "sublocality",
         ]) || selectedPlace.name || "Selected area";
-      const pincode = getComponent(selectedPlace.address_components, [
-        "postal_code",
-      ]);
+      const pincode = getComponent(selectedPlace.address_components, ["postal_code"]);
       const label = selectedPlace.formatted_address || selectedPlace.name || city;
-      setQuery(label);
 
-      setLocation({
-        city,
-        pincode,
-        label,
-        lat,
-        lng,
-      });
-      dispatch(setselectedGps(`${lat},${lng}`));
-      dispatch(
-        setCurrentLoc({
-          city,
-          pincode,
-          latitude: lat,
-          longitude: lng,
-        }),
-      );
-      onClose();
+      if (pincode) {
+        applyPlace(city, pincode, label, lat, lng);
+      } else {
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+          let resolvedPin = "";
+          if (status === "OK" && results) {
+            for (const result of results) {
+              const pin = result.address_components.find((c) =>
+                c.types.includes("postal_code"),
+              )?.long_name;
+              if (pin) { resolvedPin = pin; break; }
+            }
+          }
+          applyPlace(city, resolvedPin, label, lat, lng);
+        });
+      }
     });
 
     return () => {
@@ -391,7 +396,7 @@ export function LocationPickerModal({
     );
     setLocation({
       city: address.city || "City",
-      pincode: address.area_code || "000000",
+      pincode: address.area_code || "",
       label: toLocationLabel(address),
       lat: parsed.lat || 0,
       lng: parsed.lng || 0,
