@@ -205,6 +205,7 @@ function normalizeCharges(summary: UnknownRecord | null): ChargeLike[] {
 
 function buildTimeline(summary: UnknownRecord | null) {
   const status = String(summary?.status || "Pending");
+  console.log("Building timeline for status:", summary);
   const steps = [
     {
       key: "placed",
@@ -232,7 +233,7 @@ function buildTimeline(summary: UnknownRecord | null) {
     Pending: 0,
     Packed: 1,
     "Out-for-delivery": 2,
-    "Order-delivered": 3,
+    "Order-delivered": 4,
     Cancelled: 1,
     Failed: 1,
   };
