@@ -174,7 +174,7 @@ export default function MyAddressesPage() {
           </div>
         ) : null}
 
-        <button type="button" className={styles.addNewButton} onClick={() => router.push("/profile/my-addresses/add")}>
+        <button type="button" className={styles.addNewButton} onClick={() => router.back()}>
           Add New Address
         </button>
       </article>

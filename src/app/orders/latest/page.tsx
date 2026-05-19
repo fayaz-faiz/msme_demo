@@ -421,8 +421,14 @@ export default function LatestOrderPage() {
           </div>
         </div>
         <div className={styles.badgeRow}>
-          <span>{providerName}</span>
-          <span>{formatCurrency(totalAmount)}</span>
+          <div className={styles.badgeItem}>
+            <span className={styles.badgeLabel}>Store Name</span>
+            <span className={styles.badgeValue}>{providerName}</span>
+          </div>
+          <div className={styles.badgeItem}>
+            <span className={styles.badgeLabel}>Total Price</span>
+            <span className={styles.badgeValue}>{formatCurrency(totalAmount)}</span>
+          </div>
         </div>
       </div>
 
@@ -450,87 +456,98 @@ export default function LatestOrderPage() {
 
       <div className={styles.grid}>
         <section className={styles.card}>
-          <h2>Order snapshot</h2>
-          <div className={styles.detailList}>
-            <div>
-              <span>Order ID</span>
-              <strong>{orderId || "-"}</strong>
+          <details className={styles.accordion}>
+            <summary className={styles.accordionSummary}>Order Details</summary>
+            <div className={styles.detailList}>
+              <div>
+                <span>Order ID</span>
+                <strong>{orderId || "-"}</strong>
+              </div>
+              <div>
+                <span>Store</span>
+                <strong>{providerName}</strong>
+              </div>
+              <div>
+                <span>Placed at</span>
+                <strong>{placedAt}</strong>
+              </div>
+              <div>
+                <span>Expected delivery</span>
+                <strong>{eta}</strong>
+              </div>
+              <div>
+                <span>Delivery address</span>
+                <strong>{deliveryAddress}</strong>
+              </div>
+              <div>
+                <span>Contact</span>
+                <strong>{phone}</strong>
+              </div>
+              <div>
+                <span>Payment method</span>
+                <strong>{formatLabel(paymentMethod)}</strong>
+              </div>
             </div>
-            <div>
-              <span>Store</span>
-              <strong>{providerName}</strong>
-            </div>
-            <div>
-              <span>Placed at</span>
-              <strong>{placedAt}</strong>
-            </div>
-            <div>
-              <span>Expected delivery</span>
-              <strong>{eta}</strong>
-            </div>
-            <div>
-              <span>Delivery address</span>
-              <strong>{deliveryAddress}</strong>
-            </div>
-            <div>
-              <span>Contact</span>
-              <strong>{phone}</strong>
-            </div>
-            <div>
-              <span>Payment method</span>
-              <strong>{formatLabel(paymentMethod)}</strong>
-            </div>
-          </div>
+          </details>
         </section>
 
         <section className={styles.card}>
-          <h2>Items and billing</h2>
-          <div className={styles.summaryList}>
-            {items.length > 0 ? (
-              items.map((item, index) => (
-                <div key={`${item.name}-${index}`} className={styles.summaryRow}>
-                  <div className={styles.itemLead}>
-                    {item.image ? <img src={item.image} alt={item.name} /> : <div className={styles.itemPlaceholder} aria-hidden="true" />}
-                    <span>
-                      {item.name} x {item.quantity}
-                    </span>
+          <details className={styles.accordion}>
+            <summary className={styles.accordionSummary}>Items</summary>
+            <div className={styles.summaryList}>
+              {items.length > 0 ? (
+                items.map((item, index) => (
+                  <div key={`${item.name}-${index}`} className={styles.summaryRow}>
+                    <div className={styles.itemLead}>
+                      {item.image ? <img src={item.image} alt={item.name} /> : <div className={styles.itemPlaceholder} aria-hidden="true" />}
+                      <span>
+                        {item.name} x {item.quantity}
+                      </span>
+                    </div>
+                    <strong>{formatCurrency(item.lineTotal)}</strong>
                   </div>
-                  <strong>{formatCurrency(item.lineTotal)}</strong>
-                </div>
-              ))
-            ) : (
-              <p>No item details available for this order.</p>
-            )}
-          </div>
-          <div className={styles.chargesList}>
-            <div className={styles.summaryRow}>
-              <span>Subtotal</span>
-              <strong>{formatCurrency(subtotal)}</strong>
+                ))
+              ) : (
+                <p>No item details available for this order.</p>
+              )}
             </div>
-            {charges.map((charge, index) => (
-              <div key={`${charge.title}-${index}`} className={styles.summaryRow}>
-                <span>{charge.title}</span>
-                <strong>{formatCurrency(charge.amount)}</strong>
+          </details>
+
+          <details className={styles.accordion}>
+            <summary className={styles.accordionSummary}>Billings</summary>
+            <div className={styles.chargesList}>
+              <div className={styles.summaryRow}>
+                <span>Subtotal</span>
+                <strong>{formatCurrency(subtotal)}</strong>
               </div>
-            ))}
-          </div>
-          <div className={styles.totalRow}>
-            <span>Total</span>
-            <strong>{formatCurrency(totalAmount)}</strong>
-          </div>
-          <div className={styles.actions}>
-            {orderId ? (
-              <Link href={`/orders/${orderId}`} className={styles.primaryButton}>
-                Track this order
-              </Link>
-            ) : null}
-            <Link href="/profile" className={`${styles.secondaryButton} ${styles.backProfileLink}`}>
-              <span className={styles.backIcon} aria-hidden="true">←</span>
-              <span>Back to Profile</span>
-            </Link>
-          </div>
+              {charges.map((charge, index) => (
+                <div key={`${charge.title}-${index}`} className={styles.summaryRow}>
+                  <span>{charge.title}</span>
+                  <strong>{formatCurrency(charge.amount)}</strong>
+                </div>
+              ))}
+            </div>
+          </details>
         </section>
       </div>
+
+      <section className={styles.card}>
+        <div className={styles.totalRow}>
+          <span>Total</span>
+          <strong>{formatCurrency(totalAmount)}</strong>
+        </div>
+        <div className={styles.actions}>
+          {orderId ? (
+            <Link href={`/orders/${orderId}`} className={styles.primaryButton}>
+              Track this order
+            </Link>
+          ) : null}
+          <Link href="/profile" className={`${styles.secondaryButton} ${styles.backProfileLink}`}>
+            <span className={styles.backIcon} aria-hidden="true">Back</span>
+            <span>Back to Profile</span>
+          </Link>
+        </div>
+      </section>
     </section>
   );
 }

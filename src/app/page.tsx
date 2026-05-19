@@ -61,17 +61,17 @@ export default function HomePage() {
         <div className={styles.glowA} aria-hidden="true" />
         <div className={styles.glowB} aria-hidden="true" />
         <div className={styles.heroText}>
-          <p className={styles.kicker}>Small shops, big impact</p>
+          {/* <p className={styles.kicker}>Small shops, big impact</p> */}
           <h1>Empowering Your Neighborhood Economy</h1>
           <p>
             Every order helps a local family, a nearby kitchen, and the small businesses that keep
             your city moving every day.
           </p>
-          <div className={styles.featurePills}>
+          {/* <div className={styles.featurePills}>
             <span>Local support</span>
             <span>Fast delivery</span>
             <span>Trusted stores</span>
-          </div>
+          </div> */}
         </div>
         <div className={styles.promoImageWrap}>
           <img
@@ -80,7 +80,6 @@ export default function HomePage() {
             className={styles.promoImage}
           />
         </div>
-        
       </section>
 
       <section id="shops">

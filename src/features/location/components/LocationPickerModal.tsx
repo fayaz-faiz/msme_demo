@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useJsApiLoader } from "@react-google-maps/api";
 import { deleteAddressDataWeb, getAddressWeb } from "@/api";
 import { useLocation } from "@/features/location/context/location-context";
@@ -75,23 +75,6 @@ function IconSearch() {
     >
       <circle cx="11" cy="11" r="8" />
       <path d="m21 21-4.35-4.35" />
-    </svg>
-  );
-}
-
-function IconPin() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-    >
-      <path d="M20 10c0 6-8 13-8 13S4 16 4 10a8 8 0 0 1 16 0Z" />
-      <circle cx="12" cy="10" r="3" />
     </svg>
   );
 }
@@ -231,6 +214,8 @@ export function LocationPickerModal({
   onAddressSelected,
 }: LocationPickerModalProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
   const loginName = useAppSelector((state) => state.authToken.loginName);
   const isUserLoggedIn = loginName === "USER";
@@ -240,7 +225,8 @@ export function LocationPickerModal({
   const selectedAddressState = useAppSelector(
     (state) => state.location.selectAddress as AddressItem | null,
   );
-  const { location, setLocation, resolveCurrentLocation } = useLocation();
+  const { setLocation, resolveCurrentLocation, isResolving } = useLocation();
+  const isCartPage = pathname === "/cart" || pathname?.startsWith("/cart/");
   const { isLoaded: mapsLoaded } = useJsApiLoader({
     id: "location-picker-places",
     googleMapsApiKey:
@@ -405,13 +391,21 @@ export function LocationPickerModal({
     onClose();
   };
 
+  const buildNextQuery = () => {
+    const currentQuery = searchParams?.toString();
+    const currentPath = `${pathname}${currentQuery ? `?${currentQuery}` : ""}`;
+    return `?next=${encodeURIComponent(currentPath)}`;
+  };
+
   const navigateToAddAddress = () => {
     onClose();
-    router.push("/profile/my-addresses/add");
+    const nextPath = isCartPage ? buildNextQuery() : "";
+    router.push(`/profile/my-addresses/add${nextPath}`);
   };
   const navigateToEditAddress = (addressId: string) => {
     onClose();
-    router.push(`/profile/my-addresses/edit/${addressId}`);
+    const nextPath = isCartPage ? buildNextQuery() : "";
+    router.push(`/profile/my-addresses/edit/${addressId}${nextPath}`);
   };
 
   const handleDeleteAddress = async (addressId: string) => {
@@ -440,6 +434,11 @@ export function LocationPickerModal({
     } finally {
       setDeletingAddressId("");
     }
+  };
+
+  const handleUseCurrentLocation = async () => {
+    await resolveCurrentLocation();
+    onClose();
   };
 
   if (!open) return null;
@@ -498,14 +497,19 @@ export function LocationPickerModal({
         <div className={styles.body}>
           {/* Quick actions */}
           <div className={styles.quickRow}>
-            <button
-              type="button"
-              className={styles.quickBtn}
-              onClick={resolveCurrentLocation}
-            >
-              <IconGps />
-              Use current location
-            </button>
+            {!isCartPage && (
+              <button
+                type="button"
+                className={styles.quickBtn}
+                onClick={() => {
+                  void handleUseCurrentLocation();
+                }}
+                disabled={isResolving}
+              >
+                <IconGps />
+                {isResolving ? "Locating..." : "Use current location"}
+              </button>
+            )}
             {isUserLoggedIn && (
               <button
                 type="button"
@@ -517,22 +521,6 @@ export function LocationPickerModal({
               </button>
             )}
           </div>
-
-          {/* Selected location */}
-          {location?.label && (
-            <>
-              <p className={styles.sectionLabel}>Current location</p>
-              <div className={styles.selectedCard}>
-                <div className={styles.selectedIcon}>
-                  <IconPin />
-                </div>
-                <div className={styles.selectedText}>
-                  <p className={styles.selectedMeta}>Delivering to</p>
-                  <p className={styles.selectedName}>{location.label}</p>
-                </div>
-              </div>
-            </>
-          )}
 
           {/* Saved addresses */}
           {isUserLoggedIn && (
