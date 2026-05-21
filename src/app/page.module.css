@@ -153,13 +153,46 @@
   box-shadow: 0 16px 30px rgba(20, 54, 28, 0.14);
 }
 
-.promoImage {
+.promoCarousel {
+  position: absolute;
+  inset: 0;
+}
+
+.promoSlide {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   min-height: 220px;
   display: block;
   object-fit: cover;
   object-position: center;
+  opacity: 0;
+  animation: promoFade 24s infinite;
+}
+
+.promoSlide:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.promoSlide:nth-child(2) {
+  animation-delay: 4s;
+}
+
+.promoSlide:nth-child(3) {
+  animation-delay: 8s;
+}
+
+.promoSlide:nth-child(4) {
+  animation-delay: 12s;
+}
+
+.promoSlide:nth-child(5) {
+  animation-delay: 16s;
+}
+
+.promoSlide:nth-child(6) {
+  animation-delay: 20s;
 }
 
 .primaryCta,
@@ -509,6 +542,24 @@
   }
 }
 
+@keyframes promoFade {
+  0%,
+  12% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  16%,
+  28% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  33%,
+  100% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+}
+
 @media (min-width: 980px) {
   .hero {
     grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
@@ -551,7 +602,7 @@
     border-radius: 22px;
   }
 
-  .promoImage {
+  .promoSlide {
     min-height: 340px;
   }
 }
@@ -591,7 +642,7 @@
     border-radius: 14px;
   }
 
-  .promoImage {
+  .promoSlide {
     min-height: 190px;
     object-position: center top;
   }
@@ -686,6 +737,7 @@
 @media (prefers-reduced-motion: reduce) {
   .heroImage,
   .heroCard,
+  .promoSlide,
   .stepBar::before,
   .floatingTag,
   .glowA,
