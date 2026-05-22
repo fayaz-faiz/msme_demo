@@ -187,7 +187,11 @@ export function AddToCartButton({
         gps: `${formatGpsCoord(location?.lat)},${formatGpsCoord(location?.lng)}`,
         area_code: location?.pincode ?? "",
         dest_location: "SEARCH",
-        customization: customizationPayload,
+        // review this later
+        customization: Object.entries(customizationPayload||{}).reduce((acc, [groupId, optionIds]) => {
+          acc[groupId] = Array.isArray(optionIds) ? optionIds : [optionIds];
+          return acc
+        },{} as typeof customizationPayload),
       };
 
       const result = (await postAddUpdateCart(
@@ -303,6 +307,9 @@ export function AddToCartButton({
     setSelectedCustomizations((prev) => {
       const existing = prev[group.groupId] || [];
       if (group.type === "SINGLE") {
+        if (existing.includes(optionId)) {
+          return { ...prev, [group.groupId]: [] };
+        }
         return { ...prev, [group.groupId]: [optionId] };
       }
 
@@ -389,16 +396,17 @@ export function AddToCartButton({
               <div className={styles.modalContent}>
                 {customizationGroups.map((group) => {
                   const selected = selectedCustomizations[group.groupId] || [];
-                  const inputType =
-                    group.type === "SINGLE" ? "radio" : "checkbox";
+                  const inputType = "checkbox";
+                  const min = Number(group.min || 0);
+                  const max = Number(group.max || 0);
+                  const requiredLabel = min > 0 ? "Required" : "Optional";
                   return (
                     <div key={group.groupId} className={styles.groupBlock}>
                       <p className={styles.groupTitle}>
                         {group.groupName}
                         <span className={styles.groupHint}>
                           {" "}
-                          (min {group.min || 0}, max{" "}
-                          {group.max || group.options?.length || 0})
+                          {min > 0 ? `${requiredLabel} •` : "Optional •"} min {min}, max {max || group.options?.length || 0}
                         </span>
                       </p>
                       <div className={styles.optionList}>
@@ -435,7 +443,16 @@ export function AddToCartButton({
                 <button
                   type="button"
                   className={styles.primaryButton}
-                  disabled={isUpdating}
+                  disabled={
+                    isUpdating ||
+                    customizationGroups.some((group) => {
+                      const min = Number(group.min || 0);
+                      const selectedCount = (
+                        selectedCustomizations[group.groupId] || []
+                      ).length;
+                      return min > 0 && selectedCount < min;
+                    })
+                  }
                   onClick={async () => {
                     if (!validateSelections()) {
                       return;

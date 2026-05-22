@@ -437,8 +437,11 @@ export function LocationPickerModal({
   };
 
   const handleUseCurrentLocation = async () => {
-    await resolveCurrentLocation();
-    onClose();
+    try {
+      await resolveCurrentLocation();
+    } finally {
+      onClose();
+    }
   };
 
   if (!open) return null;
@@ -501,9 +504,7 @@ export function LocationPickerModal({
               <button
                 type="button"
                 className={styles.quickBtn}
-                onClick={() => {
-                  void handleUseCurrentLocation();
-                }}
+                onClick={handleUseCurrentLocation}
                 disabled={isResolving}
               >
                 <IconGps />
