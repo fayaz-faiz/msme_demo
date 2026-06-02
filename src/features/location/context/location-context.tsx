@@ -52,34 +52,40 @@ export function LocationProvider({ children }: LocationProviderProps) {
       setIsResolving(false);
       return;
     }
+    await new Promise<void>((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const resolvedLocation = await reverseGeocode(
+            position.coords.latitude,
+            position.coords.longitude,
+          );
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const resolved = await reverseGeocode(position.coords.latitude, position.coords.longitude);
+          if (resolvedLocation) {
+            setLocation(resolvedLocation);
+          } else {
+            setError("Unable to resolve your current address.");
+          }
 
-        if (resolved) {
-          setLocation(resolved);
-        } else {
-          setError("Unable to resolve your current address.");
-        }
-
-        setIsResolving(false);
-      },
-      (err) => {
-        if (err.code === 1 /* PERMISSION_DENIED */) {
-          setPermissionDenied(true);
-          setError("Location access was denied. Search your address instead.");
-        } else {
-          setError("Unable to get your location.");
-        }
-        setIsResolving(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60_000,
-      },
-    );
+          setIsResolving(false);
+          resolve();
+        },
+        (err) => {
+          if (err.code === 1 /* PERMISSION_DENIED */) {
+            setPermissionDenied(true);
+            setError("Location access was denied. Search your address instead.");
+          } else {
+            setError("Unable to get your location.");
+          }
+          setIsResolving(false);
+          resolve();
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60_000,
+        },
+      );
+    });
   }, [setLocation]);
 
   useEffect(() => {

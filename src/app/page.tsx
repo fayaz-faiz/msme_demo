@@ -3,6 +3,15 @@ import { AppFooter } from "@/shared/ui/AppFooter";
 import { PreventBackNavigation } from "@/shared/ui/PreventBackNavigation";
 import styles from "./page.module.css";
 
+const heroCarouselImages = [
+  "/images/Shop_owner_1.png",
+  "/images/Shop_owner_2.png",
+  "/images/Shop_owner_3.png",
+  "/images/Shop_owner_4.png",
+  "/images/Shop_owner_5.png",
+  "/images/Shop_owner_6.png",
+];
+
 export default function HomePage() {
   return (
     <div className={styles.page}>
@@ -61,26 +70,32 @@ export default function HomePage() {
         <div className={styles.glowA} aria-hidden="true" />
         <div className={styles.glowB} aria-hidden="true" />
         <div className={styles.heroText}>
-          <p className={styles.kicker}>Small shops, big impact</p>
+          {/* <p className={styles.kicker}>Small shops, big impact</p> */}
           <h1>Empowering Your Neighborhood Economy</h1>
           <p>
             Every order helps a local family, a nearby kitchen, and the small businesses that keep
             your city moving every day.
           </p>
-          <div className={styles.featurePills}>
+          {/* <div className={styles.featurePills}>
             <span>Local support</span>
             <span>Fast delivery</span>
             <span>Trusted stores</span>
-          </div>
+          </div> */}
         </div>
         <div className={styles.promoImageWrap}>
-          <img
-            src="https://img-cdn.publive.online/fit-in/640x430/filters:format(webp)/english-betterindia/media/post_attachments/uploads/2021/02/Vaibhav-1.jpg"
-            alt="Neighborhood small shop"
-            className={styles.promoImage}
-          />
+          <div className={styles.promoCarousel}>
+            {heroCarouselImages.map((image, index) => (
+              <img
+                key={image}
+                src={image}
+                alt={`Local shop owner ${index + 1}`}
+                loading={index === 0 ? "eager" : "lazy"}
+                decoding="async"
+                className={styles.promoSlide}
+              />
+            ))}
+          </div>
         </div>
-        
       </section>
 
       <section id="shops">

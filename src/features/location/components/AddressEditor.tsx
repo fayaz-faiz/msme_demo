@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Autocomplete, GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 import type { Libraries } from "@react-google-maps/api";
 import { getAddressWeb, postAddAddress, updateAddress } from "@/api";
@@ -139,8 +139,14 @@ function getBestPincode(results: google.maps.GeocoderResult[]): string {
 
 export function AddressEditor({ mode, addressId }: AddressEditorProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
   const { location, resolveCurrentLocation, setLocation } = useLocation();
+  const requestedNextPath = String(searchParams?.get("next") || "").trim();
+  const nextPath =
+    requestedNextPath.startsWith("/") && !requestedNextPath.startsWith("//")
+      ? requestedNextPath
+      : "/";
 
   const { isLoaded, loadError } = useJsApiLoader({
     id: "location-picker-places",
@@ -466,7 +472,7 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
         lat,
         lng,
       });
-      router.push("/");
+      router.push(nextPath);
     } catch (error) {
       notifyOrAlert(getReadableError(error, "Unable to save address."), "error");
     } finally {

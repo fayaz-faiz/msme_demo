@@ -17,6 +17,7 @@ import { toOndcCategory } from "@/features/shop/domain/ondc-category";
 import styles from "./ShopItemsBrowser.module.css";
 import { BackButton } from "@/shared/ui/BackButton";
 import { LocationPermissionModal } from "@/features/location/components/LocationPermissionModal";
+import { store } from "@/redux/store";
 
 type ShopItemsBrowserProps = {
   slug: string;
@@ -198,6 +199,7 @@ export function ShopItemsBrowser({
 
   const [query, setQuery] = useState("");
   const searchText = useDebounce(query);
+  const storeCategory = searchParams.get("category") || "";
   const [loading, setLoading] = useState(false);
   const [productLoading, setProductLoading] = useState(false);
   const [products, setProducts] = useState<ShopProduct[]>([]);
@@ -241,6 +243,7 @@ export function ShopItemsBrowser({
   const finalProviderId = storeInfo?.provider_id || providerId;
   const finalProviderLocationId =
     storeInfo?.provider_location_id || providerLocationId;
+    console.log({category, mappedCategory, storeInfoCategory: storeInfo?.category});
   const finalCategory = storeInfo?.category || mappedCategory;
   const resolvedGpsLatitude = useMemo(() => {
     const fromQuery = parseCoordinate(storeLat);
@@ -319,11 +322,13 @@ export function ShopItemsBrowser({
     const data: {
       provider_id: string;
       location_id: string;
+      category: string;
       gpsLatitude?: number;
       gpsLongitude?: number;
     } = {
       provider_id: providerIdParam,
       location_id: providerLocationIdParam,
+      category: storeCategory,
     };
     if (!isMinimalSharedStoreUrl) {
       data.gpsLatitude = resolvedGpsLatitude;
@@ -372,7 +377,7 @@ export function ShopItemsBrowser({
       veg: showFoodTypeFilter && vegFilter ? "yes" : "",
       nonVeg: showFoodTypeFilter && nonVegFilter ? "yes" : "",
     };
-
+    console.log("fetching items with data:", data);
     try {
       const response = (await searchStoreByItems(
         data,
