@@ -206,9 +206,151 @@ function normalizeCharges(summary: UnknownRecord | null): ChargeLike[] {
   });
 }
 
+function isValidDateValue(value: unknown): value is string | number | Date {
+  if (
+    typeof value !== "string" &&
+    typeof value !== "number" &&
+    !(value instanceof Date)
+  ) {
+    return false;
+  }
+  const date = new Date(value);
+  return !Number.isNaN(date.getTime());
+}
+
+//Function to check Active Return Window
+function hasActiveReturnWindow(summary: UnknownRecord | null) {
+  const sources = [
+    summary,
+    ...(Array.isArray(summary?.items)
+      ? summary.items.map((item) => asRecord(item)).filter(Boolean)
+      : []),
+  ];
+
+  for (const source of sources) {
+    if (!source) continue;
+
+    const windowStatusFields = [
+      source.return_window_status,
+      source.item_return_window_status,
+      source.returnable_window_status,
+    ];
+
+    for (const field of windowStatusFields) {
+      if (typeof field === "boolean") {
+        if (!field) return false;
+      }
+
+      if (typeof field === "string") {
+        const normalized = field.trim().toLowerCase();
+        if (["expired", "closed", "inactive", "false"].includes(normalized)) {
+          return false;
+        }
+      }
+    }
+
+    if (
+      source.return_window_open === false ||
+      source.item_return_window_open === false ||
+      source.return_window_available === false ||
+      source.item_return_window_available === false ||
+      source.return_window_expired === true ||
+      source.item_return_window_expired === true
+    ) {
+      return false;
+    }
+
+    const windowDateFields = [
+      source.returnable_timeline,
+      source.item_returnable_timeline,
+      source.return_window_end_at,
+      source.item_return_window_end_at,
+      source.returnable_till,
+      source.item_returnable_till,
+      source.return_by,
+      source.return_window_end_date,
+    ];
+
+    for (const field of windowDateFields) {
+      if (!isValidDateValue(field)) continue;
+      if (new Date(field).getTime() < Date.now()) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+function getCurrentPositionReturn(status: string) {
+  switch (status) {
+    case "Return_Initiated":
+      return 1;
+    case "Return_Approved":
+      return 2;
+    case "Return_Picked":
+      return 3;
+    case "Return_Delivered":
+      return 4;
+    case "Return_Rejected":
+      return 1;
+    case "Return_Pick_Failed":
+      return 3;
+    default:
+      return 0;
+  }
+}
+
 function buildTimeline(summary: UnknownRecord | null) {
   const status = String(summary?.status || "Pending");
   console.log("Building timeline for status:", summary);
+
+  const returnStatuses = [
+    "Return_Initiated",
+    "Return_Approved",
+    "Return_Rejected",
+    "Return_Pick_Failed",
+    "Return_Picked",
+    "Return_Delivered",
+  ];
+
+  if (returnStatuses.includes(status)) {
+    const steps = [
+      {
+        key: "return-initiated",
+        label: "Return initiated",
+        time: "-",
+      },
+      {
+        key: "return-approved",
+        label:
+          status === "Return_Rejected" ? "Return rejected" : "Return approved",
+        time: "-",
+      },
+      {
+        key: "return-picked",
+        label:
+          status === "Return_Pick_Failed"
+            ? "Return pickup failed"
+            : "Return picked",
+        time: "-",
+      },
+      {
+        key: "return-delivered",
+        label: "Return delivered",
+        time: "-",
+      },
+    ];
+
+    const active = getCurrentPositionReturn(status);
+
+    return steps.map((step, index) => {
+      const state =
+        index < active ? "done" : index === active ? "active" : "upcoming";
+      return { ...step, state };
+    });
+  }
+
   const steps = [
     {
       key: "placed",
@@ -378,6 +520,12 @@ export default function OrderDetailsPage() {
   const items = useMemo(() => normalizeItems(summary), [summary]);
   const charges = useMemo(() => normalizeCharges(summary), [summary]);
   const timeline = useMemo(() => buildTimeline(summary), [summary]);
+  const showStatusTimeline = useMemo(() => status !== "Cancelled", [status]);
+  const statusSectionTitle = useMemo(
+    () =>
+      String(status).startsWith("Return_") ? "Return Status" : "Order Status",
+    [status],
+  );
   const canTrack = useMemo(() => {
     const disallowed = [
       "Order-delivered",
@@ -406,9 +554,10 @@ export default function OrderDetailsPage() {
   const canReturn = useMemo(() => {
     if (status !== "Order-delivered") return false;
     const rawItems = Array.isArray(summary?.items) ? summary.items : [];
-    return !rawItems.some(
+    const itemsReturnable = !rawItems.some(
       (rawItem) => asRecord(rawItem)?.item_returnable_status === false,
     );
+    return itemsReturnable && hasActiveReturnWindow(summary);
   }, [summary, status]);
 
   const getOrderStatus = async (data: { order_id: string }) => {
@@ -598,7 +747,10 @@ export default function OrderDetailsPage() {
       );
       await fetchOrderDetails();
     } catch (err: unknown) {
-      notifyOrAlert(getErrorMessage(err, "Unable to initiate return."), "error");
+      notifyOrAlert(
+        getErrorMessage(err, "Unable to initiate return."),
+        "error",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -919,37 +1071,39 @@ export default function OrderDetailsPage() {
       </div>
 
       {/* Status timeline */}
-      <div className={styles.card}>
-        <h2 className={styles.sectionTitle}>Order Status</h2>
-        <ol className={styles.stepper}>
-          {timeline.map((step, index) => (
-            <li key={step.key} className={styles.stepItem}>
-              <div className={styles.stepRail} aria-hidden="true">
-                <span
-                  className={`${styles.stepNode} ${styles[`stepNode_${step.state}`]}`}
-                >
-                  {step.state === "done" ? "✓" : index + 1}
-                </span>
-                {index < timeline.length - 1 ? (
+      {showStatusTimeline ? (
+        <div className={styles.card}>
+          <h2 className={styles.sectionTitle}>{statusSectionTitle}</h2>
+          <ol className={styles.stepper}>
+            {timeline.map((step, index) => (
+              <li key={step.key} className={styles.stepItem}>
+                <div className={styles.stepRail} aria-hidden="true">
                   <span
-                    className={`${styles.stepConnector} ${styles[`stepConnector_${step.state}`]}`}
-                  />
-                ) : null}
-              </div>
-              <div className={styles.stepBody}>
-                <p className={styles.stepTitle}>{step.label}</p>
-                <p className={styles.stepMeta}>
-                  {step.time === "-"
-                    ? step.state === "active"
-                      ? "In progress"
-                      : "Pending"
-                    : step.time}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </div>
+                    className={`${styles.stepNode} ${styles[`stepNode_${step.state}`]}`}
+                  >
+                    {step.state === "done" ? "✓" : index + 1}
+                  </span>
+                  {index < timeline.length - 1 ? (
+                    <span
+                      className={`${styles.stepConnector} ${styles[`stepConnector_${step.state}`]}`}
+                    />
+                  ) : null}
+                </div>
+                <div className={styles.stepBody}>
+                  <p className={styles.stepTitle}>{step.label}</p>
+                  <p className={styles.stepMeta}>
+                    {step.time === "-"
+                      ? step.state === "active"
+                        ? "In progress"
+                        : "Pending"
+                      : step.time}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
 
       {/* Ordered items */}
       <div className={styles.card}>
