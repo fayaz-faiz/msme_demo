@@ -5,7 +5,9 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getCancelReasons,
+  getReturnReasons,
   orderCancelOrder,
+  orderReturnOrder,
   postOrderDertailsById,
   postOrderStatusById,
   postTrackOrder,
@@ -34,6 +36,7 @@ type TrackingInfo = {
   runnerMobile: string | null;
   runnerOtp: string | null;
 };
+type CancelReason = { label: string; value: string };
 
 function asRecord(value: unknown): UnknownRecord | undefined {
   if (typeof value === "object" && value !== null) {
@@ -203,9 +206,151 @@ function normalizeCharges(summary: UnknownRecord | null): ChargeLike[] {
   });
 }
 
+function isValidDateValue(value: unknown): value is string | number | Date {
+  if (
+    typeof value !== "string" &&
+    typeof value !== "number" &&
+    !(value instanceof Date)
+  ) {
+    return false;
+  }
+  const date = new Date(value);
+  return !Number.isNaN(date.getTime());
+}
+
+//Function to check Active Return Window
+function hasActiveReturnWindow(summary: UnknownRecord | null) {
+  const sources = [
+    summary,
+    ...(Array.isArray(summary?.items)
+      ? summary.items.map((item) => asRecord(item)).filter(Boolean)
+      : []),
+  ];
+
+  for (const source of sources) {
+    if (!source) continue;
+
+    const windowStatusFields = [
+      source.return_window_status,
+      source.item_return_window_status,
+      source.returnable_window_status,
+    ];
+
+    for (const field of windowStatusFields) {
+      if (typeof field === "boolean") {
+        if (!field) return false;
+      }
+
+      if (typeof field === "string") {
+        const normalized = field.trim().toLowerCase();
+        if (["expired", "closed", "inactive", "false"].includes(normalized)) {
+          return false;
+        }
+      }
+    }
+
+    if (
+      source.return_window_open === false ||
+      source.item_return_window_open === false ||
+      source.return_window_available === false ||
+      source.item_return_window_available === false ||
+      source.return_window_expired === true ||
+      source.item_return_window_expired === true
+    ) {
+      return false;
+    }
+
+    const windowDateFields = [
+      source.returnable_timeline,
+      source.item_returnable_timeline,
+      source.return_window_end_at,
+      source.item_return_window_end_at,
+      source.returnable_till,
+      source.item_returnable_till,
+      source.return_by,
+      source.return_window_end_date,
+    ];
+
+    for (const field of windowDateFields) {
+      if (!isValidDateValue(field)) continue;
+      if (new Date(field).getTime() < Date.now()) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+function getCurrentPositionReturn(status: string) {
+  switch (status) {
+    case "Return_Initiated":
+      return 1;
+    case "Return_Approved":
+      return 2;
+    case "Return_Picked":
+      return 3;
+    case "Return_Delivered":
+      return 4;
+    case "Return_Rejected":
+      return 1;
+    case "Return_Pick_Failed":
+      return 3;
+    default:
+      return 0;
+  }
+}
+
 function buildTimeline(summary: UnknownRecord | null) {
   const status = String(summary?.status || "Pending");
   console.log("Building timeline for status:", summary);
+
+  const returnStatuses = [
+    "Return_Initiated",
+    "Return_Approved",
+    "Return_Rejected",
+    "Return_Pick_Failed",
+    "Return_Picked",
+    "Return_Delivered",
+  ];
+
+  if (returnStatuses.includes(status)) {
+    const steps = [
+      {
+        key: "return-initiated",
+        label: "Return initiated",
+        time: "-",
+      },
+      {
+        key: "return-approved",
+        label:
+          status === "Return_Rejected" ? "Return rejected" : "Return approved",
+        time: "-",
+      },
+      {
+        key: "return-picked",
+        label:
+          status === "Return_Pick_Failed"
+            ? "Return pickup failed"
+            : "Return picked",
+        time: "-",
+      },
+      {
+        key: "return-delivered",
+        label: "Return delivered",
+        time: "-",
+      },
+    ];
+
+    const active = getCurrentPositionReturn(status);
+
+    return steps.map((step, index) => {
+      const state =
+        index < active ? "done" : index === active ? "active" : "upcoming";
+      return { ...step, state };
+    });
+  }
+
   const steps = [
     {
       key: "placed",
@@ -257,6 +402,12 @@ export default function OrderDetailsPage() {
   const [trackingInfo, setTrackingInfo] = useState<TrackingInfo | null>(null);
   const [error, setError] = useState("");
   const [summary, setSummary] = useState<UnknownRecord | null>(null);
+  const [cancelReasonData, setCancelReasonData] = useState<CancelReason[]>([]);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedCancelReason, setSelectedCancelReason] = useState("");
+  const [returnReasonData, setReturnReasonData] = useState<CancelReason[]>([]);
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [selectedReturnReason, setSelectedReturnReason] = useState("");
 
   const fetchOrderDetails = useCallback(async () => {
     if (!orderId) {
@@ -290,6 +441,36 @@ export default function OrderDetailsPage() {
   useEffect(() => {
     void fetchOrderDetails();
   }, [fetchOrderDetails]);
+
+  const toReasonList = (resp: unknown): CancelReason[] => {
+    // getAPIHelper unwraps axios → resp IS the response body
+    const typed = resp as { status?: boolean; data?: unknown[] };
+    if (!typed?.status) return [];
+    return (typed.data ?? [])
+      .map((ele) => {
+        const entry = asRecord(ele) ?? {};
+        return {
+          label: String(entry.message || ""),
+          value: String(entry.code || entry._id || ""),
+        };
+      })
+      .filter((item) => item.value);
+  };
+  useEffect(() => {
+    const loadReasons = async () => {
+      const [cancelResp, returnResp] = await Promise.allSettled([
+        getCancelReasons(),
+        getReturnReasons(),
+      ]);
+      if (cancelResp.status === "fulfilled") {
+        setCancelReasonData(toReasonList(cancelResp.value));
+      }
+      if (returnResp.status === "fulfilled") {
+        setReturnReasonData(toReasonList(returnResp.value));
+      }
+    };
+    void loadReasons();
+  }, []);
 
   const normalizedOrderId = useMemo(
     () =>
@@ -339,6 +520,12 @@ export default function OrderDetailsPage() {
   const items = useMemo(() => normalizeItems(summary), [summary]);
   const charges = useMemo(() => normalizeCharges(summary), [summary]);
   const timeline = useMemo(() => buildTimeline(summary), [summary]);
+  const showStatusTimeline = useMemo(() => status !== "Cancelled", [status]);
+  const statusSectionTitle = useMemo(
+    () =>
+      String(status).startsWith("Return_") ? "Return Status" : "Order Status",
+    [status],
+  );
   const canTrack = useMemo(() => {
     const disallowed = [
       "Order-delivered",
@@ -363,6 +550,14 @@ export default function OrderDetailsPage() {
     return !rawItems.some(
       (rawItem) => asRecord(rawItem)?.item_cancellable_status === false,
     );
+  }, [summary, status]);
+  const canReturn = useMemo(() => {
+    if (status !== "Order-delivered") return false;
+    const rawItems = Array.isArray(summary?.items) ? summary.items : [];
+    const itemsReturnable = !rawItems.some(
+      (rawItem) => asRecord(rawItem)?.item_returnable_status === false,
+    );
+    return itemsReturnable && hasActiveReturnWindow(summary);
   }, [summary, status]);
 
   const getOrderStatus = async (data: { order_id: string }) => {
@@ -394,30 +589,6 @@ export default function OrderDetailsPage() {
     } else {
       void fetchOrderDetails().finally(() => setReloadPress(false));
     }
-  };
-
-  const extractFirstCancelReasonId = (response: unknown): string => {
-    const typed = response as {
-      data?: {
-        data?: unknown;
-        message?: unknown;
-      };
-      message?: unknown;
-    };
-    const buckets = [typed?.data?.data, typed?.data?.message, typed?.message];
-    for (const bucket of buckets) {
-      if (!Array.isArray(bucket)) {
-        continue;
-      }
-      for (const entry of bucket) {
-        const row = asRecord(entry);
-        const id = String(row?._id || row?.reason_id || row?.id || "").trim();
-        if (id) {
-          return id;
-        }
-      }
-    }
-    return "";
   };
 
   const handleTrackOrder = async () => {
@@ -476,27 +647,22 @@ export default function OrderDetailsPage() {
     }
   };
 
-  const handleCancelOrder = async () => {
-    const confirmed = window.confirm("Do you want to cancel this order?");
-    if (!confirmed) {
+  const handleCancelOrder = () => {
+    setSelectedCancelReason("");
+    setShowCancelModal(true);
+  };
+
+  const submitCancelOrder = async () => {
+    if (!selectedCancelReason) {
+      notifyOrAlert("Please select a cancellation reason.", "warning");
       return;
     }
-
+    setShowCancelModal(false);
     setActionLoading(true);
     try {
-      const reasonsResponse = await getCancelReasons();
-      const cancelReasonId = extractFirstCancelReasonId(reasonsResponse);
-      if (!cancelReasonId) {
-        notifyOrAlert(
-          "Cancellation reason is unavailable right now.",
-          "warning",
-        );
-        return;
-      }
-
       const response = await orderCancelOrder({
         order_id: normalizedOrderId,
-        cancellation_reason_id: cancelReasonId,
+        cancellation_reason_id: selectedCancelReason,
       });
       const typed = response as {
         data?: {
@@ -522,6 +688,69 @@ export default function OrderDetailsPage() {
       await fetchOrderDetails();
     } catch (err: unknown) {
       notifyOrAlert(getErrorMessage(err, "Unable to cancel order."), "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReturnOrder = () => {
+    setSelectedReturnReason("");
+    setShowReturnModal(true);
+  };
+
+  const submitReturnOrder = async () => {
+    if (!selectedReturnReason) {
+      notifyOrAlert("Please select a return reason.", "warning");
+      return;
+    }
+    setShowReturnModal(false);
+    setActionLoading(true);
+    try {
+      const selectedReason = returnReasonData.find(
+        (r) => r.value === selectedReturnReason,
+      );
+      const rawItems = Array.isArray(summary?.items) ? summary.items : [];
+      const fulfillments = rawItems.map((rawItem) => {
+        const item = asRecord(rawItem) ?? {};
+        return {
+          item_id: String(item.item_id || ""),
+          item_quantity: String(item.count ?? item.quantity ?? 1),
+          reason_id: selectedReturnReason,
+          reason_desc: selectedReason?.label ?? "",
+        };
+      });
+      const response = await orderReturnOrder({
+        order_id: normalizedOrderId,
+        update_target: "item",
+        fulfillments,
+      });
+      const typed = response as {
+        data?: {
+          status?: boolean;
+          data?: { message?: unknown };
+          message?: unknown;
+        };
+      };
+      if (!typed?.data?.status) {
+        notifyOrAlert(
+          toReadableMessage(
+            typed?.data?.data?.message || typed?.data?.message,
+          ) || "Unable to initiate return.",
+          "warning",
+        );
+        return;
+      }
+      notifyOrAlert(
+        toReadableMessage(typed?.data?.data?.message) ||
+          "Return initiated successfully.",
+        "success",
+      );
+      await fetchOrderDetails();
+    } catch (err: unknown) {
+      notifyOrAlert(
+        getErrorMessage(err, "Unable to initiate return."),
+        "error",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -668,7 +897,10 @@ export default function OrderDetailsPage() {
       ["Type", String(paymentDetails?.type || "-")],
       ["Status", paymentStatus],
       ["Txn ID", String(paymentParams?.transaction_id || "-")],
-      ["Amount", `${String(paymentParams?.currency || "INR")} ${String(paymentParams?.amount || totalAmount)}`],
+      [
+        "Amount",
+        `${String(paymentParams?.currency || "INR")} ${String(paymentParams?.amount || totalAmount)}`,
+      ],
       ["Method", String(summary?.payment_method || "-")],
     ];
     const billRows: [string, string][] = [
@@ -814,7 +1046,7 @@ export default function OrderDetailsPage() {
           </div>
         </div>
 
-        {(canTrack || canRaiseQuery) ? (
+        {canTrack || canRaiseQuery ? (
           <div className={styles.actionsRow}>
             {canTrack ? (
               <button
@@ -839,37 +1071,39 @@ export default function OrderDetailsPage() {
       </div>
 
       {/* Status timeline */}
-      <div className={styles.card}>
-        <h2 className={styles.sectionTitle}>Order Status</h2>
-        <ol className={styles.stepper}>
-          {timeline.map((step, index) => (
-            <li key={step.key} className={styles.stepItem}>
-              <div className={styles.stepRail} aria-hidden="true">
-                <span
-                  className={`${styles.stepNode} ${styles[`stepNode_${step.state}`]}`}
-                >
-                  {step.state === "done" ? "✓" : index + 1}
-                </span>
-                {index < timeline.length - 1 ? (
+      {showStatusTimeline ? (
+        <div className={styles.card}>
+          <h2 className={styles.sectionTitle}>{statusSectionTitle}</h2>
+          <ol className={styles.stepper}>
+            {timeline.map((step, index) => (
+              <li key={step.key} className={styles.stepItem}>
+                <div className={styles.stepRail} aria-hidden="true">
                   <span
-                    className={`${styles.stepConnector} ${styles[`stepConnector_${step.state}`]}`}
-                  />
-                ) : null}
-              </div>
-              <div className={styles.stepBody}>
-                <p className={styles.stepTitle}>{step.label}</p>
-                <p className={styles.stepMeta}>
-                  {step.time === "-"
-                    ? step.state === "active"
-                      ? "In progress"
-                      : "Pending"
-                    : step.time}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </div>
+                    className={`${styles.stepNode} ${styles[`stepNode_${step.state}`]}`}
+                  >
+                    {step.state === "done" ? "✓" : index + 1}
+                  </span>
+                  {index < timeline.length - 1 ? (
+                    <span
+                      className={`${styles.stepConnector} ${styles[`stepConnector_${step.state}`]}`}
+                    />
+                  ) : null}
+                </div>
+                <div className={styles.stepBody}>
+                  <p className={styles.stepTitle}>{step.label}</p>
+                  <p className={styles.stepMeta}>
+                    {step.time === "-"
+                      ? step.state === "active"
+                        ? "In progress"
+                        : "Pending"
+                      : step.time}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
 
       {/* Ordered items */}
       <div className={styles.card}>
@@ -997,10 +1231,20 @@ export default function OrderDetailsPage() {
           <button
             type="button"
             className={styles.dangerButton}
-            onClick={() => void handleCancelOrder()}
+            onClick={handleCancelOrder}
             disabled={actionLoading}
           >
             {actionLoading ? "Please wait..." : "Cancel Order"}
+          </button>
+        ) : null}
+        {canReturn ? (
+          <button
+            type="button"
+            className={styles.dangerButton}
+            onClick={handleReturnOrder}
+            disabled={actionLoading}
+          >
+            {actionLoading ? "Please wait..." : "Return Order"}
           </button>
         ) : null}
         <button
@@ -1012,6 +1256,144 @@ export default function OrderDetailsPage() {
           Download Invoice
         </button>
       </div>
+
+      {/* Cancel reason bottom sheet */}
+      {showCancelModal ? (
+        <div
+          className={styles.cancelOverlay}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowCancelModal(false);
+          }}
+        >
+          <div className={styles.cancelSheet}>
+            <div className={styles.trackingHandle} />
+            <div className={styles.cancelHeader}>
+              <h2 className={styles.cancelTitle}>Cancel Order</h2>
+              <button
+                type="button"
+                className={styles.trackingCloseBtn}
+                onClick={() => setShowCancelModal(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <p className={styles.cancelSubtext}>
+              Please select a reason for cancellation
+            </p>
+            <div className={styles.cancelReasonList}>
+              {cancelReasonData.length > 0 ? (
+                cancelReasonData.map((reason) => (
+                  <label
+                    key={reason.value}
+                    className={`${styles.cancelReasonItem} ${selectedCancelReason === reason.value ? styles.cancelReasonItemSelected : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="cancelReason"
+                      value={reason.value}
+                      checked={selectedCancelReason === reason.value}
+                      onChange={() => setSelectedCancelReason(reason.value)}
+                      className={styles.cancelReasonRadio}
+                    />
+                    <span>{reason.label}</span>
+                  </label>
+                ))
+              ) : (
+                <p className={styles.emptyState}>
+                  No cancellation reasons available.
+                </p>
+              )}
+            </div>
+            <div className={styles.cancelActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setShowCancelModal(false)}
+              >
+                Go Back
+              </button>
+              <button
+                type="button"
+                className={styles.dangerButton}
+                onClick={() => void submitCancelOrder()}
+                disabled={!selectedCancelReason}
+              >
+                Confirm Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Return reason bottom sheet */}
+      {showReturnModal ? (
+        <div
+          className={styles.cancelOverlay}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowReturnModal(false);
+          }}
+        >
+          <div className={styles.cancelSheet}>
+            <div className={styles.trackingHandle} />
+            <div className={styles.cancelHeader}>
+              <h2 className={styles.cancelTitle}>Return Order</h2>
+              <button
+                type="button"
+                className={styles.trackingCloseBtn}
+                onClick={() => setShowReturnModal(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <p className={styles.cancelSubtext}>
+              Please select a reason for return
+            </p>
+            <div className={styles.cancelReasonList}>
+              {returnReasonData.length > 0 ? (
+                returnReasonData.map((reason) => (
+                  <label
+                    key={reason.value}
+                    className={`${styles.cancelReasonItem} ${selectedReturnReason === reason.value ? styles.cancelReasonItemSelected : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="returnReason"
+                      value={reason.value}
+                      checked={selectedReturnReason === reason.value}
+                      onChange={() => setSelectedReturnReason(reason.value)}
+                      className={styles.cancelReasonRadio}
+                    />
+                    <span>{reason.label}</span>
+                  </label>
+                ))
+              ) : (
+                <p className={styles.emptyState}>
+                  No return reasons available.
+                </p>
+              )}
+            </div>
+            <div className={styles.cancelActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setShowReturnModal(false)}
+              >
+                Go Back
+              </button>
+              <button
+                type="button"
+                className={styles.dangerButton}
+                onClick={() => void submitReturnOrder()}
+                disabled={!selectedReturnReason}
+              >
+                Confirm Return
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Tracking bottom sheet */}
       {trackingInfo ? (
@@ -1069,7 +1451,9 @@ export default function OrderDetailsPage() {
             <div className={styles.trackingDetails}>
               <div className={styles.trackingModeRow}>
                 <span className={styles.trackingModeChip}>
-                  {trackingInfo.deliveryMode === "Self" ? "🏪 Self Delivery" : `🚚 ${trackingInfo.deliveryMode}`}
+                  {trackingInfo.deliveryMode === "Self"
+                    ? "🏪 Self Delivery"
+                    : `🚚 ${trackingInfo.deliveryMode}`}
                 </span>
               </div>
 
