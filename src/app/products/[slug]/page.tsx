@@ -22,6 +22,8 @@ type ApiProductItem = {
   _id?: string;
   item_id?: string;
   parent_item_id?: string;
+  provider_id?: string;
+  domain?: string;
   sub_category?: string;
   item_name?: string;
   item_short_desc?: string;
@@ -46,10 +48,27 @@ type ApiProductItem = {
   item_cancellable_status?: boolean;
   max_time_to_ship_minutes?: number;
   item_offers?: string[];
+  brand?: string;
+  cpu?: string;
+  ram?: string | number;
+  ram_unit?: string;
+  colour?: string;
+  colour_name?: string;
+  storage?: string | number;
+  storage_unit?: string;
+  storage_type?: string;
+  os_type?: string;
+  os_version?: string;
+  screen_size?: string | number;
+  height?: string | number;
+  length?: string | number;
+  weight?: string | number;
+  breadth?: string | number;
 };
 
 type ProductDetailsApiResponse = {
   updated_results?: ApiProductItem;
+  variant_result?: ApiProductItem[];
 };
 
 type PostSearchByIdResponse = {
@@ -102,6 +121,47 @@ const toProduct = (item: ApiProductItem | null, slug: string, fallbackId: string
   };
 };
 
+const getItemId = (item: ApiProductItem | null | undefined) => String(item?._id || item?.item_id || "").trim();
+
+const isRet14Product = (item: ApiProductItem | null, category: string) => {
+  const value = String(item?.domain || category || "").trim().toUpperCase();
+  return value === "ONDC:RET14" || value === "ELECTRONICS";
+};
+
+const extractVariantItems = (data: ProductDetailsApiResponse): ApiProductItem[] => {
+  const seen = new Set<string>();
+  return (Array.isArray(data.variant_result) ? data.variant_result : [])
+    .filter((item) => {
+      const itemId = getItemId(item);
+      if (!itemId || seen.has(itemId)) {
+        return false;
+      }
+      seen.add(itemId);
+      return true;
+    });
+};
+
+const compactValue = (value: unknown, unit = "") => {
+  const text = String(value ?? "").trim();
+  const suffix = String(unit || "").trim();
+  if (!text) return "";
+  return suffix ? `${text} ${suffix}` : text;
+};
+
+const getVariantSpecs = (variant: ApiProductItem) =>
+  [
+    { label: "RAM", value: compactValue(variant.ram, variant.ram_unit) },
+    { label: "Storage", value: compactValue(variant.storage, variant.storage_unit || variant.storage_type) },
+    { label: "Color", value: variant.colour_name || variant.colour },
+  ].filter((spec) => spec.value);
+
+const hasRequiredVariantSpecs = (variant: ApiProductItem) =>
+  Boolean(
+    compactValue(variant.ram, variant.ram_unit) &&
+      compactValue(variant.storage, variant.storage_unit || variant.storage_type) &&
+      (variant.colour_name || variant.colour),
+  );
+
 export default function ProductDetailsPage() {
   const params = useParams<{ slug: string }>();
   const searchParams = useSearchParams();
@@ -124,10 +184,19 @@ export default function ProductDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [details, setDetails] = useState<ApiProductItem | null>(null);
   const [relatedItems, setRelatedItems] = useState<ApiProductItem[]>([]);
+  const [activeItemId, setActiveItemId] = useState(id);
+  const [variantItems, setVariantItems] = useState<ApiProductItem[]>([]);
 
   const lastFetchKeyRef = useRef("");
 
-  const product = useMemo(() => toProduct(details, slug, id), [details, id, slug]);
+  const product = useMemo(() => toProduct(details, slug, activeItemId || id), [activeItemId, details, id, slug]);
+  const shouldShowVariants = isRet14Product(details, category) && variantItems.length > 1;
+
+  useEffect(() => {
+    setActiveItemId(id);
+    setVariantItems([]);
+    lastFetchKeyRef.current = "";
+  }, [id]);
 
   useEffect(() => {
     if (!id || !providerId) {
@@ -138,7 +207,8 @@ export default function ProductDetailsPage() {
 
     const gpsLatitude = Number(location?.lat ?? 12.9716);
     const gpsLongitude = Number(location?.lng ?? 77.5946);
-    const fetchKey = [id, providerId, parentItemId, gpsLatitude, gpsLongitude].join("|");
+    const selectedItemId = activeItemId || id;
+    const fetchKey = [selectedItemId, providerId, parentItemId, gpsLatitude, gpsLongitude].join("|");
 
     if (lastFetchKeyRef.current === fetchKey) {
       return;
@@ -151,7 +221,7 @@ export default function ProductDetailsPage() {
       setError(null);
       try {
         const detailsPayload = {
-          id,
+          id: selectedItemId,
           parent_item_id: parentItemId,
           provider_id: providerId,
           gpsLongitude,
@@ -161,6 +231,8 @@ export default function ProductDetailsPage() {
         const detailsResponse = (await postSearchById(detailsPayload)) as PostSearchByIdResponse;
         const detailsData: ProductDetailsApiResponse = detailsResponse?.data?.data || {};
         const updated = detailsData?.updated_results || null;
+        const incomingVariants = extractVariantItems(detailsData);
+        const isRet14 = isRet14Product(updated, category);
 
         if (!detailsResponse?.data?.status || !updated) {
           setDetails(null);
@@ -169,6 +241,7 @@ export default function ProductDetailsPage() {
         }
 
         setDetails(updated);
+        setVariantItems(isRet14 ? incomingVariants.filter(hasRequiredVariantSpecs) : []);
 
         if (providerLocationId && category) {
           const relatedPayload = {
@@ -184,7 +257,7 @@ export default function ProductDetailsPage() {
           const relatedResponse = (await searchStoreByItems(relatedPayload)) as SearchStoreItemsResponse;
           if (relatedResponse?.data?.status) {
             const incoming = (relatedResponse?.data?.data?.data || []) as ApiProductItem[];
-            setRelatedItems(incoming.filter((item) => (item._id || item.item_id) !== id));
+            setRelatedItems(incoming.filter((item) => getItemId(item) !== selectedItemId));
           } else {
             setRelatedItems([]);
           }
@@ -203,7 +276,7 @@ export default function ProductDetailsPage() {
     };
 
     void fetchData();
-  }, [category, id, location?.lat, location?.lng, parentItemId, providerId, providerLocationId, subCategoryName]);
+  }, [activeItemId, category, id, location?.lat, location?.lng, parentItemId, providerId, providerLocationId, subCategoryName]);
 
   return (
     <section className={`page ${styles.pageWrap}`}>
@@ -279,6 +352,43 @@ export default function ProductDetailsPage() {
                 <span className={`${styles.pill} ${styles.returnablePill}`}>{details.item_cancellable_status ? "Cancellable" : "Non-Cancellable"}</span>
                 {product.hasVariants ? <span className={styles.pill}>Customizable</span> : null}
               </div>
+
+              {shouldShowVariants ? (
+                <section className={styles.variantPanel} aria-label="Available options">
+                  <div className={styles.variantHeader}>
+                    <h2>Available Options</h2>
+                    <span>{variantItems.length} options</span>
+                  </div>
+                  <div className={styles.variantList}>
+                    {variantItems.map((variant, index) => {
+                      const variantId = getItemId(variant);
+                      const selected = variantId === getItemId(details);
+                      return (
+                        <button
+                          key={variantId}
+                          type="button"
+                          className={`${styles.variantCard} ${selected ? styles.variantCardSelected : ""}`}
+                          onClick={() => {
+                            if (!variantId || selected) {
+                              return;
+                            }
+                            setActiveItemId(variantId);
+                          }}
+                        >
+                          <span className={styles.variantTitle}>Option {index + 1}</span>
+                          <span className={styles.variantSpecs}>
+                            {getVariantSpecs(variant).map((spec) => (
+                              <span key={`${variantId}-${spec.label}`} className={styles.variantSpec}>
+                                {spec.label}: {spec.value}
+                              </span>
+                            ))}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              ) : null}
 
               <div className={styles.addCta}>
                 <AddToCartButton product={product} useServerCart />

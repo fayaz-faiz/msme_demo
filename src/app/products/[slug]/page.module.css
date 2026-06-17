@@ -130,6 +130,83 @@
   background: #fff8f1;
 }
 
+.variantPanel {
+  display: grid;
+  gap: 0.7rem;
+  border: 1px solid #e4dccf;
+  border-radius: 12px;
+  background: #fffdf9;
+  padding: 0.85rem;
+}
+
+.variantHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.variantHeader h2 {
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.variantHeader span {
+  color: #6a7568;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.variantList {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.variantCard {
+  display: grid;
+  gap: 0.55rem;
+  width: 100%;
+  border: 1px solid #e0e4dc;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1d251d;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.variantCardSelected {
+  border-color: #d79824;
+  background: #fffaf1;
+  box-shadow: 0 0 0 1px rgba(215, 152, 36, 0.32);
+}
+
+.variantTitle {
+  font-weight: 800;
+}
+
+.variantSpecs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.variantSpec {
+  border: 1px solid #e0e4dc;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f281f;
+  font-size: 0.86rem;
+  font-weight: 700;
+  padding: 0.42rem 0.58rem;
+}
+
+.variantCardSelected .variantSpec {
+  border-color: #e0b55c;
+  background: #fff7ea;
+}
+
 .addCta {
   max-width: 220px;
 }
@@ -333,5 +410,15 @@
 @media (max-width: 580px) {
   .relatedGrid {
     grid-template-columns: 1fr;
+  }
+
+  .variantHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .variantSpec {
+    flex: 1 1 calc(33.333% - 0.5rem);
+    text-align: center;
   }
 }
