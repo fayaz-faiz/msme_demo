@@ -162,6 +162,58 @@
   gap: 0.75rem;
 }
 
+.quantityPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.quantityPillButton,
+.quantityPillWrap {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+}
+
+.quantityPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.55rem;
+  border: 1px solid #d7c7b6;
+  border-radius: 999px;
+  background: #fffaf4;
+  color: #2c2218;
+  font-size: 0.92rem;
+  font-weight: 800;
+  padding: 0.5rem 1rem;
+  text-align: center;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.quantityPillButton {
+  cursor: pointer;
+}
+
+.quantityPillButton:hover .quantityPill {
+  border-color: #c89451;
+  box-shadow: 0 8px 18px rgba(201, 138, 65, 0.12);
+  transform: translateY(-1px);
+}
+
+.quantityPillSelected {
+  border-color: #d18a3b;
+  background: #f0ddc6;
+  box-shadow: 0 0 0 1px rgba(209, 138, 59, 0.18);
+}
+
 .variantCard {
   display: grid;
   gap: 0.55rem;

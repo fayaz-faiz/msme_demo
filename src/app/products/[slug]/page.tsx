@@ -96,6 +96,17 @@ const toSlug = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
+const normalizeCategoryValue = (value?: string | null) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
+
+const normalizeNameValue = (value?: string | null) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
 const toProduct = (item: ApiProductItem | null, slug: string, fallbackId: string): Product | null => {
   if (!item) {
     return null;
@@ -124,15 +135,52 @@ const toProduct = (item: ApiProductItem | null, slug: string, fallbackId: string
 const getItemId = (item: ApiProductItem | null | undefined) => String(item?._id || item?.item_id || "").trim();
 
 const isRet14Product = (item: ApiProductItem | null, category: string) => {
-  const value = String(item?.domain || category || "").trim().toUpperCase();
-  return value === "ONDC:RET14" || value === "ELECTRONICS";
+  const value = normalizeCategoryValue(item?.domain || category);
+  return (
+    value === "ondc:ret14" ||
+    value === "electronics" ||
+    value.includes("ret14")
+  );
 };
 
-const extractVariantItems = (data: ProductDetailsApiResponse): ApiProductItem[] => {
+const isRetailQuantityProduct = (item: ApiProductItem | null, category: string) => {
+  const value = normalizeCategoryValue(item?.domain || category);
+  const compactValue = value.replace(/[^a-z0-9]/g, "");
+
+  return (
+    value === "ondc:ret10" ||
+    value === "ondc:ret16" ||
+    value === "grocery" ||
+    value === "home & kitchen" ||
+    value === "home and kitchen" ||
+    compactValue.includes("ret10") ||
+    compactValue.includes("ret16") ||
+    compactValue.includes("grocery") ||
+    compactValue.includes("homekitchen")
+  );
+};
+
+const getItemMeasureKey = (item: ApiProductItem) =>
+  String(item.item_measure_value ?? "").trim();
+
+const isMatchingItemName = (baseItem: ApiProductItem | null, candidate: ApiProductItem) => {
+  const baseName = normalizeNameValue(baseItem?.item_name);
+  const candidateName = normalizeNameValue(candidate.item_name);
+  return Boolean(baseName && candidateName && baseName === candidateName);
+};
+
+const extractVariantItems = (
+  data: ProductDetailsApiResponse,
+  mode: "quantity" | "specs",
+  baseItem?: ApiProductItem | null,
+): ApiProductItem[] => {
   const seen = new Set<string>();
   return (Array.isArray(data.variant_result) ? data.variant_result : [])
     .filter((item) => {
-      const itemId = getItemId(item);
+      if (mode === "quantity" && !isMatchingItemName(baseItem || null, item)) {
+        return false;
+      }
+      const itemId = mode === "quantity" ? getItemMeasureKey(item) : getItemId(item);
       if (!itemId || seen.has(itemId)) {
         return false;
       }
@@ -186,15 +234,28 @@ export default function ProductDetailsPage() {
   const [relatedItems, setRelatedItems] = useState<ApiProductItem[]>([]);
   const [activeItemId, setActiveItemId] = useState(id);
   const [variantItems, setVariantItems] = useState<ApiProductItem[]>([]);
+  const [quantityVariantItems, setQuantityVariantItems] = useState<ApiProductItem[]>([]);
 
   const lastFetchKeyRef = useRef("");
 
   const product = useMemo(() => toProduct(details, slug, activeItemId || id), [activeItemId, details, id, slug]);
-  const shouldShowVariants = isRet14Product(details, category) && variantItems.length > 1;
+  const isQuantityCategory = isRetailQuantityProduct(details, category);
+  const variantMode = isQuantityCategory
+    ? "quantity"
+    : isRet14Product(details, category)
+      ? "specs"
+      : "none";
+  const visibleQuantityVariants = quantityVariantItems.length
+    ? quantityVariantItems
+    : variantItems;
+  const shouldShowVariants =
+    variantMode !== "none" &&
+    (variantMode === "quantity" ? visibleQuantityVariants.length > 1 : variantItems.length > 1);
 
   useEffect(() => {
     setActiveItemId(id);
     setVariantItems([]);
+    setQuantityVariantItems([]);
     lastFetchKeyRef.current = "";
   }, [id]);
 
@@ -231,8 +292,18 @@ export default function ProductDetailsPage() {
         const detailsResponse = (await postSearchById(detailsPayload)) as PostSearchByIdResponse;
         const detailsData: ProductDetailsApiResponse = detailsResponse?.data?.data || {};
         const updated = detailsData?.updated_results || null;
-        const incomingVariants = extractVariantItems(detailsData);
+        const isQuantityProduct = isRetailQuantityProduct(updated, category);
         const isRet14 = isRet14Product(updated, category);
+        const incomingVariants = extractVariantItems(
+          detailsData,
+          isQuantityProduct ? "quantity" : "specs",
+          updated,
+        );
+        const normalizedVariants = isQuantityProduct
+          ? incomingVariants.filter((item) => getItemMeasureKey(item))
+          : isRet14
+            ? incomingVariants.filter(hasRequiredVariantSpecs)
+            : [];
 
         if (!detailsResponse?.data?.status || !updated) {
           setDetails(null);
@@ -241,7 +312,20 @@ export default function ProductDetailsPage() {
         }
 
         setDetails(updated);
-        setVariantItems(isRet14 ? incomingVariants.filter(hasRequiredVariantSpecs) : []);
+        setVariantItems((current) => {
+          if (isQuantityProduct) {
+            return normalizedVariants.length ? normalizedVariants : current;
+          }
+
+          return normalizedVariants.length ? normalizedVariants : [];
+        });
+        if (isQuantityProduct) {
+          setQuantityVariantItems((current) =>
+            normalizedVariants.length ? normalizedVariants : current,
+          );
+        } else {
+          setQuantityVariantItems([]);
+        }
 
         if (providerLocationId && category) {
           const relatedPayload = {
@@ -340,7 +424,8 @@ export default function ProductDetailsPage() {
 
               <div className={styles.measureRow}>
                 <span>
-                  Qty: {details.item_measure_value || "-"} {details.item_measure_quantity || ""}
+                  {variantMode === "quantity" ? "Net Quantity" : "Qty"}:{" "}
+                  {details.item_measure_value || "-"} {details.item_measure_quantity || ""}
                 </span>
                 {typeof details.max_time_to_ship_minutes === "number" ? (
                   <span>Delivery in {details.max_time_to_ship_minutes} min</span>
@@ -356,37 +441,95 @@ export default function ProductDetailsPage() {
               {shouldShowVariants ? (
                 <section className={styles.variantPanel} aria-label="Available options">
                   <div className={styles.variantHeader}>
-                    <h2>Available Options</h2>
-                    <span>{variantItems.length} options</span>
+                    <h2>
+                      {variantMode === "quantity" ? "Net Quantity" : "Available Options"}
+                    </h2>
+                    <span>
+                      {(variantMode === "quantity" ? visibleQuantityVariants : variantItems).length} options
+                    </span>
                   </div>
-                  <div className={styles.variantList}>
-                    {variantItems.map((variant, index) => {
-                      const variantId = getItemId(variant);
-                      const selected = variantId === getItemId(details);
-                      return (
-                        <button
-                          key={variantId}
-                          type="button"
-                          className={`${styles.variantCard} ${selected ? styles.variantCardSelected : ""}`}
-                          onClick={() => {
-                            if (!variantId || selected) {
-                              return;
-                            }
-                            setActiveItemId(variantId);
-                          }}
-                        >
-                          <span className={styles.variantTitle}>Option {index + 1}</span>
-                          <span className={styles.variantSpecs}>
-                            {getVariantSpecs(variant).map((spec) => (
-                              <span key={`${variantId}-${spec.label}`} className={styles.variantSpec}>
-                                {spec.label}: {spec.value}
-                              </span>
-                            ))}
+
+                  {variantMode === "quantity" ? (
+                    <div className={styles.quantityPills}>
+                      {visibleQuantityVariants.map((variant) => {
+                        const variantId = getItemId(variant);
+                        const selectedQuantity =
+                          String(details.item_measure_value ?? "").trim() ===
+                          String(variant.item_measure_value ?? "").trim();
+                        const label = `${variant.item_measure_value || "-"} ${
+                          variant.item_measure_quantity || ""
+                        }`.trim();
+
+                        const pill = (
+                          <span
+                            className={`${styles.quantityPill} ${
+                              selectedQuantity ? styles.quantityPillSelected : ""
+                            }`}
+                          >
+                            {label}
                           </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                        );
+
+                        if (visibleQuantityVariants.length <= 1) {
+                          return (
+                            <div key={variantId || label} className={styles.quantityPillWrap}>
+                              {pill}
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <button
+                            key={variantId || label}
+                            type="button"
+                            className={styles.quantityPillButton}
+                            onClick={() => {
+                              if (!variantId || selectedQuantity) {
+                                return;
+                              }
+                              setActiveItemId(variantId);
+                            }}
+                          >
+                            {pill}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className={styles.variantList}>
+                      {variantItems.map((variant, index) => {
+                        const variantId = getItemId(variant);
+                        const selected = variantId === getItemId(details);
+                        return (
+                          <button
+                            key={variantId}
+                            type="button"
+                            className={`${styles.variantCard} ${
+                              selected ? styles.variantCardSelected : ""
+                            }`}
+                            onClick={() => {
+                              if (!variantId || selected) {
+                                return;
+                              }
+                              setActiveItemId(variantId);
+                            }}
+                          >
+                            <span className={styles.variantTitle}>Option {index + 1}</span>
+                            <span className={styles.variantSpecs}>
+                              {getVariantSpecs(variant).map((spec) => (
+                                <span
+                                  key={`${variantId}-${spec.label}`}
+                                  className={styles.variantSpec}
+                                >
+                                  {spec.label}: {spec.value}
+                                </span>
+                              ))}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </section>
               ) : null}
 
