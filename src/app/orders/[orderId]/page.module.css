@@ -211,6 +211,32 @@
   -webkit-box-orient: vertical;
 }
 
+.cancelReasonBox {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid #f2d2bf;
+  border-radius: 12px;
+  background: #fff8f1;
+}
+
+.cancelReasonLabel {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #c65c16;
+}
+
+.cancelReasonText {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #3d2a1d;
+  margin: 0;
+  line-height: 1.45;
+}
+
 /* Actions */
 .actionsRow {
   display: flex;

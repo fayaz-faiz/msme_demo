@@ -111,6 +111,46 @@ function formatLabel(status: string) {
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
+function pickCancelReasonDescription(summary: UnknownRecord | null) {
+  if (!summary) {
+    return "";
+  }
+
+  const candidates = [
+    summary.cancellation_reason_description,
+    summary.cancel_reason_description,
+    summary.reason_description,
+    summary.reason_desc,
+    summary.cancellation_reason_desc,
+    summary.cancellation_reason,
+    summary.cancel_reason,
+    summary.reason,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+
+    const record = asRecord(candidate);
+    if (!record) {
+      continue;
+    }
+
+    const description =
+      toReadableMessage(record.description) ||
+      toReadableMessage(record.message) ||
+      toReadableMessage(record.reason) ||
+      toReadableMessage(record.detail);
+
+    if (description) {
+      return description;
+    }
+  }
+
+  return "";
+}
+
 function normalizeOrderDetailsPayload(response: unknown): UnknownRecord | null {
   const typed = response as {
     data?: {
@@ -517,6 +557,10 @@ export default function OrderDetailsPage() {
     () => asRecord(paymentDetails?.params),
     [paymentDetails],
   );
+  const cancelReasonDescription = useMemo(
+    () => pickCancelReasonDescription(summary),
+    [summary],
+  );
   const items = useMemo(() => normalizeItems(summary), [summary]);
   const charges = useMemo(() => normalizeCharges(summary), [summary]);
   const timeline = useMemo(() => buildTimeline(summary), [summary]);
@@ -682,7 +726,7 @@ export default function OrderDetailsPage() {
       }
       notifyOrAlert(
         toReadableMessage(typed?.data?.data?.message) ||
-          "Order cancelled successfully.",
+        "Order cancelled successfully.",
         "success",
       );
       await fetchOrderDetails();
@@ -742,7 +786,7 @@ export default function OrderDetailsPage() {
       }
       notifyOrAlert(
         toReadableMessage(typed?.data?.data?.message) ||
-          "Return initiated successfully.",
+        "Return initiated successfully.",
         "success",
       );
       await fetchOrderDetails();
@@ -1045,6 +1089,26 @@ export default function OrderDetailsPage() {
             <p className={styles.providerAddr}>{providerAddress}</p>
           </div>
         </div>
+
+        {cancelReasonDescription && String(status).toLowerCase().includes("cancel") ? (
+          <div className={styles.cancelReasonBox}>
+            <span className={styles.cancelReasonLabel}>Cancel reason</span>
+            <p className={styles.cancelReasonText}>{cancelReasonDescription}</p>
+          </div>
+        ) : null}
+
+        {cancelReasonDescription && String(status).toLowerCase().includes("cancel") ? (
+          <div className={styles.cancelReasonBox}>
+            <span className={styles.cancelReasonLabel}>Your oorder has been cancelled</span>
+            <p className={styles.cancelReasonText}>
+              The refund amount will be initiated to your original payment method and should be credited within 3-4 business days.
+            </p>
+            <span className={styles.cancelReasonLabel}>Refund Amount</span>
+            <p className={styles.cancelReasonText}>
+              {formatCurrency(totalAmount)}
+            </p>
+          </div>
+        ) : null}
 
         {canTrack || canRaiseQuery ? (
           <div className={styles.actionsRow}>
