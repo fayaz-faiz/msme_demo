@@ -54,6 +54,7 @@ type ApiProductItem = {
   ram_unit?: string;
   colour?: string;
   colour_name?: string;
+  size?: string | number;
   storage?: string | number;
   storage_unit?: string;
   storage_type?: string;
@@ -143,6 +144,11 @@ const isRet14Product = (item: ApiProductItem | null, category: string) => {
   );
 };
 
+const isRet12Product = (item: ApiProductItem | null, category: string) => {
+  const value = normalizeCategoryValue(item?.domain || category);
+  return value === "ondc:ret12" || value === "fashion" || value.includes("ret12");
+};
+
 const isRetailQuantityProduct = (item: ApiProductItem | null, category: string) => {
   const value = normalizeCategoryValue(item?.domain || category);
   const compactValue = value.replace(/[^a-z0-9]/g, "");
@@ -196,11 +202,19 @@ const compactValue = (value: unknown, unit = "") => {
   return suffix ? `${text} ${suffix}` : text;
 };
 
+const getSizeValue = (variant: ApiProductItem) => compactValue(variant.size);
+
 const getVariantSpecs = (variant: ApiProductItem) =>
   [
     { label: "RAM", value: compactValue(variant.ram, variant.ram_unit) },
     { label: "Storage", value: compactValue(variant.storage, variant.storage_unit || variant.storage_type) },
     { label: "Color", value: variant.colour_name || variant.colour },
+  ].filter((spec) => spec.value);
+
+const getFashionVariantSpecs = (variant: ApiProductItem) =>
+  [
+    { label: "Size", value: getSizeValue(variant) },
+    { label: "Colour", value: variant.colour_name || variant.colour },
   ].filter((spec) => spec.value);
 
 const hasRequiredVariantSpecs = (variant: ApiProductItem) =>
@@ -209,6 +223,9 @@ const hasRequiredVariantSpecs = (variant: ApiProductItem) =>
       compactValue(variant.storage, variant.storage_unit || variant.storage_type) &&
       (variant.colour_name || variant.colour),
   );
+
+const hasRequiredFashionSpecs = (variant: ApiProductItem) =>
+  Boolean(getSizeValue(variant) && (variant.colour_name || variant.colour));
 
 export default function ProductDetailsPage() {
   const params = useParams<{ slug: string }>();
@@ -235,27 +252,39 @@ export default function ProductDetailsPage() {
   const [activeItemId, setActiveItemId] = useState(id);
   const [variantItems, setVariantItems] = useState<ApiProductItem[]>([]);
   const [quantityVariantItems, setQuantityVariantItems] = useState<ApiProductItem[]>([]);
+  const [fashionVariantItems, setFashionVariantItems] = useState<ApiProductItem[]>([]);
 
   const lastFetchKeyRef = useRef("");
 
   const product = useMemo(() => toProduct(details, slug, activeItemId || id), [activeItemId, details, id, slug]);
   const isQuantityCategory = isRetailQuantityProduct(details, category);
+  const isFashionCategory = isRet12Product(details, category);
   const variantMode = isQuantityCategory
     ? "quantity"
+    : isFashionCategory
+      ? "fashion"
     : isRet14Product(details, category)
       ? "specs"
       : "none";
   const visibleQuantityVariants = quantityVariantItems.length
     ? quantityVariantItems
     : variantItems;
+  const visibleFashionVariants = fashionVariantItems.length
+    ? fashionVariantItems
+    : variantItems;
   const shouldShowVariants =
     variantMode !== "none" &&
-    (variantMode === "quantity" ? visibleQuantityVariants.length > 1 : variantItems.length > 1);
+    (variantMode === "quantity"
+      ? visibleQuantityVariants.length > 1
+      : variantMode === "fashion"
+        ? visibleFashionVariants.length > 1
+        : variantItems.length > 1);
 
   useEffect(() => {
     setActiveItemId(id);
     setVariantItems([]);
     setQuantityVariantItems([]);
+    setFashionVariantItems([]);
     lastFetchKeyRef.current = "";
   }, [id]);
 
@@ -293,6 +322,7 @@ export default function ProductDetailsPage() {
         const detailsData: ProductDetailsApiResponse = detailsResponse?.data?.data || {};
         const updated = detailsData?.updated_results || null;
         const isQuantityProduct = isRetailQuantityProduct(updated, category);
+        const isFashionProduct = isRet12Product(updated, category);
         const isRet14 = isRet14Product(updated, category);
         const incomingVariants = extractVariantItems(
           detailsData,
@@ -301,6 +331,8 @@ export default function ProductDetailsPage() {
         );
         const normalizedVariants = isQuantityProduct
           ? incomingVariants.filter((item) => getItemMeasureKey(item))
+          : isFashionProduct
+            ? incomingVariants.filter(hasRequiredFashionSpecs)
           : isRet14
             ? incomingVariants.filter(hasRequiredVariantSpecs)
             : [];
@@ -314,17 +346,22 @@ export default function ProductDetailsPage() {
         setDetails(updated);
         setVariantItems((current) => {
           if (isQuantityProduct) {
-            return normalizedVariants.length ? normalizedVariants : current;
+            return normalizedVariants.length > 1 ? normalizedVariants : current;
           }
 
           return normalizedVariants.length ? normalizedVariants : [];
         });
         if (isQuantityProduct) {
           setQuantityVariantItems((current) =>
-            normalizedVariants.length ? normalizedVariants : current,
+            normalizedVariants.length > 1 ? normalizedVariants : current,
+          );
+        } else if (isFashionProduct) {
+          setFashionVariantItems((current) =>
+            normalizedVariants.length > 1 ? normalizedVariants : current,
           );
         } else {
           setQuantityVariantItems([]);
+          setFashionVariantItems([]);
         }
 
         if (providerLocationId && category) {
@@ -442,10 +479,19 @@ export default function ProductDetailsPage() {
                 <section className={styles.variantPanel} aria-label="Available options">
                   <div className={styles.variantHeader}>
                     <h2>
-                      {variantMode === "quantity" ? "Net Quantity" : "Available Options"}
+                      {variantMode === "quantity"
+                        ? "Net Quantity"
+                        : variantMode === "fashion"
+                          ? "Available Options"
+                          : "Available Options"}
                     </h2>
                     <span>
-                      {(variantMode === "quantity" ? visibleQuantityVariants : variantItems).length} options
+                      {(variantMode === "quantity"
+                        ? visibleQuantityVariants
+                        : variantMode === "fashion"
+                          ? visibleFashionVariants
+                          : variantItems
+                      ).length} options
                     </span>
                   </div>
 
@@ -491,6 +537,40 @@ export default function ProductDetailsPage() {
                             }}
                           >
                             {pill}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : variantMode === "fashion" ? (
+                    <div className={styles.variantList}>
+                      {visibleFashionVariants.map((variant, index) => {
+                        const variantId = getItemId(variant);
+                        const selected = variantId === getItemId(details);
+                        return (
+                          <button
+                            key={variantId}
+                            type="button"
+                            className={`${styles.variantCard} ${
+                              selected ? styles.variantCardSelected : ""
+                            }`}
+                            onClick={() => {
+                              if (!variantId || selected) {
+                                return;
+                              }
+                              setActiveItemId(variantId);
+                            }}
+                          >
+                            <span className={styles.variantTitle}>Option {index + 1}</span>
+                            <span className={styles.variantSpecs}>
+                              {getFashionVariantSpecs(variant).map((spec) => (
+                                <span
+                                  key={`${variantId}-${spec.label}`}
+                                  className={styles.variantSpec}
+                                >
+                                  {spec.label}: {spec.value}
+                                </span>
+                              ))}
+                            </span>
                           </button>
                         );
                       })}
