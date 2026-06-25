@@ -134,6 +134,9 @@ export function AddToCartButton({
   const [showLoginModal, setShowLoginModal] = useState(false);
   const currentQuery = searchParams?.toString();
   const nextPath = currentQuery ? `${pathname}?${currentQuery}` : pathname;
+  const availableStock = Number(product.stock);
+  const isOutOfStock =
+    Number.isFinite(availableStock) && availableStock <= 0;
   const formatGpsCoord = (value: number | string | undefined | null): string => {
     if (value == null || value === "") return "";
     const num = Number(value);
@@ -500,6 +503,14 @@ export function AddToCartButton({
     return (
       <button type="button" className={styles.closedButton} disabled>
         Add
+      </button>
+    );
+  }
+
+  if (isOutOfStock) {
+    return (
+      <button type="button" className={styles.closedButton} disabled>
+        Out of stock
       </button>
     );
   }
