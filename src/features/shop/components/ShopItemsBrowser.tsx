@@ -226,6 +226,7 @@ export function ShopItemsBrowser({
   const observerRef = useRef<HTMLDivElement | null>(null);
 
   const mappedCategory = toOndcCategory(category);
+  const mappedStoreCategory = toOndcCategory(storeCategory);
   const isMinimalSharedStoreUrl = useMemo(() => {
     if (pathname !== "/store") {
       return false;
@@ -243,8 +244,9 @@ export function ShopItemsBrowser({
   const finalProviderId = storeInfo?.provider_id || providerId;
   const finalProviderLocationId =
     storeInfo?.provider_location_id || providerLocationId;
-    console.log({category, mappedCategory, storeInfoCategory: storeInfo?.category});
-  const finalCategory = storeInfo?.category || mappedCategory;
+  const finalCategory = toOndcCategory(
+    storeInfo?.category || mappedCategory || category,
+  );
   const resolvedGpsLatitude = useMemo(() => {
     const fromQuery = parseCoordinate(storeLat);
     if (fromQuery !== null) {
@@ -328,7 +330,7 @@ export function ShopItemsBrowser({
     } = {
       provider_id: providerIdParam,
       location_id: providerLocationIdParam,
-      category: storeCategory,
+      category: mappedStoreCategory || storeCategory,
     };
     if (!isMinimalSharedStoreUrl) {
       data.gpsLatitude = resolvedGpsLatitude;

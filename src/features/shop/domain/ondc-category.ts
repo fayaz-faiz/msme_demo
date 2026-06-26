@@ -7,6 +7,7 @@ export enum OndcCategory {
 
 const CATEGORY_MAP: Record<string, string> = {
   grocery: OndcCategory.GROCERY,
+  appliances: "ONDC:RET15",
   "home & kitchen": "ONDC:RET16",
   "home and kitchen": "ONDC:RET16",
   electronics: OndcCategory.ELECTRONICS,
