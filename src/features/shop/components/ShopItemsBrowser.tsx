@@ -555,12 +555,15 @@ export function ShopItemsBrowser({
 
   const showLoader = productLoading && products.length === 0;
   const deliveryLabel = maxTimeToShip || "30-45 mins";
+  const dashboardHref = category
+    ? `/?category=${encodeURIComponent(category)}#shops`
+    : "/#shops";
 
   return (
     <section className={styles.wrapper}>
       {hasInternalHistory && (
         <header className={styles.mobileHeader}>
-          <BackButton label="Explore Other Stores" />
+          <BackButton href={dashboardHref} label="Explore Other Stores" />
         </header>
       )}
 
