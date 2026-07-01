@@ -13,11 +13,11 @@ import { useLocation } from "@/features/location/context/location-context";
 import { ProductTypeBadge } from "@/features/product/components/ProductMeta";
 import { Product } from "@/features/product/domain/product";
 import { formatCurrency } from "@/shared/lib/format-currency";
+import { buildPriceDisplay } from "@/shared/lib/price-display";
 import { toOndcCategory } from "@/features/shop/domain/ondc-category";
 import styles from "./ShopItemsBrowser.module.css";
 import { BackButton } from "@/shared/ui/BackButton";
 import { LocationPermissionModal } from "@/features/location/components/LocationPermissionModal";
-import { store } from "@/redux/store";
 
 type ShopItemsBrowserProps = {
   slug: string;
@@ -70,6 +70,8 @@ type ApiItem = {
   item_short_desc?: string;
   item_symbol?: string;
   item_selling_price?: number;
+  item_mrp_price?: number;
+  item_discount_percentage?: number;
   item_available_count?: string;
   item_veg_or_nonveg?: {
     veg?: string | null;
@@ -83,6 +85,8 @@ type ApiItem = {
 type ShopProduct = Product & {
   parentItemId?: string;
   subCategoryName?: string;
+  mrpPrice?: number;
+  discountPercentage?: number;
 };
 
 type StoreSubCategoryApiResponse = {
@@ -153,6 +157,8 @@ const mapApiItemToProduct = (item: ApiItem, shopSlug: string): ShopProduct => {
     isAvailableInCart: !!item.isAvailableInCart,
     cartCount: Math.max(0, Number(item.cartCount ?? 0) || 0),
     price: Number(item.item_selling_price || 0),
+    mrpPrice: Number(item.item_mrp_price || 0) || undefined,
+    discountPercentage: Number(item.item_discount_percentage || 0) || undefined,
     stock: Number(item.item_available_count || 0),
     image: item.item_symbol || DEFAULT_IMAGE,
     parentItemId: item.parent_item_id || "",
@@ -870,76 +876,123 @@ export function ShopItemsBrowser({
 
       {!showLoader ? (
         <div className={`${styles.grid} ${styles.gridFadeIn}`}>
-          {products.map((product) => (
-            <article
-              key={product.id}
-              className={`${styles.card}${!isStoreOpen ? ` ${styles.cardDisabled}` : ""}`}
-            >
-              <div className={styles.imageWrap}>
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className={styles.image}
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-              <div className={styles.body}>
-                <p className={styles.unitTag}>
-                  {product.subCategoryName || "1 PCS"}
-                </p>
-                <h2 className={styles.productName}>{product.name}</h2>
-                <ProductTypeBadge foodType={product.foodType} />
-                <p className={styles.productDescription}>
-                  {product.description}
-                </p>
-                {!isFoodAndBeverageCategory ? (
-                  <div className={styles.meta}>
-                    <Link
-                      href={{
-                        pathname: `/products/${product.slug}`,
-                        query: {
-                          id: product.id,
-                          providerId: finalProviderId,
-                          providerLocationId: finalProviderLocationId,
-                          parentItemId: product.parentItemId || "",
-                          category: finalCategory || mappedCategory || "",
-                          subCategoryName:
-                            product.subCategoryName ||
-                            selectedSubCategory ||
-                            "",
-                          shopName: resolvedShopName,
-                          shopImage: resolvedShopImage,
-                          distance: resolvedDistance,
-                          serviceable:
-                            typeof serviceable === "boolean"
-                              ? String(serviceable)
-                              : undefined,
-                        },
-                      }}
-                    >
-                      Details
-                    </Link>
-                  </div>
-                ) : null}
-                {product.hasVariants ? (
-                  <span className={styles.variantHint}>Customisable</span>
-                ) : null}
-                <div className={styles.priceRow}>
-                  <div className={styles.priceStack}>
-                    <span className={styles.price}>
-                      {formatCurrency(product.price)}
-                    </span>
-                  </div>
-                  <AddToCartButton
-                    product={product}
-                    useServerCart
-                    storeDisabled={!isStoreOpen}
+          {products.map((product) => {
+            const priceDisplay = buildPriceDisplay({
+              sellingPrice: product.price,
+              mrpPrice: product.mrpPrice,
+              discountPercentage: product.discountPercentage,
+            });
+
+            return (
+              <article
+                key={product.id}
+                className={`${styles.card}${!isStoreOpen ? ` ${styles.cardDisabled}` : ""}`}
+              >
+                <div className={styles.imageWrap}>
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className={styles.image}
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
-              </div>
-            </article>
-          ))}
+                <div className={styles.body}>
+                  <p className={styles.unitTag}>
+                    {product.subCategoryName || "1 PCS"}
+                  </p>
+                  <h2 className={styles.productName}>{product.name}</h2>
+                  <ProductTypeBadge foodType={product.foodType} />
+                  <p className={styles.productDescription}>
+                    {product.description}
+                  </p>
+                  {!isFoodAndBeverageCategory ? (
+                    <div className={styles.meta}>
+                      <Link
+                        href={{
+                          pathname: `/products/${product.slug}`,
+                          query: {
+                            id: product.id,
+                            providerId: finalProviderId,
+                            providerLocationId: finalProviderLocationId,
+                            parentItemId: product.parentItemId || "",
+                            category: finalCategory || mappedCategory || "",
+                            subCategoryName:
+                              product.subCategoryName ||
+                              selectedSubCategory ||
+                              "",
+                            shopName: resolvedShopName,
+                            shopImage: resolvedShopImage,
+                            distance: resolvedDistance,
+                            serviceable:
+                              typeof serviceable === "boolean"
+                                ? String(serviceable)
+                                : undefined,
+                          },
+                        }}
+                      >
+                        Details
+                      </Link>
+                    </div>
+                  ) : null}
+                  {product.hasVariants ? (
+                    <span className={styles.variantHint}>Customisable</span>
+                  ) : null}
+                  <div className={styles.priceRow}>
+                  <div className={styles.priceStack}>
+                    {priceDisplay.mrpPrice ? (
+                      <span className={styles.mrpPrice}>
+                        {formatCurrency(priceDisplay.mrpPrice)}
+                      </span>
+                    ) : null}
+                    <span className={styles.price}>
+                      {formatCurrency(priceDisplay.sellingPrice)}
+                    </span>
+                    {priceDisplay.discountLabel ? (
+                      <span className={styles.discountNote}>
+                        {priceDisplay.discountLabel}
+                      </span>
+                    ) : null}
+                  </div>
+                  {product.parentItemId ? (
+                      <Link
+                        href={{
+                          pathname: `/products/${product.slug}`,
+                          query: {
+                            id: product.id,
+                            providerId: finalProviderId,
+                            providerLocationId: finalProviderLocationId,
+                            parentItemId: product.parentItemId || "",
+                            category: finalCategory || mappedCategory || "",
+                            subCategoryName:
+                              product.subCategoryName ||
+                              selectedSubCategory ||
+                              "",
+                            shopName: resolvedShopName,
+                            shopImage: resolvedShopImage,
+                            distance: resolvedDistance,
+                            serviceable:
+                              typeof serviceable === "boolean"
+                                ? String(serviceable)
+                                : undefined,
+                          },
+                        }}
+                        className={styles.viewButton}
+                      >
+                        View
+                      </Link>
+                    ) : (
+                      <AddToCartButton
+                        product={product}
+                        useServerCart
+                        storeDisabled={!isStoreOpen}
+                      />
+                    )}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       ) : null}
 

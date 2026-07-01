@@ -11,6 +11,7 @@ import { useLocation } from "@/features/location/context/location-context";
 import { ProductTypeBadge } from "@/features/product/components/ProductMeta";
 import type { Product } from "@/features/product/domain/product";
 import { formatCurrency } from "@/shared/lib/format-currency";
+import { buildPriceDisplay } from "@/shared/lib/price-display";
 import styles from "./page.module.css";
 
 type ApiFoodType = {
@@ -31,9 +32,13 @@ type ApiProductItem = {
   item_symbol?: string;
   item_images?: string[];
   item_selling_price?: number;
+  item_mrp_price?: number;
+  item_discount_percentage?: number;
   item_available_count?: string | number;
   item_measure_value?: string | number;
   item_measure_quantity?: string;
+  gender?: string;
+  size_chart?: string;
   item_veg_or_nonveg?: ApiFoodType;
   customizable?: boolean;
   provider_name?: string;
@@ -72,6 +77,11 @@ type ProductDetailsApiResponse = {
   variant_result?: ApiProductItem[];
 };
 
+type ProductView = Product & {
+  mrpPrice?: number;
+  discountPercentage?: number;
+};
+
 type PostSearchByIdResponse = {
   data?: {
     status?: boolean;
@@ -108,7 +118,7 @@ const normalizeNameValue = (value?: string | null) =>
     .toLowerCase()
     .replace(/\s+/g, " ");
 
-const toProduct = (item: ApiProductItem | null, slug: string, fallbackId: string): Product | null => {
+const toProduct = (item: ApiProductItem | null, slug: string, fallbackId: string): ProductView | null => {
   if (!item) {
     return null;
   }
@@ -128,6 +138,8 @@ const toProduct = (item: ApiProductItem | null, slug: string, fallbackId: string
     foodType: isVeg ? "veg" : isNonVeg ? "non-veg" : undefined,
     hasVariants: !!item.customizable,
     price: Number(item.item_selling_price || 0),
+    mrpPrice: Number(item.item_mrp_price || 0) || undefined,
+    discountPercentage: Number(item.item_discount_percentage || 0) || undefined,
     stock: Number(item.item_available_count || 0),
     image: item.item_images?.[0] || item.item_symbol || DEFAULT_IMAGE,
   };
@@ -214,14 +226,15 @@ const getVariantSpecs = (variant: ApiProductItem) =>
 const getFashionVariantSpecs = (variant: ApiProductItem) =>
   [
     { label: "Size", value: getSizeValue(variant) },
+    { label: "Gender", value: variant.gender },
     { label: "Colour", value: variant.colour_name || variant.colour },
   ].filter((spec) => spec.value);
 
 const hasRequiredVariantSpecs = (variant: ApiProductItem) =>
   Boolean(
     compactValue(variant.ram, variant.ram_unit) &&
-      compactValue(variant.storage, variant.storage_unit || variant.storage_type) &&
-      (variant.colour_name || variant.colour),
+    compactValue(variant.storage, variant.storage_unit || variant.storage_type) &&
+    (variant.colour_name || variant.colour),
   );
 
 const hasRequiredFashionSpecs = (variant: ApiProductItem) =>
@@ -253,25 +266,52 @@ export default function ProductDetailsPage() {
   const [variantItems, setVariantItems] = useState<ApiProductItem[]>([]);
   const [quantityVariantItems, setQuantityVariantItems] = useState<ApiProductItem[]>([]);
   const [fashionVariantItems, setFashionVariantItems] = useState<ApiProductItem[]>([]);
+  const [fashionOptionsOpen, setFashionOptionsOpen] = useState(false);
+  const [sizeChartOpen, setSizeChartOpen] = useState(false);
 
   const lastFetchKeyRef = useRef("");
 
   const product = useMemo(() => toProduct(details, slug, activeItemId || id), [activeItemId, details, id, slug]);
+  const productPriceDisplay = useMemo(
+    () =>
+      product
+        ? buildPriceDisplay({
+          sellingPrice: product.price,
+          mrpPrice: product.mrpPrice,
+          discountPercentage: product.discountPercentage,
+        })
+        : null,
+    [product],
+  );
   const isQuantityCategory = isRetailQuantityProduct(details, category);
   const isFashionCategory = isRet12Product(details, category);
   const variantMode = isQuantityCategory
     ? "quantity"
     : isFashionCategory
       ? "fashion"
-    : isRet14Product(details, category)
-      ? "specs"
-      : "none";
+      : isRet14Product(details, category)
+        ? "specs"
+        : "none";
   const visibleQuantityVariants = quantityVariantItems.length
     ? quantityVariantItems
     : variantItems;
   const visibleFashionVariants = fashionVariantItems.length
     ? fashionVariantItems
     : variantItems;
+  const shouldUseFashionOptionsModal =
+    variantMode === "fashion" && visibleFashionVariants.length > 1;
+  const selectedFashionVariant =
+    visibleFashionVariants.find((variant) => getItemId(variant) === activeItemId) ||
+    visibleFashionVariants[0] ||
+    null;
+  const resolvedSizeChartUrl = useMemo(() => {
+    const activeFashionVariant =
+      visibleFashionVariants.find((variant) => getItemId(variant) === activeItemId) ||
+      visibleFashionVariants[0] ||
+      details;
+
+    return details?.size_chart || activeFashionVariant?.size_chart || "";
+  }, [activeItemId, details, visibleFashionVariants]);
   const shouldShowVariants =
     variantMode !== "none" &&
     (variantMode === "quantity"
@@ -285,6 +325,8 @@ export default function ProductDetailsPage() {
     setVariantItems([]);
     setQuantityVariantItems([]);
     setFashionVariantItems([]);
+    setFashionOptionsOpen(false);
+    setSizeChartOpen(false);
     lastFetchKeyRef.current = "";
   }, [id]);
 
@@ -333,9 +375,9 @@ export default function ProductDetailsPage() {
           ? incomingVariants.filter((item) => getItemMeasureKey(item))
           : isFashionProduct
             ? incomingVariants.filter(hasRequiredFashionSpecs)
-          : isRet14
-            ? incomingVariants.filter(hasRequiredVariantSpecs)
-            : [];
+            : isRet14
+              ? incomingVariants.filter(hasRequiredVariantSpecs)
+              : [];
 
         if (!detailsResponse?.data?.status || !updated) {
           setDetails(null);
@@ -399,6 +441,36 @@ export default function ProductDetailsPage() {
     void fetchData();
   }, [activeItemId, category, id, location?.lat, location?.lng, parentItemId, providerId, providerLocationId, subCategoryName]);
 
+  useEffect(() => {
+    if (!fashionOptionsOpen) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setFashionOptionsOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [fashionOptionsOpen]);
+
+  useEffect(() => {
+    if (!sizeChartOpen) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSizeChartOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [sizeChartOpen]);
+
   return (
     <section className={`page ${styles.pageWrap}`}>
       <header className={styles.topBar}>
@@ -457,7 +529,25 @@ export default function ProductDetailsPage() {
               <h1 className={styles.title}>{product.name}</h1>
               <ProductTypeBadge foodType={product.foodType} />
               <p className={styles.shortDesc}>{details.item_short_desc || "No short description available."}</p>
-              <p className={styles.price}>{formatCurrency(product.price)}</p>
+              {productPriceDisplay ? (
+                <div className={styles.priceStack}>
+                  {productPriceDisplay.mrpPrice ? (
+                    <span className={styles.mrpPrice}>
+                      {formatCurrency(productPriceDisplay.mrpPrice)}
+                    </span>
+                  ) : null}
+                  <p className={styles.price}>
+                    {formatCurrency(productPriceDisplay.sellingPrice)}
+                  </p>
+                  {productPriceDisplay.discountLabel ? (
+                    <span className={styles.discountNote}>
+                      {productPriceDisplay.discountLabel}
+                    </span>
+                  ) : null}
+                </div>
+              ) : (
+                <p className={styles.price}>{formatCurrency(product.price)}</p>
+              )}
 
               <div className={styles.measureRow}>
                 <span>
@@ -478,22 +568,36 @@ export default function ProductDetailsPage() {
               {shouldShowVariants ? (
                 <section className={styles.variantPanel} aria-label="Available options">
                   <div className={styles.variantHeader}>
-                    <h2>
-                      {variantMode === "quantity"
-                        ? "Net Quantity"
-                        : variantMode === "fashion"
-                          ? "Available Options"
-                          : "Available Options"}
-                    </h2>
-                    <span>
-                      {(variantMode === "quantity"
-                        ? visibleQuantityVariants
-                        : variantMode === "fashion"
-                          ? visibleFashionVariants
-                          : variantItems
-                      ).length} options
-                    </span>
+                    <div className={styles.variantHeadingGroup}>
+                      <h2>
+                        {variantMode === "quantity"
+                          ? "Net Quantity"
+                          : variantMode === "fashion"
+                            ? "Available Options"
+                            : "Available Options"}
+                      </h2>
+                      <span>
+                        {(variantMode === "quantity"
+                          ? visibleQuantityVariants
+                          : variantMode === "fashion"
+                            ? visibleFashionVariants
+                            : variantItems
+                        ).length} options
+                      </span>
+                    </div>
+                    {variantMode === "fashion" && resolvedSizeChartUrl ? (
+                      <div className={styles.sizeChartCtaRow}>
+                        <button
+                          type="button"
+                          className={styles.sizeChartButton}
+                          onClick={() => setSizeChartOpen(true)}
+                        >
+                          View size chart
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
+
 
                   {variantMode === "quantity" ? (
                     <div className={styles.quantityPills}>
@@ -502,15 +606,13 @@ export default function ProductDetailsPage() {
                         const selectedQuantity =
                           String(details.item_measure_value ?? "").trim() ===
                           String(variant.item_measure_value ?? "").trim();
-                        const label = `${variant.item_measure_value || "-"} ${
-                          variant.item_measure_quantity || ""
-                        }`.trim();
+                        const label = `${variant.item_measure_value || "-"} ${variant.item_measure_quantity || ""
+                          }`.trim();
 
                         const pill = (
                           <span
-                            className={`${styles.quantityPill} ${
-                              selectedQuantity ? styles.quantityPillSelected : ""
-                            }`}
+                            className={`${styles.quantityPill} ${selectedQuantity ? styles.quantityPillSelected : ""
+                              }`}
                           >
                             {label}
                           </span>
@@ -542,29 +644,25 @@ export default function ProductDetailsPage() {
                       })}
                     </div>
                   ) : variantMode === "fashion" ? (
-                    <div className={styles.variantList}>
-                      {visibleFashionVariants.map((variant, index) => {
-                        const variantId = getItemId(variant);
-                        const selected = variantId === getItemId(details);
-                        return (
+                    <div className={styles.fashionOptionsInline}>
+                      {selectedFashionVariant ? (
+                        <div className={styles.fashionOptionsRow}>
                           <button
-                            key={variantId}
                             type="button"
-                            className={`${styles.variantCard} ${
-                              selected ? styles.variantCardSelected : ""
-                            }`}
+                            className={`${styles.variantCard} ${styles.variantCardSelected} ${styles.fashionDefaultCard}`}
                             onClick={() => {
-                              if (!variantId || selected) {
+                              const variantId = getItemId(selectedFashionVariant);
+                              if (!variantId || variantId === getItemId(details)) {
                                 return;
                               }
                               setActiveItemId(variantId);
                             }}
                           >
-                            <span className={styles.variantTitle}>Option {index + 1}</span>
+                            <span className={styles.variantTitle}>Selected option</span>
                             <span className={styles.variantSpecs}>
-                              {getFashionVariantSpecs(variant).map((spec) => (
+                              {getFashionVariantSpecs(selectedFashionVariant).map((spec) => (
                                 <span
-                                  key={`${variantId}-${spec.label}`}
+                                  key={`${getItemId(selectedFashionVariant)}-${spec.label}`}
                                   className={styles.variantSpec}
                                 >
                                   {spec.label}: {spec.value}
@@ -572,8 +670,17 @@ export default function ProductDetailsPage() {
                               ))}
                             </span>
                           </button>
-                        );
-                      })}
+                          {shouldUseFashionOptionsModal ? (
+                            <button
+                              type="button"
+                              className={styles.fashionOptionsButton}
+                              onClick={() => setFashionOptionsOpen(true)}
+                            >
+                              More options
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
                   ) : (
                     <div className={styles.variantList}>
@@ -584,9 +691,8 @@ export default function ProductDetailsPage() {
                           <button
                             key={variantId}
                             type="button"
-                            className={`${styles.variantCard} ${
-                              selected ? styles.variantCardSelected : ""
-                            }`}
+                            className={`${styles.variantCard} ${selected ? styles.variantCardSelected : ""
+                              }`}
                             onClick={() => {
                               if (!variantId || selected) {
                                 return;
@@ -611,6 +717,103 @@ export default function ProductDetailsPage() {
                     </div>
                   )}
                 </section>
+              ) : null}
+
+              {fashionOptionsOpen && shouldUseFashionOptionsModal ? (
+                <div
+                  className={styles.sizeChartModalOverlay}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Available fashion options"
+                  onClick={() => setFashionOptionsOpen(false)}
+                >
+                  <div
+                    className={styles.sizeChartModal}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <div className={styles.sizeChartModalHeader}>
+                      <h3>Available Options</h3>
+                      <button
+                        type="button"
+                        className={styles.sizeChartCloseButton}
+                        onClick={() => setFashionOptionsOpen(false)}
+                        aria-label="Close available options"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className={styles.fashionOptionsModalList}>
+                      {visibleFashionVariants.map((variant, index) => {
+                        const variantId = getItemId(variant);
+                        const selected = variantId === getItemId(details);
+                        return (
+                          <button
+                            key={variantId || index}
+                            type="button"
+                            className={`${styles.variantCard} ${selected ? styles.variantCardSelected : ""
+                              }`}
+                            onClick={() => {
+                              if (variantId && !selected) {
+                                setActiveItemId(variantId);
+                              }
+                              setFashionOptionsOpen(false);
+                            }}
+                          >
+                            <span className={styles.variantTitle}>Option {index + 1}</span>
+                            <span className={styles.variantSpecs}>
+                              {getFashionVariantSpecs(variant).map((spec) => (
+                                <span
+                                  key={`${variantId}-${spec.label}`}
+                                  className={styles.variantSpec}
+                                >
+                                  {spec.label}: {spec.value}
+                                </span>
+                              ))}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {sizeChartOpen && resolvedSizeChartUrl ? (
+                <div
+                  className={styles.sizeChartModalOverlay}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Size chart"
+                  onClick={() => setSizeChartOpen(false)}
+                >
+                  <div
+                    className={styles.sizeChartModal}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <div className={styles.sizeChartModalHeader}>
+                      <h3>Size Chart</h3>
+                      <button
+                        type="button"
+                        className={styles.sizeChartCloseButton}
+                        onClick={() => setSizeChartOpen(false)}
+                        aria-label="Close size chart"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className={styles.sizeChartImageWrap}>
+                      <img
+                        src={resolvedSizeChartUrl}
+                        alt={`${product.name} size chart`}
+                        className={styles.sizeChartImage}
+                        onError={(event) => {
+                          const img = event.currentTarget;
+                          img.style.display = "none";
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
               ) : null}
 
               <div className={styles.addCta}>
@@ -693,6 +896,11 @@ export default function ProductDetailsPage() {
                   if (!relatedProduct) {
                     return null;
                   }
+                  const relatedPriceDisplay = buildPriceDisplay({
+                    sellingPrice: relatedProduct.price,
+                    mrpPrice: relatedProduct.mrpPrice,
+                    discountPercentage: relatedProduct.discountPercentage,
+                  });
 
                   return (
                     <article key={relatedProduct.id} className={styles.relatedCard}>
@@ -728,7 +936,21 @@ export default function ProductDetailsPage() {
                         <h3>{relatedProduct.name}</h3>
                         <p>{relatedProduct.description}</p>
                         <div className={styles.relatedBottom}>
-                          <span>{formatCurrency(relatedProduct.price)}</span>
+                          <div className={styles.relatedPriceStack}>
+                            {relatedPriceDisplay.mrpPrice ? (
+                              <span className={styles.relatedMrpPrice}>
+                                {formatCurrency(relatedPriceDisplay.mrpPrice)}
+                              </span>
+                            ) : null}
+                            <span className={styles.relatedPrice}>
+                              {formatCurrency(relatedPriceDisplay.sellingPrice)}
+                            </span>
+                            {relatedPriceDisplay.discountLabel ? (
+                              <span className={styles.relatedDiscountNote}>
+                                {relatedPriceDisplay.discountLabel}
+                              </span>
+                            ) : null}
+                          </div>
                           <Link
                             href={{
                               pathname: `/products/${relatedProduct.slug}`,
@@ -766,4 +988,3 @@ export default function ProductDetailsPage() {
     </section>
   );
 }
-

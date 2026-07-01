@@ -602,9 +602,26 @@
   gap: 0.02rem;
 }
 
+.mrpPrice {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: rgba(104, 107, 120, 0.9);
+}
+
 .price {
   color: var(--text);
   font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.discountNote {
+  color: var(--green);
+  font-size: 0.72rem;
   font-weight: 700;
   line-height: 1;
 }
@@ -613,6 +630,32 @@
   color: var(--muted);
   font-size: 0.7rem;
   font-weight: 600;
+}
+
+.viewButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.75rem;
+  height: 32px;
+  padding: 0 0.8rem;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+
+.viewButton:hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+.viewButton:active {
+  transform: scale(0.98);
 }
 
 @media (hover: hover) and (pointer: fine) {
