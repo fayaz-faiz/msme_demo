@@ -223,12 +223,52 @@ const getVariantSpecs = (variant: ApiProductItem) =>
     { label: "Color", value: variant.colour_name || variant.colour },
   ].filter((spec) => spec.value);
 
-const getFashionVariantSpecs = (variant: ApiProductItem) =>
-  [
-    { label: "Size", value: getSizeValue(variant) },
-    { label: "Gender", value: variant.gender },
-    { label: "Colour", value: variant.colour_name || variant.colour },
-  ].filter((spec) => spec.value);
+type FashionVariantGroup = {
+  colorKey: string;
+  colorLabel: string;
+  colorValue?: string;
+  variants: ApiProductItem[];
+};
+
+const getFashionColorKey = (variant: ApiProductItem) =>
+  normalizeNameValue(variant.colour_name || variant.colour || "color");
+
+const getFashionColorLabel = (variant: ApiProductItem) =>
+  String(variant.colour_name || variant.colour || "Color").trim();
+
+const getFashionColorValue = (variant: ApiProductItem) => String(variant.colour || "").trim();
+
+const buildFashionVariantGroups = (variants: ApiProductItem[]) => {
+  const groups = new Map<string, FashionVariantGroup>();
+
+  variants.forEach((variant) => {
+    const colorKey = getFashionColorKey(variant);
+    const colorLabel = getFashionColorLabel(variant);
+    const colorValue = getFashionColorValue(variant) || undefined;
+    const existing = groups.get(colorKey);
+
+    if (!existing) {
+      groups.set(colorKey, {
+        colorKey,
+        colorLabel,
+        colorValue,
+        variants: [variant],
+      });
+      return;
+    }
+
+    const currentSizeKey = normalizeNameValue(getSizeValue(variant));
+    const hasMatchingSize = existing.variants.some(
+      (entry) => normalizeNameValue(getSizeValue(entry)) === currentSizeKey,
+    );
+
+    if (!hasMatchingSize) {
+      existing.variants.push(variant);
+    }
+  });
+
+  return Array.from(groups.values());
+};
 
 const hasRequiredVariantSpecs = (variant: ApiProductItem) =>
   Boolean(
@@ -304,6 +344,20 @@ export default function ProductDetailsPage() {
     visibleFashionVariants.find((variant) => getItemId(variant) === activeItemId) ||
     visibleFashionVariants[0] ||
     null;
+  const fashionVariantGroups = useMemo(
+    () => buildFashionVariantGroups(visibleFashionVariants),
+    [visibleFashionVariants],
+  );
+  const selectedFashionGroup = useMemo(() => {
+    const selectedColorKey = selectedFashionVariant
+      ? getFashionColorKey(selectedFashionVariant)
+      : "";
+    return (
+      fashionVariantGroups.find((group) => group.colorKey === selectedColorKey) ||
+      fashionVariantGroups[0] ||
+      null
+    );
+  }, [fashionVariantGroups, selectedFashionVariant]);
   const resolvedSizeChartUrl = useMemo(() => {
     const activeFashionVariant =
       visibleFashionVariants.find((variant) => getItemId(variant) === activeItemId) ||
@@ -576,14 +630,14 @@ export default function ProductDetailsPage() {
                             ? "Available Options"
                             : "Available Options"}
                       </h2>
-                      <span>
+                      {/* <span>
                         {(variantMode === "quantity"
                           ? visibleQuantityVariants
                           : variantMode === "fashion"
                             ? visibleFashionVariants
                             : variantItems
                         ).length} options
-                      </span>
+                      </span> */}
                     </div>
                     {variantMode === "fashion" && resolvedSizeChartUrl ? (
                       <div className={styles.sizeChartCtaRow}>
@@ -645,7 +699,7 @@ export default function ProductDetailsPage() {
                     </div>
                   ) : variantMode === "fashion" ? (
                     <div className={styles.fashionOptionsInline}>
-                      {selectedFashionVariant ? (
+                      {selectedFashionGroup ? (
                         <div className={styles.fashionOptionsRow}>
                           <button
                             type="button"
@@ -658,27 +712,29 @@ export default function ProductDetailsPage() {
                               setActiveItemId(variantId);
                             }}
                           >
-                            <span className={styles.variantTitle}>Selected option</span>
-                            <span className={styles.variantSpecs}>
-                              {getFashionVariantSpecs(selectedFashionVariant).map((spec) => (
-                                <span
-                                  key={`${getItemId(selectedFashionVariant)}-${spec.label}`}
-                                  className={styles.variantSpec}
-                                >
-                                  {spec.label}: {spec.value}
-                                </span>
-                              ))}
-                            </span>
+                            <div className={styles.fashionSelectedMeta}>
+                              <span className={styles.variantTitle}>Selected option</span>
+                              <span className={styles.fashionColorLabel}>
+                                {shouldUseFashionOptionsModal ? (
+                                  <button
+                                    type="button"
+                                    className={styles.fashionMoreLink}
+                                    onClick={() => setFashionOptionsOpen(true)}
+                                  >
+                                    More options
+                                  </button>
+                                ) : null}
+                              </span>
+                            </div>
+                            <div className={styles.fashionSelectedMeta}>
+                              <span className={styles.fashionColorLabel}>
+                                Color : {selectedFashionGroup.colorLabel}
+                              </span>
+                              <span className={styles.fashionSelectedSize}>
+                                Size: {getSizeValue(selectedFashionVariant || selectedFashionGroup.variants[0])}
+                              </span>
+                            </div>
                           </button>
-                          {shouldUseFashionOptionsModal ? (
-                            <button
-                              type="button"
-                              className={styles.fashionOptionsButton}
-                              onClick={() => setFashionOptionsOpen(true)}
-                            >
-                              More options
-                            </button>
-                          ) : null}
                         </div>
                       ) : null}
                     </div>
@@ -743,34 +799,61 @@ export default function ProductDetailsPage() {
                       </button>
                     </div>
                     <div className={styles.fashionOptionsModalList}>
-                      {visibleFashionVariants.map((variant, index) => {
-                        const variantId = getItemId(variant);
-                        const selected = variantId === getItemId(details);
+                      {fashionVariantGroups.map((group) => {
+                        const selectedGroupVariant =
+                          group.variants.find((variant) => getItemId(variant) === activeItemId) ||
+                          group.variants[0] ||
+                          null;
+                        const groupSelected = Boolean(
+                          selectedGroupVariant && getItemId(selectedGroupVariant) === activeItemId,
+                        );
                         return (
-                          <button
-                            key={variantId || index}
-                            type="button"
-                            className={`${styles.variantCard} ${selected ? styles.variantCardSelected : ""
-                              }`}
-                            onClick={() => {
-                              if (variantId && !selected) {
-                                setActiveItemId(variantId);
-                              }
-                              setFashionOptionsOpen(false);
-                            }}
-                          >
-                            <span className={styles.variantTitle}>Option {index + 1}</span>
-                            <span className={styles.variantSpecs}>
-                              {getFashionVariantSpecs(variant).map((spec) => (
+                          <section key={group.colorKey} className={styles.fashionColorGroup}>
+                            <div className={styles.fashionColorHeader}>
+                              <div className={styles.fashionColorSwatchRow}>
                                 <span
-                                  key={`${variantId}-${spec.label}`}
-                                  className={styles.variantSpec}
-                                >
-                                  {spec.label}: {spec.value}
-                                </span>
-                              ))}
-                            </span>
-                          </button>
+                                  className={styles.fashionColorSwatch}
+                                  style={{ backgroundColor: group.colorValue || "#d9d9d9" }}
+                                  aria-hidden="true"
+                                />
+                                <div>
+                                  <span className={styles.fashionColorLabel}>{group.colorLabel}</span>
+                                  <p className={styles.fashionColorMeta}>
+                                    {group.variants.length} size
+                                    {group.variants.length === 1 ? "" : "s"}
+                                  </p>
+                                </div>
+                              </div>
+                              {groupSelected ? (
+                                <span className={styles.fashionSelectedBadge}>Selected</span>
+                              ) : null}
+                            </div>
+                            <div className={styles.fashionSizeChips}>
+                              {group.variants.map((variant) => {
+                                const variantId = getItemId(variant);
+                                const selected = variantId === activeItemId;
+                                const sizeLabel = getSizeValue(variant) || "One size";
+
+                                return (
+                                  <button
+                                    key={variantId || sizeLabel}
+                                    type="button"
+                                    className={`${styles.fashionSizeChip} ${selected ? styles.fashionSizeChipSelected : ""
+                                      }`}
+                                    onClick={() => {
+                                      if (!variantId || selected) {
+                                        return;
+                                      }
+                                      setActiveItemId(variantId);
+                                      setFashionOptionsOpen(false);
+                                    }}
+                                  >
+                                    {sizeLabel}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </section>
                         );
                       })}
                     </div>

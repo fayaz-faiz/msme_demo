@@ -490,7 +490,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
         <h2>No cart selected</h2>
         <p>Please choose a cart from the multi-cart list.</p>
         <Link href="/cart" className={styles.backButton}>
-          ← Back to carts
+          ← Back to cart
         </Link>
       </section>
     );
@@ -595,7 +595,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
         <h2>Unable to load cart</h2>
         <p>{error}</p>
         <Link href="/cart" className={styles.backButton}>
-          ← Back to carts
+          ← Back to cart
         </Link>
       </section>
     );
@@ -820,7 +820,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
               )}
             </button>
             {/* <Link href="/cart" className={styles.backButton}>
-            ← Back to carts
+            ← Back to cart
           </Link> */}
           </div>
         </aside>

@@ -61,15 +61,23 @@
 }
 
 .imageCol {
-  min-height: 320px;
+  min-height: 250px;
+  display: grid;
+  place-items: center;
+  padding: 0.85rem;
   background: linear-gradient(135deg, #fdf7f3, #f4f8f2);
 }
 
 .mainImage {
   width: 100%;
   height: 100%;
-  min-height: 320px;
-  object-fit: cover;
+  min-height: 250px;
+  object-fit: contain;
+  object-position: center;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e8ece3;
+  padding: 0.65rem;
 }
 
 .infoCol {
@@ -245,9 +253,45 @@
   transform: translateY(-1px);
 }
 
+.fashionMoreLink {
+  border: 0;
+  background: transparent;
+  color: #ff5c1b;
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+  padding: 0.4rem 0.15rem;
+  align-self: center;
+  white-space: nowrap;
+}
+
 .fashionDefaultCard {
   flex: 1;
   cursor: pointer;
+}
+
+.fashionSelectedMeta {
+  display: grid;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.fashionColorLabel {
+  color: #1d251d;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.fashionSelectedSize {
+  color: #526050;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .fashionOptionsModalList {
@@ -256,6 +300,85 @@
   max-height: min(60vh, 520px);
   overflow: auto;
   padding-right: 0.15rem;
+}
+
+.fashionColorGroup {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.9rem;
+  border: 1px solid #e0e4dc;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.fashionColorHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.fashionColorSwatchRow {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.fashionColorSwatch {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid #dfe5da;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.65);
+  flex-shrink: 0;
+}
+
+.fashionColorMeta {
+  margin: 0.14rem 0 0;
+  color: #6a7568;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.fashionSelectedBadge {
+  border-radius: 999px;
+  background: #e9f5ec;
+  color: #15713d;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.26rem 0.55rem;
+  white-space: nowrap;
+}
+
+.fashionSizeChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.fashionSizeChip {
+  min-height: 2.25rem;
+  border: 1px solid #d7c7b6;
+  border-radius: 999px;
+  background: #fffaf4;
+  color: #2c2218;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.38rem 0.72rem;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.fashionSizeChip:hover {
+  border-color: #c89451;
+  transform: translateY(-1px);
+}
+
+.fashionSizeChipSelected {
+  border-color: #d18a3b;
+  background: #f0ddc6;
+  box-shadow: 0 0 0 1px rgba(209, 138, 59, 0.18);
 }
 
 .quantityPills {
@@ -646,12 +769,30 @@
     grid-template-columns: 1fr;
   }
 
+  .imageCol {
+    min-height: 220px;
+  }
+
+  .mainImage {
+    min-height: 220px;
+  }
+
   .relatedGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 580px) {
+  .imageCol {
+    min-height: 200px;
+    padding: 0.7rem;
+  }
+
+  .mainImage {
+    min-height: 200px;
+    padding: 0.5rem;
+  }
+
   .relatedGrid {
     grid-template-columns: 1fr;
   }
