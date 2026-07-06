@@ -59,6 +59,7 @@ type ApiProductItem = {
   ram_unit?: string;
   colour?: string;
   colour_name?: string;
+  color_name?: string;
   size?: string | number;
   storage?: string | number;
   storage_unit?: string;
@@ -234,7 +235,7 @@ const getFashionColorKey = (variant: ApiProductItem) =>
   normalizeNameValue(variant.colour_name || variant.colour || "color");
 
 const getFashionColorLabel = (variant: ApiProductItem) =>
-  String(variant.colour_name || variant.colour || "Color").trim();
+  String(variant.color_name || variant.color_name || variant.colour || "Color").trim();
 
 const getFashionColorValue = (variant: ApiProductItem) => String(variant.colour || "").trim();
 
@@ -257,9 +258,9 @@ const buildFashionVariantGroups = (variants: ApiProductItem[]) => {
       return;
     }
 
-    const currentSizeKey = normalizeNameValue(getSizeValue(variant));
+    const currentSizeKey = normalizeNameValue(getSizeValue(variant).replace(/SIZE_/g, ''));
     const hasMatchingSize = existing.variants.some(
-      (entry) => normalizeNameValue(getSizeValue(entry)) === currentSizeKey,
+      (entry) => normalizeNameValue(getSizeValue(entry).replace(/SIZE_/g, '')) === currentSizeKey,
     );
 
     if (!hasMatchingSize) {
@@ -278,7 +279,7 @@ const hasRequiredVariantSpecs = (variant: ApiProductItem) =>
   );
 
 const hasRequiredFashionSpecs = (variant: ApiProductItem) =>
-  Boolean(getSizeValue(variant) && (variant.colour_name || variant.colour));
+  Boolean(getSizeValue(variant).replace(/SIZE_/g, '') && (variant.color_name || variant.colour));
 
 export default function ProductDetailsPage() {
   const params = useParams<{ slug: string }>();
@@ -731,7 +732,7 @@ export default function ProductDetailsPage() {
                                 Color : {selectedFashionGroup.colorLabel}
                               </span>
                               <span className={styles.fashionSelectedSize}>
-                                Size: {getSizeValue(selectedFashionVariant || selectedFashionGroup.variants[0])}
+                                  Size: {getSizeValue(selectedFashionVariant || selectedFashionGroup.variants[0]).replace(/SIZE_/g, '')}
                               </span>
                             </div>
                           </button>
@@ -832,7 +833,7 @@ export default function ProductDetailsPage() {
                               {group.variants.map((variant) => {
                                 const variantId = getItemId(variant);
                                 const selected = variantId === activeItemId;
-                                const sizeLabel = getSizeValue(variant) || "One size";
+                                const sizeLabel = getSizeValue(variant).replace(/SIZE_/g, '') || "One size";
 
                                 return (
                                   <button

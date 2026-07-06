@@ -389,6 +389,10 @@ export function AddressEditor({ mode, addressId }: AddressEditorProps) {
       notifyOrAlert("Pincode is required.", "warning");
       return false;
     }
+    if (!stateName.trim()) {
+      notifyOrAlert("State is required.", "warning");
+      return false;
+    }
     return true;
   };
 

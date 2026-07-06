@@ -898,9 +898,12 @@ export function ShopItemsBrowser({
                   />
                 </div>
                 <div className={styles.body}>
-                  <p className={styles.unitTag}>
-                    {product.subCategoryName || "1 PCS"}
-                  </p>
+                  {product.subCategoryName && (
+                    <p className={styles.unitTag}>
+                      {product.subCategoryName}
+                    </p>
+                  )}
+
                   <h2 className={styles.productName}>{product.name}</h2>
                   <ProductTypeBadge foodType={product.foodType} />
                   <p className={styles.productDescription}>
@@ -939,22 +942,22 @@ export function ShopItemsBrowser({
                     <span className={styles.variantHint}>Customisable</span>
                   ) : null}
                   <div className={styles.priceRow}>
-                  <div className={styles.priceStack}>
-                    {priceDisplay.mrpPrice ? (
-                      <span className={styles.mrpPrice}>
-                        {formatCurrency(priceDisplay.mrpPrice)}
+                    <div className={styles.priceStack}>
+                      {priceDisplay.mrpPrice ? (
+                        <span className={styles.mrpPrice}>
+                          {formatCurrency(priceDisplay.mrpPrice)}
+                        </span>
+                      ) : null}
+                      <span className={styles.price}>
+                        {formatCurrency(priceDisplay.sellingPrice)}
                       </span>
-                    ) : null}
-                    <span className={styles.price}>
-                      {formatCurrency(priceDisplay.sellingPrice)}
-                    </span>
-                    {priceDisplay.discountLabel ? (
-                      <span className={styles.discountNote}>
-                        {priceDisplay.discountLabel}
-                      </span>
-                    ) : null}
-                  </div>
-                  {product.parentItemId ? (
+                      {priceDisplay.discountLabel ? (
+                        <span className={styles.discountNote}>
+                          {priceDisplay.discountLabel}
+                        </span>
+                      ) : null}
+                    </div>
+                    {product.parentItemId ? (
                       <Link
                         href={{
                           pathname: `/products/${product.slug}`,
