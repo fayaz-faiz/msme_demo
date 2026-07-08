@@ -59,7 +59,6 @@ type ApiProductItem = {
   ram_unit?: string;
   colour?: string;
   colour_name?: string;
-  color_name?: string;
   size?: string | number;
   storage?: string | number;
   storage_unit?: string;
@@ -221,7 +220,7 @@ const getVariantSpecs = (variant: ApiProductItem) =>
   [
     { label: "RAM", value: compactValue(variant.ram, variant.ram_unit) },
     { label: "Storage", value: compactValue(variant.storage, variant.storage_unit || variant.storage_type) },
-    { label: "Color", value: variant.colour_name || variant.colour },
+    { label: "Color", value: variant.colour_name},
   ].filter((spec) => spec.value);
 
 type FashionVariantGroup = {
@@ -232,10 +231,10 @@ type FashionVariantGroup = {
 };
 
 const getFashionColorKey = (variant: ApiProductItem) =>
-  normalizeNameValue(variant.colour_name || variant.colour || "color");
+  normalizeNameValue(variant.colour_name);
 
 const getFashionColorLabel = (variant: ApiProductItem) =>
-  String(variant.color_name || variant.color_name || variant.colour || "Color").trim();
+  String(variant.colour_name).trim();
 
 const getFashionColorValue = (variant: ApiProductItem) => String(variant.colour || "").trim();
 
@@ -275,11 +274,11 @@ const hasRequiredVariantSpecs = (variant: ApiProductItem) =>
   Boolean(
     compactValue(variant.ram, variant.ram_unit) &&
     compactValue(variant.storage, variant.storage_unit || variant.storage_type) &&
-    (variant.colour_name || variant.colour),
+    (variant.colour_name),
   );
 
 const hasRequiredFashionSpecs = (variant: ApiProductItem) =>
-  Boolean(getSizeValue(variant).replace(/SIZE_/g, '') && (variant.color_name || variant.colour));
+  Boolean(getSizeValue(variant).replace(/SIZE_/g, '') && (variant.colour_name ));
 
 export default function ProductDetailsPage() {
   const params = useParams<{ slug: string }>();
