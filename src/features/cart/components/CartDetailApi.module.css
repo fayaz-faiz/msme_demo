@@ -131,6 +131,11 @@
   border-bottom: none;
 }
 
+.itemCardDisabled {
+  opacity: 0.62;
+  background: #fafafa;
+}
+
 .itemThumb {
   width: 80px;
   height: 80px;
@@ -139,6 +144,10 @@
   flex-shrink: 0;
   border: 1px solid #e9e9eb;
   background: #f9f9f9;
+}
+
+.itemThumbDisabled {
+  filter: grayscale(1);
 }
 
 .itemBody {
@@ -161,6 +170,13 @@
   font-size: 0.8rem;
   color: #93959f;
   margin: 0;
+}
+
+.outOfStockText {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #d35400;
+  margin: 0.05rem 0 0;
 }
 
 .itemBadges {
@@ -439,6 +455,13 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+}
+
+.updateCartNote {
+  font-size: 0.84rem;
+  color: #7e808c;
+  margin: 0;
+  line-height: 1.4;
 }
 
 .checkoutButton {

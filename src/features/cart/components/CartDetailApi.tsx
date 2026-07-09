@@ -10,6 +10,7 @@ import {
   getCartLengthWeb,
   initializeCartWeb,
   payemntGw,
+  postAddUpdateCart,
   postCartByIdWeb,
   verifyCartWeb,
 } from "@/api";
@@ -34,6 +35,7 @@ type CartItem = {
   item_name?: string;
   item_symbol?: string;
   item_quantity?: string;
+  item_available?: string;
   count: number;
   total_amount?: number;
   original_amount?: number;
@@ -95,6 +97,8 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
   const [showDeliveryOptions, setShowDeliveryOptions] = useState(false);
   const [showOrderPlacing, setShowOrderPlacing] = useState(false);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  const [isUpdatingCart, setIsUpdatingCart] = useState(false);
+  const [showUpdateCartAction, setShowUpdateCartAction] = useState(false);
   const [showStoreError, setShowStoreError] = useState(false);
   const [storeErrorMessage, setStoreErrorMessage] = useState("");
 
@@ -261,6 +265,15 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     }
   };
 
+  const buildCartUpdatePayload = (item: CartItem) => ({
+    ce_item_id: item.ce_item_id,
+    count: 0,
+    paymentType: "ON-ORDER",
+    gps: `${formatGpsCoord(location?.lat)},${formatGpsCoord(location?.lng)}`,
+    area_code: location?.pincode ?? "",
+    dest_location: "SEARCH",
+  });
+
   const fetchCartDetails = async () => {
     if (!cartId) {
       return;
@@ -348,6 +361,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
       console.log("verifyCart response:", statusCode);
       if (response?.data?.status) {
         setIsCartVerified(true);
+        setShowUpdateCartAction(false);
         await fetchCartDetails();
         return true;
       } else {
@@ -355,6 +369,9 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
           response?.data?.data?.message ||
           response?.data?.message ||
           "Cart verification failed.";
+        const isOutOfStockError =
+          statusCode === 400 || /out of stock/i.test(message);
+        await fetchCartDetails();
         if (statusCode === 406 || statusCode === 504) {
           setStoreErrorMessage(message);
           setShowStoreError(true);
@@ -368,10 +385,18 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
         const isLocationError =
           statusCode === 404 ||
           /far from the store|different address/i.test(message);
+        if (isOutOfStockError) {
+          setShowUpdateCartAction(true);
+          setError(message);
+          notifyOrAlert(message, "warning");
+          return false;
+        }
         if (isLocationError) {
+          setShowUpdateCartAction(false);
           notifyOrAlert(message, "warning");
           setTimeout(() => setShowLocationPicker(true), 5000);
         } else {
+          setShowUpdateCartAction(false);
           setError(message);
           notifyOrAlert(message, "warning");
         }
@@ -385,6 +410,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
         "Cart verification failed.";
       setError(message);
       notifyOrAlert(message, "warning");
+      setShowUpdateCartAction(false);
       if (
         err?.response?.status === 404 ||
         /far from the store|different address/i.test(message)
@@ -394,6 +420,49 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
       return false;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateCart = async () => {
+    if (!cartId || isUpdatingCart) {
+      return;
+    }
+
+    const activeAddress = getActiveAddress();
+    if (!activeAddress?._id && !(location?.lat && location?.lng)) {
+      setShowLocationPicker(true);
+      return;
+    }
+
+    const outOfStockItems = cartItems.filter(
+      (item) => item.item_available?.toLowerCase() === "disable",
+    );
+
+    if (outOfStockItems.length === 0) {
+      setShowUpdateCartAction(false);
+      await verifyCart();
+      return;
+    }
+
+    setIsUpdatingCart(true);
+    try {
+      for (const item of outOfStockItems) {
+        await postAddUpdateCart(buildCartUpdatePayload(item));
+      }
+
+      notifyOrAlert("Cart updated successfully.", "success");
+      setShowUpdateCartAction(false);
+      await fetchCartDetails();
+      await verifyCart();
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.response?.data?.data?.message ||
+        "Unable to update cart.";
+      setError(message);
+      notifyOrAlert(message, "error");
+    } finally {
+      setIsUpdatingCart(false);
     }
   };
 
@@ -419,8 +488,8 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
       if (!initResponse?.data?.status) {
         notifyOrAlert(
           initResponse?.data?.data?.message ||
-            initResponse?.data?.message ||
-            "Unable to initialize cart.",
+          initResponse?.data?.message ||
+          "Unable to initialize cart.",
           "warning",
         );
         return;
@@ -445,7 +514,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     description: item.item_quantity || "",
     cartCount: item.count,
     price: Number(item.total_amount || item.original_amount || 0),
-    stock: 999,
+    stock: item.item_available?.toLowerCase() === "disable" ? 0 : 999,
     image: item.item_symbol || "",
   });
 
@@ -588,32 +657,48 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     );
   }
 
-  if (error && cartItems.length === 0) {
-    return (
-      <section className={styles.emptyState}>
-        <span className={styles.emptyIcon}>🛒</span>
-        <h2>Unable to load cart</h2>
-        <p>{error}</p>
-        <Link href="/cart" className={styles.backButton}>
-          ← Back to cart
-        </Link>
-      </section>
-    );
-  }
+  // This alert will delete later lets keep it this now
+  // Because i am calling the fetechcartDetails API if the product is outo of stock
+  // if (error && cartItems.length === 0) {
+  //   return (
+  //     <section className={styles.emptyState}>
+  //       <span className={styles.emptyIcon}>🛒</span>
+  //       <h2>Unable to load cart</h2>
+  //       <p>{error}</p>
+  //       <Link href="/cart" className={styles.backButton}>
+  //         ← Back to cart
+  //       </Link>
+  //       <button
+  //         type="button"
+  //         className={styles.checkoutButton}
+  //         onClick={() => void fetchCartDetails()}
+  //       >
+  //         REFRESH CART
+  //       </button>
+  //     </section>
+  //   );
+  // }
 
   const activeAddr = getActiveAddress();
   const addrText = activeAddr
     ? [
-        activeAddr.building,
-        activeAddr.locality,
-        activeAddr.city,
-        activeAddr.state,
-        activeAddr.area_code,
-      ]
-        .filter(Boolean)
-        .join(", ")
+      activeAddr.building,
+      activeAddr.locality,
+      activeAddr.city,
+      activeAddr.state,
+      activeAddr.area_code,
+    ]
+      .filter(Boolean)
+      .join(", ")
     : "";
   const needsAddress = isCartVerified && !addrText;
+  const checkoutDisabled =
+    !isCartVerified ||
+    isInitializing ||
+    loading ||
+    cartItems.length === 0 ||
+    !activeAddr;
+  const updateCartDisabled = isUpdatingCart || isInitializing || loading;
 
   return (
     <>
@@ -654,10 +739,15 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
                 const itemTotal = Number(
                   item.total_amount || item.original_amount || 0,
                 );
+                const isItemDisabled =
+                  item.item_available?.toLowerCase() === "disable";
                 return (
-                  <article key={item.ce_item_id} className={styles.itemCard}>
+                  <article
+                    key={item.ce_item_id}
+                    className={`${styles.itemCard} ${isItemDisabled ? styles.itemCardDisabled : ""}`}
+                  >
                     <img
-                      className={styles.itemThumb}
+                      className={`${styles.itemThumb} ${isItemDisabled ? styles.itemThumbDisabled : ""}`}
                       src={
                         item.item_symbol ||
                         "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=200&q=60"
@@ -668,6 +758,9 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
                       <p className={styles.itemName}>{item.item_name}</p>
                       {item.item_quantity ? (
                         <p className={styles.itemQty}>{item.item_quantity}</p>
+                      ) : null}
+                      {isItemDisabled ? (
+                        <p className={styles.outOfStockText}>Out of stock</p>
                       ) : null}
                       <div className={styles.itemBadges}>
                         <span className={styles.badge}>
@@ -792,19 +885,26 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
 
           {/* CTAs */}
           <div className={styles.ctaCard}>
+            {showUpdateCartAction ? (
+              <p className={styles.updateCartNote}>
+                Some items are out of stock. Update your cart to continue.
+              </p>
+            ) : null}
             <button
               type="button"
               className={`${styles.checkoutButton} ${loading && !isCartVerified ? styles.checkoutButtonVerifying : ""}`}
-              onClick={handleViewDeliveryOptions}
-              disabled={
-                !isCartVerified ||
-                isInitializing ||
-                loading ||
-                cartItems.length === 0 ||
-                !activeAddr
+              onClick={
+                showUpdateCartAction
+                  ? handleUpdateCart
+                  : handleViewDeliveryOptions
               }
+              disabled={showUpdateCartAction ? updateCartDisabled : checkoutDisabled}
             >
-              {loading && !isCartVerified ? (
+              {isUpdatingCart ? (
+                "Updating cart..."
+              ) : showUpdateCartAction ? (
+                "Update cart"
+              ) : loading && !isCartVerified ? (
                 <>
                   Verifying cart&nbsp;
                   <span className={styles.verifyingDots}>
@@ -816,7 +916,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
               ) : isInitializing ? (
                 "Preparing order..."
               ) : (
-                `Proceed to checkout · ${payTotalDisplay}`
+                `Proceed to checkout : ${payTotalDisplay}`
               )}
             </button>
             {/* <Link href="/cart" className={styles.backButton}>
