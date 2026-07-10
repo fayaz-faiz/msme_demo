@@ -168,13 +168,17 @@ const isRetailQuantityProduct = (item: ApiProductItem | null, category: string) 
   return (
     value === "ondc:ret10" ||
     value === "ondc:ret16" ||
+    value === "ondc:ret13" ||
     value === "grocery" ||
     value === "home & kitchen" ||
     value === "home and kitchen" ||
+    value === "beauty and personal care" ||
     compactValue.includes("ret10") ||
     compactValue.includes("ret16") ||
+    compactValue.includes("ret13") ||
     compactValue.includes("grocery") ||
-    compactValue.includes("homekitchen")
+    compactValue.includes("homekitchen") ||
+    compactValue.includes("beauty and personal care")
   );
 };
 
