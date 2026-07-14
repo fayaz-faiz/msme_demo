@@ -9,6 +9,7 @@ import { postSearchById, searchStoreByItems } from "@/api";
 import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
 import { useLocation } from "@/features/location/context/location-context";
 import { ProductTypeBadge } from "@/features/product/components/ProductMeta";
+import { Ret13VariantSection } from "@/features/product/components/Ret13VariantSection";
 import type { Product } from "@/features/product/domain/product";
 import { formatCurrency } from "@/shared/lib/format-currency";
 import { buildPriceDisplay } from "@/shared/lib/price-display";
@@ -161,6 +162,17 @@ const isRet12Product = (item: ApiProductItem | null, category: string) => {
   return value === "ondc:ret12" || value === "fashion" || value.includes("ret12");
 };
 
+const isRet13Product = (item: ApiProductItem | null, category: string) => {
+  const value = normalizeCategoryValue(item?.domain || category);
+  return (
+    value === "ondc:ret13" ||
+    value === "beauty & personal care" ||
+    value === "beauty and personal care" ||
+    value === "beauty" ||
+    value.includes("ret13")
+  );
+};
+
 const isRetailQuantityProduct = (item: ApiProductItem | null, category: string) => {
   const value = normalizeCategoryValue(item?.domain || category);
   const compactValue = value.replace(/[^a-z0-9]/g, "");
@@ -191,6 +203,41 @@ const isMatchingItemName = (baseItem: ApiProductItem | null, candidate: ApiProdu
   return Boolean(baseName && candidateName && baseName === candidateName);
 };
 
+const isMatchingRet13Variant = (
+  baseItem: ApiProductItem | null,
+  candidate: ApiProductItem,
+) => {
+  const baseId = getItemId(baseItem);
+  const candidateParentId = String(candidate.parent_item_id || "").trim();
+  const baseName = normalizeNameValue(baseItem?.item_name);
+  const candidateName = normalizeNameValue(candidate.item_name);
+  const baseBrand = normalizeNameValue(baseItem?.brand);
+  const candidateBrand = normalizeNameValue(candidate.brand);
+
+  if (baseId && candidateParentId && baseId === candidateParentId) {
+    return true;
+  }
+
+  if (baseName && candidateName) {
+    if (candidateName === baseName) {
+      return true;
+    }
+    if (
+      candidateName.startsWith(baseName) ||
+      candidateName.includes(baseName) ||
+      baseName.includes(candidateName)
+    ) {
+      return true;
+    }
+  }
+
+  if (baseBrand && candidateBrand && baseBrand === candidateBrand) {
+    return true;
+  }
+
+  return false;
+};
+
 const extractVariantItems = (
   data: ProductDetailsApiResponse,
   mode: "quantity" | "specs",
@@ -203,6 +250,25 @@ const extractVariantItems = (
         return false;
       }
       const itemId = mode === "quantity" ? getItemMeasureKey(item) : getItemId(item);
+      if (!itemId || seen.has(itemId)) {
+        return false;
+      }
+      seen.add(itemId);
+      return true;
+    });
+};
+
+const extractRet13VariantItems = (
+  data: ProductDetailsApiResponse,
+  baseItem?: ApiProductItem | null,
+): ApiProductItem[] => {
+  const seen = new Set<string>();
+  return (Array.isArray(data.variant_result) ? data.variant_result : [])
+    .filter((item) => {
+      if (!isMatchingRet13Variant(baseItem || null, item)) {
+        return false;
+      }
+      const itemId = getItemId(item);
       if (!itemId || seen.has(itemId)) {
         return false;
       }
@@ -310,6 +376,7 @@ export default function ProductDetailsPage() {
   const [variantItems, setVariantItems] = useState<ApiProductItem[]>([]);
   const [quantityVariantItems, setQuantityVariantItems] = useState<ApiProductItem[]>([]);
   const [fashionVariantItems, setFashionVariantItems] = useState<ApiProductItem[]>([]);
+  const [ret13VariantItems, setRet13VariantItems] = useState<ApiProductItem[]>([]);
   const [fashionOptionsOpen, setFashionOptionsOpen] = useState(false);
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
 
@@ -329,6 +396,7 @@ export default function ProductDetailsPage() {
   );
   const isQuantityCategory = isRetailQuantityProduct(details, category);
   const isFashionCategory = isRet12Product(details, category);
+  const isBpcCategory = isRet13Product(details, category);
   const variantMode = isQuantityCategory
     ? "quantity"
     : isFashionCategory
@@ -372,17 +440,20 @@ export default function ProductDetailsPage() {
   }, [activeItemId, details, visibleFashionVariants]);
   const shouldShowVariants =
     variantMode !== "none" &&
-    (variantMode === "quantity"
-      ? visibleQuantityVariants.length > 1
-      : variantMode === "fashion"
-        ? visibleFashionVariants.length > 1
-        : variantItems.length > 1);
+    (isBpcCategory
+      ? ret13VariantItems.length > 0
+      : variantMode === "quantity"
+        ? visibleQuantityVariants.length > 1
+        : variantMode === "fashion"
+          ? visibleFashionVariants.length > 1
+          : variantItems.length > 1);
 
   useEffect(() => {
     setActiveItemId(id);
     setVariantItems([]);
     setQuantityVariantItems([]);
     setFashionVariantItems([]);
+    setRet13VariantItems([]);
     setFashionOptionsOpen(false);
     setSizeChartOpen(false);
     lastFetchKeyRef.current = "";
@@ -423,16 +494,20 @@ export default function ProductDetailsPage() {
         const updated = detailsData?.updated_results || null;
         const isQuantityProduct = isRetailQuantityProduct(updated, category);
         const isFashionProduct = isRet12Product(updated, category);
+        const isRet13ProductFlow = isRet13Product(updated, category);
         const isRet14 = isRet14Product(updated, category);
         const incomingVariants = extractVariantItems(
           detailsData,
           isQuantityProduct ? "quantity" : "specs",
           updated,
         );
+        const incomingRet13Variants = extractRet13VariantItems(detailsData, updated);
         const normalizedVariants = isQuantityProduct
           ? incomingVariants.filter((item) => getItemMeasureKey(item))
           : isFashionProduct
             ? incomingVariants.filter(hasRequiredFashionSpecs)
+            : isRet13ProductFlow
+              ? incomingRet13Variants
             : isRet14
               ? incomingVariants.filter(hasRequiredVariantSpecs)
               : [];
@@ -451,6 +526,13 @@ export default function ProductDetailsPage() {
 
           return normalizedVariants.length ? normalizedVariants : [];
         });
+        if (isRet13ProductFlow) {
+          setRet13VariantItems(
+            incomingRet13Variants.length > 0
+              ? incomingRet13Variants
+              : incomingVariants,
+          );
+        }
         if (isQuantityProduct) {
           setQuantityVariantItems((current) =>
             normalizedVariants.length > 1 ? normalizedVariants : current,
@@ -462,6 +544,7 @@ export default function ProductDetailsPage() {
         } else {
           setQuantityVariantItems([]);
           setFashionVariantItems([]);
+          setRet13VariantItems([]);
         }
 
         if (providerLocationId && category) {
@@ -624,40 +707,47 @@ export default function ProductDetailsPage() {
               </div>
 
               {shouldShowVariants ? (
-                <section className={styles.variantPanel} aria-label="Available options">
-                  <div className={styles.variantHeader}>
-                    <div className={styles.variantHeadingGroup}>
-                      <h2>
-                        {variantMode === "quantity"
-                          ? "Net Quantity"
-                          : variantMode === "fashion"
-                            ? "Available Options"
-                            : "Available Options"}
-                      </h2>
-                      {/* <span>
-                        {(variantMode === "quantity"
-                          ? visibleQuantityVariants
-                          : variantMode === "fashion"
-                            ? visibleFashionVariants
-                            : variantItems
-                        ).length} options
-                      </span> */}
-                    </div>
-                    {variantMode === "fashion" && resolvedSizeChartUrl ? (
-                      <div className={styles.sizeChartCtaRow}>
-                        <button
-                          type="button"
-                          className={styles.sizeChartButton}
-                          onClick={() => setSizeChartOpen(true)}
-                        >
-                          View size chart
-                        </button>
+                isBpcCategory ? (
+                  <Ret13VariantSection
+                    details={details}
+                    variants={ret13VariantItems.length > 0 ? ret13VariantItems : visibleQuantityVariants}
+                    activeItemId={activeItemId || id}
+                    onSelectVariant={setActiveItemId}
+                  />
+                ) : (
+                  <section className={styles.variantPanel} aria-label="Available options">
+                    <div className={styles.variantHeader}>
+                      <div className={styles.variantHeadingGroup}>
+                        <h2>
+                          {variantMode === "quantity"
+                            ? "Net Quantity"
+                            : variantMode === "fashion"
+                              ? "Available Options"
+                              : "Available Options"}
+                        </h2>
+                        {/* <span>
+                          {(variantMode === "quantity"
+                            ? visibleQuantityVariants
+                            : variantMode === "fashion"
+                              ? visibleFashionVariants
+                              : variantItems
+                          ).length} options
+                        </span> */}
                       </div>
-                    ) : null}
-                  </div>
+                      {variantMode === "fashion" && resolvedSizeChartUrl ? (
+                        <div className={styles.sizeChartCtaRow}>
+                          <button
+                            type="button"
+                            className={styles.sizeChartButton}
+                            onClick={() => setSizeChartOpen(true)}
+                          >
+                            View size chart
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
 
-
-                  {variantMode === "quantity" ? (
+                    {variantMode === "quantity" ? (
                     <div className={styles.quantityPills}>
                       {visibleQuantityVariants.map((variant) => {
                         const variantId = getItemId(variant);
@@ -701,82 +791,83 @@ export default function ProductDetailsPage() {
                         );
                       })}
                     </div>
-                  ) : variantMode === "fashion" ? (
-                    <div className={styles.fashionOptionsInline}>
-                      {selectedFashionGroup ? (
-                        <div className={styles.fashionOptionsRow}>
-                          <button
-                            type="button"
-                            className={`${styles.variantCard} ${styles.variantCardSelected} ${styles.fashionDefaultCard}`}
-                            onClick={() => {
-                              const variantId = getItemId(selectedFashionVariant);
-                              if (!variantId || variantId === getItemId(details)) {
-                                return;
-                              }
-                              setActiveItemId(variantId);
-                            }}
-                          >
-                            <div className={styles.fashionSelectedMeta}>
-                              <span className={styles.variantTitle}>Selected option</span>
-                              <span className={styles.fashionColorLabel}>
-                                {shouldUseFashionOptionsModal ? (
-                                  <button
-                                    type="button"
-                                    className={styles.fashionMoreLink}
-                                    onClick={() => setFashionOptionsOpen(true)}
-                                  >
-                                    More options
-                                  </button>
-                                ) : null}
-                              </span>
-                            </div>
-                            <div className={styles.fashionSelectedMeta}>
-                              <span className={styles.fashionColorLabel}>
-                                Color : {selectedFashionGroup.colorLabel}
-                              </span>
-                              <span className={styles.fashionSelectedSize}>
-                                  Size: {getSizeValue(selectedFashionVariant || selectedFashionGroup.variants[0]).replace(/SIZE_/g, '')}
-                              </span>
-                            </div>
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <div className={styles.variantList}>
-                      {variantItems.map((variant, index) => {
-                        const variantId = getItemId(variant);
-                        const selected = variantId === getItemId(details);
-                        return (
-                          <button
-                            key={variantId}
-                            type="button"
-                            className={`${styles.variantCard} ${selected ? styles.variantCardSelected : ""
-                              }`}
-                            onClick={() => {
-                              if (!variantId || selected) {
-                                return;
-                              }
-                              setActiveItemId(variantId);
-                            }}
-                          >
-                            <span className={styles.variantTitle}>Option {index + 1}</span>
-                            <span className={styles.variantSpecs}>
-                              {getVariantSpecs(variant).map((spec) => (
-                                <span
-                                  key={`${variantId}-${spec.label}`}
-                                  className={styles.variantSpec}
-                                >
-                                  {spec.label}: {spec.value}
+                    ) : variantMode === "fashion" ? (
+                      <div className={styles.fashionOptionsInline}>
+                        {selectedFashionGroup ? (
+                          <div className={styles.fashionOptionsRow}>
+                            <button
+                              type="button"
+                              className={`${styles.variantCard} ${styles.variantCardSelected} ${styles.fashionDefaultCard}`}
+                              onClick={() => {
+                                const variantId = getItemId(selectedFashionVariant);
+                                if (!variantId || variantId === getItemId(details)) {
+                                  return;
+                                }
+                                setActiveItemId(variantId);
+                              }}
+                            >
+                              <div className={styles.fashionSelectedMeta}>
+                                <span className={styles.variantTitle}>Selected option</span>
+                                <span className={styles.fashionColorLabel}>
+                                  {shouldUseFashionOptionsModal ? (
+                                    <button
+                                      type="button"
+                                      className={styles.fashionMoreLink}
+                                      onClick={() => setFashionOptionsOpen(true)}
+                                    >
+                                      More options
+                                    </button>
+                                  ) : null}
                                 </span>
-                              ))}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </section>
+                              </div>
+                              <div className={styles.fashionSelectedMeta}>
+                                <span className={styles.fashionColorLabel}>
+                                  Color : {selectedFashionGroup.colorLabel}
+                                </span>
+                                <span className={styles.fashionSelectedSize}>
+                                    Size: {getSizeValue(selectedFashionVariant || selectedFashionGroup.variants[0]).replace(/SIZE_/g, '')}
+                                </span>
+                              </div>
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className={styles.variantList}>
+                        {variantItems.map((variant, index) => {
+                          const variantId = getItemId(variant);
+                          const selected = variantId === getItemId(details);
+                          return (
+                            <button
+                              key={variantId}
+                              type="button"
+                              className={`${styles.variantCard} ${selected ? styles.variantCardSelected : ""
+                                }`}
+                              onClick={() => {
+                                if (!variantId || selected) {
+                                  return;
+                                }
+                                setActiveItemId(variantId);
+                              }}
+                            >
+                              <span className={styles.variantTitle}>Option {index + 1}</span>
+                              <span className={styles.variantSpecs}>
+                                {getVariantSpecs(variant).map((spec) => (
+                                  <span
+                                    key={`${variantId}-${spec.label}`}
+                                    className={styles.variantSpec}
+                                  >
+                                    {spec.label}: {spec.value}
+                                  </span>
+                                ))}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                )
               ) : null}
 
               {fashionOptionsOpen && shouldUseFashionOptionsModal ? (

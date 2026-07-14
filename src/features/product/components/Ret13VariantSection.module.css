@@ -1,0 +1,92 @@
+.ret13Panel {
+  display: grid;
+  gap: 0.85rem;
+  border: 1px solid #e4dccf;
+  border-radius: 14px;
+  background: #fffdf9;
+  padding: 0.95rem;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.title {
+  font-size: 1rem;
+  line-height: 1.2;
+  color: #1d251d;
+  margin: 0;
+}
+
+.subtext {
+  margin: 0.2rem 0 0;
+  color: #6a7568;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.optionBlock {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.optionLabel {
+  color: #526050;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.measureChip,
+.colorChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.35rem;
+  border: 1px solid #d7c7b6;
+  border-radius: 999px;
+  background: #fffaf4;
+  color: #2c2218;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.38rem 0.72rem;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.measureChip:hover,
+.colorChip:hover {
+  border-color: #c89451;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(201, 138, 65, 0.12);
+}
+
+.measureChipSelected,
+.colorChipSelected {
+  border-color: #d18a3b;
+  background: #f0ddc6;
+  box-shadow: 0 0 0 1px rgba(209, 138, 59, 0.18);
+}
+
+.colorSwatch {
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+  border: 1px solid rgba(44, 34, 24, 0.12);
+  flex-shrink: 0;
+}
