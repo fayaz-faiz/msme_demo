@@ -227,28 +227,74 @@ export default function ProfilePage() {
     router.push("/");
   };
 
+  // const handleLogout = async () => {
+  //   if (isLoggingOut) {
+  //     return;
+  //   }
+  //   setIsLoggingOut(true);
+  //   try {
+  //     const response = await postLogout({ refreshToken }) as {
+  //       data?: { status?: boolean; message?: unknown };
+  //     };
+  //     if (response?.data?.status === true) {
+  //       await clearLogoutHandler();
+  //       notifyOrAlert("Logged out successfully.", "success");
+  //     } else {
+  //       notifyOrAlert(toReadableMessage(response?.data?.message) || "Unable to logout right now.", "error");
+  //     }
+  //   } catch (err: unknown) {
+  //     notifyOrAlert(getErrorMessage(err, "We ran into a little issue while logging out."), "error");
+  //   } finally {
+  //     setIsLoggingOut(false);
+  //   }
+  // };
+
   const handleLogout = async () => {
-    if (isLoggingOut) {
-      return;
-    }
+    if (isLoggingOut) return;
+
     setIsLoggingOut(true);
+
     try {
-      const response = await postLogout({ refreshToken }) as {
-        data?: { status?: boolean; message?: unknown };
-      };
-      if (response?.data?.status === true) {
-        await clearLogoutHandler();
+      const response = await postLogout({ refreshToken });
+
+      if (response?.data?.status) {
         notifyOrAlert("Logged out successfully.", "success");
       } else {
-        notifyOrAlert(toReadableMessage(response?.data?.message) || "Unable to logout right now.", "error");
+        notifyOrAlert(
+          toReadableMessage(response?.data?.message) ||
+          "Unable to logout.",
+          "error"
+        );
+        return;
       }
-    } catch (err: unknown) {
-      notifyOrAlert(getErrorMessage(err, "We ran into a little issue while logging out."), "error");
+
+      await clearLogoutHandler();
+
+    } catch (err: any) {
+
+      // Refresh token already expired
+      if (err?.response?.status === 401) {
+
+        await clearLogoutHandler();
+
+        notifyOrAlert(
+          "Your session has already expired. Please sign in again.",
+          "info"
+        );
+
+        return;
+      }
+
+      notifyOrAlert(
+        getErrorMessage(err, "We ran into a little issue while logging out."),
+        "error"
+      );
+
     } finally {
       setIsLoggingOut(false);
     }
   };
-
+  
   const saveProfileName = async () => {
     if (isSavingName) {
       return;
