@@ -60,7 +60,7 @@ const getColorLabel = (variant: ApiProductItem) => {
     (isMeaningful(variant.colour_name) && variant.colour_name) ||
     (isMeaningful(variant.color) && variant.color) ||
     (isMeaningful(variant.colour) && variant.colour) ||
-    "No color";
+    "";
   return String(label).trim();
 };
 
@@ -150,15 +150,15 @@ export function Ret13VariantSection({
       <div className={styles.header}>
         <div>
           <h2 className={styles.title}>Choose variant</h2>
-          <p className={styles.subtext}>
+          {/* <p className={styles.subtext}>
             Pick a measure and a color. Matching variants will update together.
-          </p>
+          </p> */}
         </div>
       </div>
 
       {measureOptions.length > 0 ? (
         <div className={styles.optionBlock}>
-          <span className={styles.optionLabel}>Measure</span>
+          {/* <span className={styles.optionLabel}>Measure</span> */}
           <div className={styles.chipRow}>
             {measureOptions.map((option) => {
               const selected = option.key === selectedMeasureKey;
@@ -188,7 +188,7 @@ export function Ret13VariantSection({
 
       {colorOptions.length > 0 ? (
         <div className={styles.optionBlock}>
-          <span className={styles.optionLabel}>Colors</span>
+          {/* <span className={styles.optionLabel}>Colors</span> */}
           <div className={styles.chipRow}>
             {colorOptions.map((option) => {
               const selected = option.key === selectedColorKey;

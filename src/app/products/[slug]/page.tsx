@@ -430,6 +430,41 @@ export default function ProductDetailsPage() {
       null
     );
   }, [fashionVariantGroups, selectedFashionVariant]);
+  const activeVariantForTitle = useMemo(() => {
+    const allVariants = [
+      ...ret13VariantItems,
+      ...visibleQuantityVariants,
+      ...visibleFashionVariants,
+      ...variantItems,
+    ];
+    return (
+      allVariants.find((variant) => getItemId(variant) === activeItemId) ||
+      details
+    );
+  }, [
+    activeItemId,
+    details,
+    ret13VariantItems,
+    variantItems,
+    visibleFashionVariants,
+    visibleQuantityVariants,
+  ]);
+  const displayTitle = useMemo(() => {
+    const brandName = String(activeVariantForTitle?.brand || "").trim();
+    const productName = String(product?.name || "").trim();
+    const normalizedBrand = normalizeNameValue(brandName);
+    const normalizedName = normalizeNameValue(productName);
+
+    if (!brandName) {
+      return productName;
+    }
+
+    if (normalizedBrand && normalizedName.includes(normalizedBrand)) {
+      return productName;
+    }
+
+    return `${brandName} ${productName}`.trim();
+  }, [activeVariantForTitle?.brand, product?.name]);
   const resolvedSizeChartUrl = useMemo(() => {
     const activeFashionVariant =
       visibleFashionVariants.find((variant) => getItemId(variant) === activeItemId) ||
@@ -667,7 +702,7 @@ export default function ProductDetailsPage() {
             </div>
             <div className={styles.infoCol}>
               <p className={styles.kicker}>{shopName}</p>
-              <h1 className={styles.title}>{product.name}</h1>
+              <h1 className={styles.title}>{displayTitle}</h1>
               <ProductTypeBadge foodType={product.foodType} />
               <p className={styles.shortDesc}>{details.item_short_desc || "No short description available."}</p>
               {productPriceDisplay ? (

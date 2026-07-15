@@ -574,7 +574,7 @@ export default function ComplaintsPage() {
                                     </span>
                                     <div className={styles.itemDetails}>
                                         <span className={styles.itemName}>{item.item_name}</span>
-                                        <span className={styles.itemMeta}>{item.item_quantity || "1 unit"}</span>
+                                        <span className={styles.itemMeta}>{item.item_quantity}</span>
                                     </div>
                                 </button>
                             );
