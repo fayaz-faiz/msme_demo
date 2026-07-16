@@ -67,6 +67,7 @@ type ApiItem = {
   parent_item_id?: string;
   sub_category?: string;
   item_name?: string;
+  provider_brand?: string;
   item_short_desc?: string;
   item_symbol?: string;
   item_selling_price?: number;
@@ -87,6 +88,7 @@ type ShopProduct = Product & {
   subCategoryName?: string;
   mrpPrice?: number;
   discountPercentage?: number;
+  provider_brand?: string;
 };
 
 type StoreSubCategoryApiResponse = {
@@ -142,6 +144,7 @@ const mapApiItemToProduct = (item: ApiItem, shopSlug: string): ShopProduct => {
     item.item_id ||
     `${shopSlug}-${Math.random().toString(36).slice(2)}`;
   const name = item.item_name || "Untitled item";
+  const providerBrand = item.provider_brand || "Untitled brand";
   const description = item.item_short_desc || name;
   const isVeg = item.item_veg_or_nonveg?.veg === "yes";
   const isNonVeg = item.item_veg_or_nonveg?.non_veg === "yes";
@@ -151,6 +154,7 @@ const mapApiItemToProduct = (item: ApiItem, shopSlug: string): ShopProduct => {
     slug: `${toSlug(name)}-${toSlug(id).slice(0, 8)}`,
     shopSlug,
     name,
+    provider_brand: providerBrand,
     description,
     foodType: isVeg ? "veg" : isNonVeg ? "non-veg" : undefined,
     hasVariants: !!item.customizable,
@@ -904,7 +908,7 @@ export function ShopItemsBrowser({
                     </p>
                   )}
 
-                  <h2 className={styles.productName}>{product.name}</h2>
+                  <h2 className={styles.productName}>{product.provider_brand} {product.name}</h2>
                   <ProductTypeBadge foodType={product.foodType} />
                   <p className={styles.productDescription}>
                     {product.description}
