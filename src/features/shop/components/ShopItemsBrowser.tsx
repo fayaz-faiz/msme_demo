@@ -144,7 +144,7 @@ const mapApiItemToProduct = (item: ApiItem, shopSlug: string): ShopProduct => {
     item.item_id ||
     `${shopSlug}-${Math.random().toString(36).slice(2)}`;
   const name = item.item_name || "Untitled item";
-  const providerBrand = item.provider_brand || "Untitled brand";
+  const providerBrand = item.provider_brand || "";
   const description = item.item_short_desc || name;
   const isVeg = item.item_veg_or_nonveg?.veg === "yes";
   const isNonVeg = item.item_veg_or_nonveg?.non_veg === "yes";
