@@ -151,7 +151,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     return !!(window as Window & { Razorpay?: unknown }).Razorpay;
   };
 
-  const initiatePayment = async (
+  const openRazorpayCheckout = async (
     amount: number | string,
     uniqueId?: string,
     orderId?: string,
@@ -223,7 +223,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
       const resp: any = await payemntGw({ cart_id: cartId });
       const responseData = resp?.data?.data;
       if (resp?.data?.status && responseData?.id) {
-        await initiatePayment(
+        await openRazorpayCheckout(
           responseData?.amount_due,
           responseData?.notes?.uniqueId,
           responseData?.id,
