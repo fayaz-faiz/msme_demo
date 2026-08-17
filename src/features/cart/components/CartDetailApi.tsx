@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { RazorpayOrderOptions, useRazorpay } from "react-razorpay";
 import {
   getAddressWeb,
   getCartLengthWeb,
@@ -82,6 +83,11 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { location } = useLocation();
+  const {
+    error: razorpayLoadError,
+    isLoading: isRazorpayLoading,
+    Razorpay,
+  } = useRazorpay();
   const selectedAddressFromRedux = useAppSelector(
     (state) => state.location.selectAddress as AddressItem | null,
   );
@@ -113,56 +119,11 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     return String(message).trim() || fallback;
   };
 
-  const loadRazorpayScript = async () => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-    if ((window as Window & { Razorpay?: unknown }).Razorpay) {
-      return true;
-    }
-
-    const existingScript = document.querySelector<HTMLScriptElement>(
-      'script[src="https://checkout.razorpay.com/v1/checkout.js"]',
-    );
-    if (existingScript) {
-      if ((window as Window & { Razorpay?: unknown }).Razorpay) {
-        return true;
-      }
-      await new Promise<void>((resolve, reject) => {
-        const onLoad = () => resolve();
-        const onError = () =>
-          reject(new Error("Unable to load payment script."));
-        existingScript.addEventListener("load", onLoad, { once: true });
-        existingScript.addEventListener("error", onError, { once: true });
-      });
-      return !!(window as Window & { Razorpay?: unknown }).Razorpay;
-    }
-
-    await new Promise<void>((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.async = true;
-      script.onload = () => resolve();
-      script.onerror = () =>
-        reject(new Error("Unable to load payment script."));
-      document.body.appendChild(script);
-    });
-
-    return !!(window as Window & { Razorpay?: unknown }).Razorpay;
-  };
-
   const openRazorpayCheckout = async (
     amount: number | string,
     uniqueId?: string,
     orderId?: string,
   ) => {
-    const loaded = await loadRazorpayScript();
-    if (!loaded) {
-      throw new Error(
-        "Payment gateway could not be initialized. Please try again.",
-      );
-    }
-
     const razorpayKey =
       process.env.NEXT_PUBLIC_RAZORPAY_API_KEY ||
       process.env.REACT_APP_RAZORPAY_API_KEY;
@@ -170,16 +131,29 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
       throw new Error("Payment gateway key is missing.");
     }
 
-    const options = {
+    if (razorpayLoadError) {
+      throw new Error(razorpayLoadError);
+    }
+
+    if (isRazorpayLoading) {
+      throw new Error("Payment gateway is still loading. Please try again.");
+    }
+
+    if (!Razorpay) {
+      throw new Error("Payment gateway is unavailable right now.");
+    }
+
+    const options: RazorpayOrderOptions = {
       key: razorpayKey,
-      amount: amount,
+      amount: Number(amount),
       currency: "INR",
       name: "Nearshop",
       description: "Order payment",
-      notes: {
+      order_id: orderId!,
+      notes: JSON.stringify({
         uniqueId: uniqueId || "",
         orderId: orderId || "",
-      },
+      }),
       handler: () => {
         notifyOrAlert("Payment successful. Placing your order...", "success");
         dispatch(clearCart());
@@ -201,15 +175,14 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
         color: "#3399cc",
       },
     };
-
-    const RazorpayConstructor = (
-      window as Window & { Razorpay?: new (opts: any) => { open: () => void } }
-    ).Razorpay;
-    if (!RazorpayConstructor) {
-      throw new Error("Payment gateway is unavailable right now.");
-    }
-
-    const razorpay = new RazorpayConstructor(options);
+    console.log("Razorpay options:", options);
+    const razorpay = new Razorpay(options);
+    razorpay.on("payment.failed", (response) => {
+      notifyOrAlert(
+        response?.error?.description || "Payment failed. Please try again.",
+        "error",
+      );
+    });
     razorpay.open();
   };
 
@@ -696,6 +669,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     !isCartVerified ||
     isInitializing ||
     loading ||
+    isRazorpayLoading ||
     cartItems.length === 0 ||
     !activeAddr;
   const updateCartDisabled = isUpdatingCart || isInitializing || loading;
@@ -919,6 +893,9 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
                 `Proceed to checkout : ${payTotalDisplay}`
               )}
             </button>
+            {razorpayLoadError ? (
+              <p className={styles.updateCartNote}>{razorpayLoadError}</p>
+            ) : null}
             {/* <Link href="/cart" className={styles.backButton}>
             ← Back to cart
           </Link> */}
