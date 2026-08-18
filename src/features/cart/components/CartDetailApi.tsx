@@ -143,6 +143,10 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
       throw new Error("Payment gateway is unavailable right now.");
     }
 
+    if (!orderId) {
+      throw new Error("Unable to create payment order. Please try again.");
+    }
+
     const options: RazorpayOrderOptions = {
       key: razorpayKey,
       amount: Number(amount),
