@@ -121,9 +121,14 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
 
   const openRazorpayCheckout = async (
     amount: number | string,
-    uniqueId?: string,
-    orderId?: string,
+    uniqueId: any,
+    orderId: any,
   ) => {
+    console.log("openRazorpayCheckout called with:", {
+      amount,
+      uniqueId,
+      orderId
+    });
     const razorpayKey =
       process.env.NEXT_PUBLIC_RAZORPAY_API_KEY ||
       process.env.REACT_APP_RAZORPAY_API_KEY;
@@ -146,17 +151,17 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     if (!orderId) {
       throw new Error("Unable to create payment order. Please try again.");
     }
-
+    const activeAddress: any = getActiveAddress();
     const options: RazorpayOrderOptions = {
-      key: razorpayKey,
+      key: razorpayKey!,
       amount: Number(amount),
       currency: "INR",
-      name: "Nearshop",
-      description: "Order payment",
+      name: "NEARSHOP",
+      description: "Credits towards consultations",
       order_id: orderId!,
       notes: JSON.stringify({
-        uniqueId: uniqueId || "",
-        orderId: orderId || "",
+        uniqueId: uniqueId,
+        orderId: orderId,
       }),
       handler: () => {
         notifyOrAlert("Payment successful. Placing your order...", "success");
@@ -168,15 +173,20 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
         setTimeout(() => {
           setShowOrderPlacing(false);
           router.push("/orders/latest");
-        }, 3000);
+        }, 1000);
+      },
+      prefill: {
+        name: activeAddress?.name,
+        email: "customer@example.com",
+        contact: activeAddress?.mobile_number,
+      },
+      theme: {
+        color: "#3399cc",
       },
       modal: {
         ondismiss: () => {
           notifyOrAlert("Payment cancelled.", "warning");
         },
-      },
-      theme: {
-        color: "#3399cc",
       },
     };
     console.log("Razorpay options:", options);
@@ -316,6 +326,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
   };
 
   const verifyCart = async () => {
+
     if (!cartId) {
       return false;
     }
