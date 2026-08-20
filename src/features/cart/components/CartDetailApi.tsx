@@ -127,7 +127,7 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
     console.log("openRazorpayCheckout called with:", {
       amount,
       uniqueId,
-      orderId
+      orderId,
     });
     const razorpayKey =
       process.env.NEXT_PUBLIC_RAZORPAY_API_KEY ||
@@ -152,17 +152,20 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
       throw new Error("Unable to create payment order. Please try again.");
     }
     const activeAddress: any = getActiveAddress();
-    const options: RazorpayOrderOptions = {
+
+    const options: Omit<RazorpayOrderOptions, "notes"> & {
+      notes?: Record<string, string>;
+    } = {
       key: razorpayKey!,
       amount: Number(amount),
       currency: "INR",
       name: "NEARSHOP",
       description: "Credits towards consultations",
       order_id: orderId!,
-      notes: JSON.stringify({
+      notes: {
         uniqueId: uniqueId,
         orderId: orderId,
-      }),
+      },
       handler: () => {
         notifyOrAlert("Payment successful. Placing your order...", "success");
         dispatch(clearCart());
@@ -190,8 +193,10 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
       },
     };
     console.log("Razorpay options:", options);
-    const razorpay = new Razorpay(options);
-    razorpay.on("payment.failed", (response) => {
+    // `notes` is intentionally an object (see comment above); the package's
+    // type declares it as `string`, so cast at the SDK boundary only.
+    const razorpay = new Razorpay(options as unknown as RazorpayOrderOptions);
+    razorpay.on("payment.failed", (response: any) => {
       notifyOrAlert(
         response?.error?.description || "Payment failed. Please try again.",
         "error",
@@ -326,7 +331,6 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
   };
 
   const verifyCart = async () => {
-
     if (!cartId) {
       return false;
     }
@@ -476,8 +480,8 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
       if (!initResponse?.data?.status) {
         notifyOrAlert(
           initResponse?.data?.data?.message ||
-          initResponse?.data?.message ||
-          "Unable to initialize cart.",
+            initResponse?.data?.message ||
+            "Unable to initialize cart.",
           "warning",
         );
         return;
@@ -670,14 +674,14 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
   const activeAddr = getActiveAddress();
   const addrText = activeAddr
     ? [
-      activeAddr.building,
-      activeAddr.locality,
-      activeAddr.city,
-      activeAddr.state,
-      activeAddr.area_code,
-    ]
-      .filter(Boolean)
-      .join(", ")
+        activeAddr.building,
+        activeAddr.locality,
+        activeAddr.city,
+        activeAddr.state,
+        activeAddr.area_code,
+      ]
+        .filter(Boolean)
+        .join(", ")
     : "";
   const needsAddress = isCartVerified && !addrText;
   const checkoutDisabled =
@@ -887,7 +891,9 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
                   ? handleUpdateCart
                   : handleViewDeliveryOptions
               }
-              disabled={showUpdateCartAction ? updateCartDisabled : checkoutDisabled}
+              disabled={
+                showUpdateCartAction ? updateCartDisabled : checkoutDisabled
+              }
             >
               {isUpdatingCart ? (
                 "Updating cart..."
