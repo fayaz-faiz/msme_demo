@@ -152,17 +152,20 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
       throw new Error("Unable to create payment order. Please try again.");
     }
     const activeAddress: any = getActiveAddress();
-    const options: RazorpayOrderOptions = {
+
+    const options: Omit<RazorpayOrderOptions, "notes"> & {
+      notes?: Record<string, string>;
+    } = {
       key: razorpayKey!,
       amount: Number(amount),
       currency: "INR",
       name: "NEARSHOP",
       description: "Credits towards consultations",
       order_id: orderId!,
-      notes: JSON.stringify({
+      notes: {
         uniqueId: uniqueId,
         orderId: orderId,
-      }),
+      },
       handler: () => {
         notifyOrAlert("Payment successful. Placing your order...", "success");
         dispatch(clearCart());
@@ -190,7 +193,9 @@ export function CartDetailApi({ cartId }: CartDetailApiProps) {
       },
     };
     console.log("Razorpay options:", options);
-    const razorpay = new Razorpay(options);
+    // `notes` is intentionally an object (see comment above); the package's
+    // type declares it as `string`, so cast at the SDK boundary only.
+    const razorpay = new Razorpay(options as unknown as RazorpayOrderOptions);
     razorpay.on("payment.failed", (response: any) => {
       notifyOrAlert(
         response?.error?.description || "Payment failed. Please try again.",
